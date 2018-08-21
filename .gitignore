@@ -2,3 +2,8 @@ tal
 *.o
 *.gch
 *.swp
+
+# Dependencies
+deps/
+mpc.h
+mpc.c
