@@ -4,6 +4,7 @@
 
 extern MunitTest sym_tests[];
 extern MunitTest token_tests[];
+extern MunitTest val_tests[];
 
 static MunitSuite suites[] = {
 	{
@@ -12,10 +13,15 @@ static MunitSuite suites[] = {
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
-	},
-	{
+	}, {
 		.prefix		= "/token",
 		.tests		= token_tests,
+		.suites		= NULL,
+		.iterations	= 1,
+		.options	= MUNIT_SUITE_OPTION_NONE
+	}, {
+		.prefix		= "/val",
+		.tests		= val_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE

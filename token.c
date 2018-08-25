@@ -46,8 +46,9 @@ tokenize(const char *src, struct token_info *token_buf,
 
 	enum {
 		NEXT_TOKEN,
-		SYM,
-		ERR
+		AT_NULL,
+		AT_SYM,
+		AT_ERR
 	} state = NEXT_TOKEN;
 
 	do {
@@ -65,7 +66,7 @@ tokenize(const char *src, struct token_info *token_buf,
 				continue;
 
 			if (is_sym_start(*s)) {
-				state = SYM;
+				state = AT_SYM;
 				token->type = TOKEN_SYM;
 				token->len = 1;
 				token->src = s;
@@ -73,16 +74,39 @@ tokenize(const char *src, struct token_info *token_buf,
 				continue;
 			}
 
-			state = ERR;
+			state = AT_ERR;
 			token->type = TOKEN_ERR;
 			token->len = 1;
 			token->src = s;
 			(*ntokens)++;
 			continue;
 
-		case SYM:
+		case AT_NULL:
+			if (is_whitespace(*s)) {
+				state = NEXT_TOKEN;
+				token_idx++;
+				continue;
+			}
+
 			if (is_sym_char(*s)) {
 				token->len++;
+				token->type = AT_SYM;
+				continue;
+			}
+
+			state = AT_ERR;
+			token->type = TOKEN_ERR;
+			token->len++;
+			continue;
+
+		case AT_SYM:
+			if (is_sym_char(*s)) {
+				token->len++;
+				if (token->len == 4 &&
+				    strncmp(token->src, "null", 4) == 0) {
+					token->type = TOKEN_NULL;
+					state = AT_NULL;
+				}
 				continue;
 			}
 
@@ -96,7 +120,7 @@ tokenize(const char *src, struct token_info *token_buf,
 			token->len++;
 			continue;
 
-		case ERR:
+		case AT_ERR:
 			if (is_whitespace(*s)) {
 				state = NEXT_TOKEN;
 				token_idx++;
@@ -115,9 +139,10 @@ const char *
 token_type_str(enum token_type type)
 {
 	switch (type) {
-	case TOKEN_SYM:	return "SYM";
-	case TOKEN_ERR:	return "ERR";
-	default:	return "UNKNOWN";
+	case TOKEN_NULL:	return "NULL";
+	case TOKEN_SYM:		return "SYM";
+	case TOKEN_ERR:		return "ERR";
+	default:		return "UNKNOWN";
 	}
 }
 

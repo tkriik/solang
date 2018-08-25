@@ -109,11 +109,11 @@ test_single_padded(const MunitParameter params[], void *fixture)
 static MunitResult
 test_multi_standalone(const MunitParameter params[], void *fixture)
 {
-	const char *src = "a ab) 1bc abcd";
+	const char *src = "a ab) 1bc abcd null";
 	size_t max_tokens = 64;
 
-	size_t exp_ntokens = 4;
-	struct token_info exp_tokens[4] = {
+	size_t exp_ntokens = 5;
+	struct token_info exp_tokens[5] = {
 		{
 			.type	= TOKEN_SYM,
 			.len	= 1,
@@ -130,6 +130,10 @@ test_multi_standalone(const MunitParameter params[], void *fixture)
 			.type	= TOKEN_SYM,
 			.len	= 4,
 			.src	= src + 10
+		}, {
+			.type	= TOKEN_NULL,
+			.len	= 4,
+			.src	= src + 15
 		}
 	};
 
@@ -139,11 +143,11 @@ test_multi_standalone(const MunitParameter params[], void *fixture)
 static MunitResult
 test_multi_padded(const MunitParameter params[], void *fixture)
 {
-	const char *src = "\n \t a\t\n ab   1bc\n\nabcd\t\t ";
+	const char *src = "\n \t a\t\n ab null  1bc\n\nabcd\t\t ";
 	size_t max_tokens = 64;
 
-	size_t exp_ntokens = 4;
-	struct token_info exp_tokens[4] = {
+	size_t exp_ntokens = 5;
+	struct token_info exp_tokens[5] = {
 		{
 			.type	= TOKEN_SYM,
 			.len	= 1,
@@ -153,13 +157,17 @@ test_multi_padded(const MunitParameter params[], void *fixture)
 			.len	= 2,
 			.src	= src + 8
 		}, {
+			.type	= TOKEN_NULL,
+			.len	= 4,
+			.src	= src + 11,
+		}, {
 			.type	= TOKEN_ERR,
 			.len	= 3,
-			.src	= src + 13
+			.src	= src + 17
 		}, {
 			.type	= TOKEN_SYM,
 			.len	= 4,
-			.src	= src + 18
+			.src	= src + 22
 		}
 	};
 

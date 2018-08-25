@@ -4,7 +4,8 @@
 #include <stddef.h>
 
 enum token_type {
-	TOKEN_SYM = 1,
+	TOKEN_NULL	= 1,
+	TOKEN_SYM,
 	TOKEN_ERR
 };
 
