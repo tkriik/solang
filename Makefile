@@ -16,7 +16,8 @@ CORE_SRC=	sym.c \
 
 TEST_SRC=	test/tal_test.c \
 		test/test_sym.c \
-		test/test_token.c
+		test/test_token.c \
+		test/test_val.c
 
 DEPS_LINKS=	test/munit.c \
 		test/munit.h \
