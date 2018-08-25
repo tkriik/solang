@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -6,9 +7,9 @@
 #include "val.h"
 
 val_t
-mk_sym(char *s)
+mk_sym(const char *s, size_t len)
 {
-	sym_t sym = sym_alloc(s);
+	sym_t sym = sym_alloc(s, len);
 
 	val_t v;
 	v.p = sym;
@@ -55,7 +56,7 @@ get_sym_str(val_t v)
 }
 
 void
-debug_val(val_t v)
+val_debug(val_t v)
 {
 	printf("decimal:\t%lu\n", v.u);
 

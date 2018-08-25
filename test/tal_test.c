@@ -3,11 +3,19 @@
 #include "munit.h"
 
 extern MunitTest sym_tests[];
+extern MunitTest token_tests[];
 
 static MunitSuite suites[] = {
 	{
 		.prefix		= "/sym",
 		.tests		= sym_tests,
+		.suites		= NULL,
+		.iterations	= 1,
+		.options	= MUNIT_SUITE_OPTION_NONE
+	},
+	{
+		.prefix		= "/token",
+		.tests		= token_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE

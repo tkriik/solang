@@ -5,9 +5,9 @@
 #include "sym.h"
 
 sym_t
-sym_alloc(const char *s)
+sym_alloc(const char *s, size_t len)
 {
-	sym_t sym = (sym_t)strdup(s);
+	sym_t sym = (sym_t)strndup(s, len);
 	assert(sym != NULL);
 	return sym;
 }
