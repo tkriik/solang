@@ -1,12 +1,14 @@
 tal
+tal_test
+
 *.o
 *.gch
 *.swp
 
 # deps
 deps/
-linenoise.c
-linenoise.h
+munit.c
+munit.h
 sds.c
 sds.h
 sdsalloc.h
