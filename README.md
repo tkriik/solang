@@ -2,7 +2,19 @@
 
 [![Build Status](https://travis-ci.com/tkriik/tal.svg?branch=master)](https://travis-ci.com/tkriik/tal)
 
+LISP attempt, do not use in production.
+
+## Status
+
 Work in progress
+
+### Features
+
+  - Shell
+
+### Missing features
+
+  - Everything else
 
 ## Dependencies
 
