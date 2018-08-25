@@ -3,13 +3,20 @@ CFLAGS=		-std=gnu99 -Wall -Wextra -O0 -g -Wno-unused-parameter
 LDFLAGS=	-lreadline
 
 SRC=		tal.c \
-		repl.c
+		tal.h \
+		repl.c \
+		repl.h
 
 CORE_SRC=	sym.c \
-		val.c
+		sym.h \
+		token.c \
+		token.h \
+		val.c \
+		val.h
 
 TEST_SRC=	test/tal_test.c \
-		test/test_sym.c
+		test/test_sym.c \
+		test/test_token.c
 
 DEPS_LINKS=	test/munit.c \
 		test/munit.h \

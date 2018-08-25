@@ -8,7 +8,8 @@
 static MunitResult
 test_str(const char *expected)
 {
-	sym_t sym = sym_alloc(expected);
+	size_t len = strlen(expected);
+	sym_t sym = sym_alloc(expected, len);
 	const char *actual = sym_str(sym);
 
 	assert_string_equal(actual, expected);
@@ -33,7 +34,7 @@ test_long(const MunitParameter params[], void *fixture)
 {
 	char str[4096 + 1];
 	memset(str, 0, sizeof(str) - 1);
-	str[sizeof(str)] = '\0';
+	str[4096] = '\0';
 
 	return test_str(str);
 }

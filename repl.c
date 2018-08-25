@@ -8,6 +8,7 @@
 
 #include "repl.h"
 #include "tal.h"
+#include "token.h"
 #include "val.h"
 
 enum cmd_type {
@@ -134,10 +135,33 @@ handle_command(sds input)
 }
 
 static void
+eval(sds input)
+{
+	/* TODO: parsing */
+	size_t max_tokens = 64;
+	struct token_info tokens[max_tokens];
+	size_t ntokens;
+
+	enum tokenize_result result = tokenize(input, tokens, max_tokens, &ntokens);
+
+	if (result == TOKENIZE_LIMIT) {
+		printf("token limit (%zu) reached\n", max_tokens);
+		return;
+	}
+
+	if (CONFIG.debug) {
+		for (size_t i = 0; i < ntokens; i++)
+			token_debug(&tokens[i]);
+	}
+}
+
+static void
 handle_input(sds input)
 {
 	if (strncmp(input, "\\", 1) == 0)
 		handle_command(input);
+	else
+		eval(input);
 }
 
 
@@ -166,7 +190,7 @@ repl_enter(void)
 
 	help_handler();
 
-	debug_val(mk_sym("foobar"));
+	val_debug(mk_sym("foobar", 6));
 
 	loop();
 }

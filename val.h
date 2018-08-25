@@ -27,6 +27,7 @@
  *     - A symbol contains a pointer to a heap-allocated string.
  */
 
+#include <stddef.h>
 #include <limits.h>
 
 typedef union {
@@ -66,10 +67,10 @@ enum val_lim {
 	VAL_BOXED_LIM		= ULONG_MAX >> VAL_BOXED_OFFSET
 };
 
-val_t		 mk_sym(char *);
+val_t		 mk_sym(const char *, size_t);
 int		 is_sym(val_t);
 const char	*get_sym_str(val_t);
 
-void		 debug_val(val_t);
+void		 val_debug(val_t);
 
 #endif
