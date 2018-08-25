@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "token.h"
@@ -121,22 +122,32 @@ token_type_str(enum token_type type)
 }
 
 void
-token_debug(struct token_info *token)
+token_debug(struct token_info *tokens, size_t ntokens)
 {
-	assert(token != NULL);
+	assert(tokens != NULL);
 
-	char src_data[token->len + 1];
-	memcpy(src_data, token->src, token->len);
-	src_data[token->len] = '\0';
+	printf("{\n");
+	for (size_t i = 0; i < ntokens; i++) {
+		struct token_info *token = &tokens[i];
 
-	printf(
-	    "\n"
-	    "token_info {\n"
-	    "        .type = %s\n"
-	    "        .len  = %zu\n"
-	    "        .src  = %p \"%s\"\n"
-	    "}\n",
-	    token_type_str(token->type),
-	    token->len,
-	    token->src, src_data);
+		if (i == 0)
+			printf("\t{\n");
+
+		char *src_data = strndup(token->src, token->len);
+		printf(
+		    "\t\t.type = %s\n"
+		    "\t\t.len  = %zu\n"
+		    "\t\t.src  = %p \"%s\"\n",
+		    token_type_str(token->type),
+		    token->len,
+		    token->src, src_data);
+		free(src_data);
+
+		if (i < ntokens - 1)
+			printf("\t}, {\n");
+		else
+			printf("\t}\n");
+	}
+
+	printf("}\n");
 }
