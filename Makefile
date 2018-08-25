@@ -31,7 +31,7 @@ $(BIN): $(SRC) $(CORE_SRC)
 test: $(TEST_BIN)
 
 $(TEST_BIN): $(TEST_SRC) $(CORE_SRC)
-	$(CC) -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC) $(DEPS_LINKS)
+	$(CC) -I ./ -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC) $(DEPS_LINKS)
 
 deps_links:
 	ln -sf ../deps/munit/munit.c test/munit.c
