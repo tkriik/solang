@@ -1,9 +1,11 @@
 CC=		cc
-CFLAGS=		-std=c99 -Wall -Wextra -O0 -Wno-unused-parameter
+CFLAGS=		-std=gnu99 -Wall -Wextra -O0 -g
 LDFLAGS=	-lreadline
 
 SRC=		repl.c \
-		tal.c
+		sym.c \
+		tal.c \
+		val.c
 
 DEPS_LINKS=	sds.c \
 		sds.h \

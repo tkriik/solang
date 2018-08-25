@@ -8,6 +8,7 @@
 
 #include "repl.h"
 #include "tal.h"
+#include "val.h"
 
 enum cmd_type {
 	CMD_CONFIG,
@@ -164,6 +165,8 @@ repl_enter(void)
 	    VSN_MAJOR, VSN_MINOR, VSN_PATCH);
 
 	help_handler();
+
+	debug_val(mk_sym("foobar"));
 
 	loop();
 }
