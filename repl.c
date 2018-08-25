@@ -13,7 +13,7 @@
 
 enum cmd_type {
 	CMD_CONFIG,
-	CMD_DEBUG,
+	CMD_DEBUG_TOKENS,
 	CMD_HELP,
 	CMD_QUIT
 };
@@ -26,7 +26,7 @@ struct cmd_info {
 };
 
 static void config_handler();
-static void debug_handler(sds *);
+static void debug_tokens_handler(sds *);
 static void help_handler();
 static void quit_handler();
 
@@ -38,10 +38,10 @@ static struct cmd_info CMD_INFO_TAB[CMD_CNT] = {
 		.arity		= 0,
 		.handler	= config_handler
 	}, {
-		.type		= CMD_DEBUG,
-		.name		= "\\d",
+		.type		= CMD_DEBUG_TOKENS,
+		.name		= "\\dt",
 		.arity		= 1,
-		.handler	= debug_handler
+		.handler	= debug_tokens_handler
 	}, {
 		.type		= CMD_HELP,
 		.name		= "\\h",
@@ -57,16 +57,16 @@ static struct cmd_info CMD_INFO_TAB[CMD_CNT] = {
 
 static const char *CMD_HELP_MSG =
     "\n"
-    "\\c          - print REPL configuration\n"
-    "\\d [on|off] - turn debug mode on/off\n"
-    "\\h          - help\n"
-    "\\q          - quit\n"
+    "\\c           - print REPL configuration\n"
+    "\\dt [on|off] - turn token debugging on/off\n"
+    "\\h           - help\n"
+    "\\q           - quit\n"
     "\n";
 
 static struct {
-	int debug;
+	int debug_tokens;
 } CONFIG = {
-	.debug = 0
+	.debug_tokens = 0
 };
 
 static void
@@ -74,19 +74,19 @@ config_handler()
 {
 	printf(
 	    "\n"
-	    "debug = %d\n"
+	    "debug_tokens = %d\n"
 	    "\n",
-	    CONFIG.debug);
+	    CONFIG.debug_tokens);
 }
 
 static void
-debug_handler(sds *argv)
+debug_tokens_handler(sds *argv)
 {
 	sds mode = argv[0];
 	if (strcmp(mode, "on") == 0)
-		CONFIG.debug = 1;
+		CONFIG.debug_tokens = 1;
 	else if (strcmp(mode, "off") == 0)
-		CONFIG.debug = 0;
+		CONFIG.debug_tokens = 0;
 	else {
 		printf("no such debug mode: %s\n", mode);
 		return;
@@ -149,10 +149,8 @@ eval(sds input)
 		return;
 	}
 
-	if (CONFIG.debug) {
-		for (size_t i = 0; i < ntokens; i++)
-			token_debug(&tokens[i]);
-	}
+	if (CONFIG.debug_tokens)
+		token_debug(tokens, ntokens);
 }
 
 static void
