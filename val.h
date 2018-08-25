@@ -92,6 +92,6 @@ const char	*get_sym_str(val_t);
 
 void		 val_free(val_t);
 
-void		 val_debug(val_t);
+void		 val_debug(const char *, val_t);
 
 #endif

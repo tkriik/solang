@@ -134,10 +134,9 @@ is_eq(val_t v, val_t w)
 		break;
 	}
 
-	/* NOTREACHED */
-	assert("NOTREACHED");
+	assert(0 && "NOTREACHED");
 
-	return -1;
+	return 0;
 }
 
 const char *
@@ -158,20 +157,22 @@ val_free(val_t v)
 		switch (get_boxed_type(v)) {
 		case VAL_BOXED_TYPE_SYM:
 			sym_free(get_boxed_ptr(v));
-			break;
+			return;
 		default:
-			assert("NOTREACHED");
-			break;
+			assert(0 && "NOTREACHED");
+			return;
 		}
 	default:
-		assert("NOTREACHED");
-		break;
+		assert(0 && "NOTREACHED");
+		return;
 	}
 }
 
 void
-val_debug(val_t v)
+val_debug(const char *info, val_t v)
 {
+	printf("-------- %s\n", info);
+
 	printf("decimal:\t%lu\n", v.u);
 
 	if (sizeof(val_t) == 8)
@@ -210,6 +211,7 @@ val_debug(val_t v)
 
 	case VAL_STORAGE_IMMED:
 		printf("immediate (%lu)\n", storage);
+		printf("immediate type:\t");
 
 		unsigned long immed_type = get_immed_type(v);
 		switch (immed_type) {
@@ -226,4 +228,6 @@ val_debug(val_t v)
 		printf("UNKNOWN (%lu)\n", storage);
 		break;
 	}
+
+	printf("--------\n");
 }
