@@ -33,9 +33,21 @@ Work in progress
 
     $ CC=clang make
 
+### Build test executable
+
+    $ make test
+
 ### Run
 
     $ ./tal
+
+### Run tests
+
+    $ ./tal_test
+
+### Run specific tests (eg. `sym` and `val` modules)
+
+    $ ./tal_test sym val
 
 ### Clean executable
 
