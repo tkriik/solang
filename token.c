@@ -60,6 +60,14 @@ tokenize(const char *src, struct token_info *token_buf,
 
 		struct token_info *token = &token_buf[token_idx];
 
+		/*
+		 * State transitions:
+		 *
+		 *   NEXT_TOKEN -> NEXT_TOKEN | AT_SYM | AT_ERR
+		 *   AT_SYM     -> AT_SYM | AT_NULL | NEXT_TOKEN | AT_ERR
+		 *   AT_NULL    -> NEXT_TOKEN | AT_SYM | AT_ERR
+		 *   AT_ERR     -> AT_ERR | NEXT_TOKEN
+		 */
 		switch (state) {
 		case NEXT_TOKEN:
 			if (is_whitespace(*s))
