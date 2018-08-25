@@ -1,0 +1,10 @@
+language: c
+
+compiler: gcc
+
+install:
+  - make deps
+
+script:
+  - make test
+  - ./tal_test
