@@ -4,6 +4,10 @@
 
 #include "sym.h"
 
+/*
+ * TODO: Use global hash table for avoiding allocating duplicate symbols
+ */
+
 sym_t
 sym_alloc(const char *s, size_t len)
 {

@@ -2,12 +2,19 @@
 
 #include "munit.h"
 
+extern MunitTest parse_tests[];
 extern MunitTest sym_tests[];
 extern MunitTest token_tests[];
 extern MunitTest val_tests[];
 
 static MunitSuite suites[] = {
 	{
+		.prefix		= "/parse",
+		.tests		= parse_tests,
+		.suites		= NULL,
+		.iterations	= 1,
+		.options	= MUNIT_SUITE_OPTION_NONE
+	}, {
 		.prefix		= "/sym",
 		.tests		= sym_tests,
 		.suites		= NULL,

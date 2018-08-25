@@ -7,7 +7,9 @@ SRC=		tal.c \
 		repl.c \
 		repl.h
 
-CORE_SRC=	sym.c \
+CORE_SRC=	parse.c \
+		parse.h \
+		sym.c \
 		sym.h \
 		token.c \
 		token.h \
@@ -15,6 +17,7 @@ CORE_SRC=	sym.c \
 		val.h
 
 TEST_SRC=	test/tal_test.c \
+		test/test_parse.c \
 		test/test_sym.c \
 		test/test_token.c \
 		test/test_val.c

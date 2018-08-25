@@ -22,6 +22,6 @@ enum tokenize_result {
 
 enum tokenize_result tokenize(const char *, struct token_info *, size_t, size_t *);
 
-void token_debug(struct token_info *, size_t);
+void token_debug(const char *, struct token_info *, size_t);
 
 #endif

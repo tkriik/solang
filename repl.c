@@ -6,6 +6,7 @@
 
 #include "sds.h"
 
+#include "parse.h"
 #include "repl.h"
 #include "tal.h"
 #include "token.h"
@@ -137,20 +138,45 @@ handle_command(sds input)
 static void
 eval(sds input)
 {
-	/* TODO: parsing */
 	size_t max_tokens = 64;
 	struct token_info tokens[max_tokens];
 	size_t ntokens;
 
-	enum tokenize_result result = tokenize(input, tokens, max_tokens, &ntokens);
+	enum tokenize_result tresult = tokenize(input, tokens, max_tokens, &ntokens);
 
-	if (result == TOKENIZE_LIMIT) {
+	if (tresult == TOKENIZE_LIMIT) {
 		printf("token limit (%zu) reached\n", max_tokens);
 		return;
 	}
 
 	if (CONFIG.debug_tokens)
-		token_debug(tokens, ntokens);
+		token_debug("tokens", tokens, ntokens);
+
+	int invalid_tokens = 0;
+	for (size_t i = 0; i < ntokens; i++) {
+		struct token_info *token = &tokens[i];
+		if (token->type == TOKEN_ERR) {
+			invalid_tokens = 1;
+			char *token_data = strndup(token->src, token->len);
+			printf("invalid token: %s\n", token_data);
+			free(token_data);
+		}
+	}
+
+	if (invalid_tokens)
+		return;
+
+	val_t v;
+	struct token_info *next_tokens;
+	enum parse_result presult = parse(tokens, ntokens, &v, &next_tokens);
+	if (presult != PARSE_OK) {
+		printf("cannot evaluate multiple values\n");
+		return;
+	}
+
+	val_debug("eval", v);
+
+	val_free(v);
 }
 
 static void
@@ -188,7 +214,7 @@ repl_enter(void)
 
 	help_handler();
 
-	val_debug(mk_sym("foobar", 6));
+	val_debug("test", mk_sym("foobar", 6));
 
 	loop();
 }

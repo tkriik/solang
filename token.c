@@ -155,9 +155,11 @@ token_type_str(enum token_type type)
 }
 
 void
-token_debug(struct token_info *tokens, size_t ntokens)
+token_debug(const char *info, struct token_info *tokens, size_t ntokens)
 {
 	assert(tokens != NULL);
+
+	printf("-------- %s\n", info);
 
 	printf("{\n");
 	for (size_t i = 0; i < ntokens; i++) {
@@ -183,4 +185,6 @@ token_debug(struct token_info *tokens, size_t ntokens)
 	}
 
 	printf("}\n");
+
+	printf("--------\n");
 }
