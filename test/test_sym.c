@@ -5,43 +5,62 @@
 
 #include "sym.h"
 
-static void
+static MunitResult
 test_str(const char *expected)
 {
 	sym_t sym = sym_alloc(expected);
 	const char *actual = sym_str(sym);
 
-	assert_string_equal(expected, actual);
+	assert_string_equal(actual, expected);
 
-	sym_free(sym);
+	return MUNIT_OK;
 }
 
-static void
-test_empty(void)
+static MunitResult
+test_empty(const MunitParameter params[], void *fixture)
 {
-	test_str("");
+	return test_str("");
 }
 
-static void
-test_short(void)
+static MunitResult
+test_short(const MunitParameter params[], void *fixture)
 {
-	test_str("short_symbol");
+	return test_str("short_sym");
 }
 
-static void
-test_long(void)
+static MunitResult
+test_long(const MunitParameter params[], void *fixture)
 {
-	char long_str[4096 + 1];
-	memset(long_str, 'A', sizeof(long_str) - 1);
-	long_str[4096] = '\0';
+	char str[4096 + 1];
+	memset(str, 0, sizeof(str) - 1);
+	str[sizeof(str)] = '\0';
 
-	test_str(long_str);
+	return test_str(str);
 }
 
-void
-test_sym(void)
-{
-	test_empty();
-	test_short();
-	test_long();
-}
+MunitTest sym_tests[] = {
+	{
+		.name		= "/empty",
+		.test		= test_empty,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/short",
+		.test		= test_short,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/long",
+		.test		= test_long,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL
+	}
+};

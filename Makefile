@@ -1,5 +1,5 @@
 CC=		cc
-CFLAGS=		-std=gnu99 -Wall -Wextra -O0 -g
+CFLAGS=		-std=gnu99 -Wall -Wextra -O0 -g -Wno-unused-parameter
 LDFLAGS=	-lreadline
 
 SRC=		tal.c \

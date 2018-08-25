@@ -11,6 +11,7 @@ Work in progress
 
 ### Local dependencies
 
+  - [µnit](https://github.com/nemequ/munit)
   - [SDS](https://github.com/antirez/sds)
 
 ## Development
@@ -45,9 +46,9 @@ Work in progress
 
     $ ./tal_test
 
-### Run specific tests (eg. `sym` and `val` modules)
+### Print test help
 
-    $ ./tal_test sym val
+    $ ./tal_test --help
 
 ### Clean executable
 
