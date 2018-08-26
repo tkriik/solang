@@ -14,8 +14,8 @@
  * The next LSB after the storage tag denotes the type of the value.
  *
  *   For immediate values, the types are:
- *     - 0: null
- *     - 1: <TODO>
+ *     - 0: undefined
+ *     - 1: null
  *
  *   For boxed values, the types are:
  *     - 0: symbol
@@ -23,8 +23,12 @@
  *
  * Value info:
  *
+ *   Undefined:
+ *     - An undefined value is all zero by design, and for internal use only.
+ *       It cannot be instantiated by any expression.
+ *
  *   Null:
- *     - A null value represents nothing, and is all zero by design.
+ *     - A null value represents nothing.
  *
  *   Symbol:
  *     - A symbol contains a pointer to a heap-allocated string.
@@ -44,7 +48,8 @@ enum val_storage {
 };
 
 enum val_immed_type {
-	VAL_IMMED_TYPE_NULL	= 0
+	VAL_IMMED_TYPE_UNDEF	= 0,
+	VAL_IMMED_TYPE_NULL	= 1
 };
 
 enum val_boxed_type {
@@ -81,17 +86,43 @@ enum val_lim {
 	VAL_BOXED_LIM		= ULONG_MAX >> VAL_BOXED_OFFSET
 };
 
-val_t		 mk_null(void);
-val_t		 mk_sym(const char *, size_t);
+/*
+ * val_util.c
+ */
+unsigned long	 _get_storage(val_t);
 
-int		 is_null(val_t);
-int		 is_sym(val_t);
-int		 is_eq(val_t, val_t);
+unsigned long	 _get_immed_type(val_t);
+void		 _set_immed_null(val_t *);
 
-const char	*get_sym_str(val_t);
+unsigned long	 _get_boxed_type(val_t);
+void		*_get_boxed_ptr(val_t);
+void		*_get_boxed_sym_ptr(val_t);
+void		 _set_boxed_sym(val_t *, void *);
 
-void		 val_free(val_t);
+/* val_assert.c */
+void		  assert_undef(val_t);
+void		  assert_immed(val_t);
+void		  assert_boxed(val_t);
+void		  assert_boxed_sym(val_t);
 
-void		 val_debug(const char *, val_t);
+/*
+ * val.c
+ */
+val_t		 _mk_undef(void);
+val_t		  mk_null(void);
+val_t		  mk_sym(const char *, size_t);
+
+int		  is_immed(val_t);
+int		  is_boxed(val_t);
+int		  is_null(val_t);
+int		  is_sym(val_t);
+int		  is_eq(val_t, val_t);
+
+const char	 *get_sym_str(val_t);
+
+void		  val_free(val_t);
+
+/* val.debug.c */
+void		  val_debug(const char *, val_t);
 
 #endif

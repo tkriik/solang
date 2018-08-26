@@ -14,7 +14,10 @@ CORE_SRC=	parse.c \
 		token.c \
 		token.h \
 		val.c \
-		val.h
+		val.h \
+		val_assert.c \
+		val_debug.c \
+		val_util.c
 
 TEST_SRC=	test/tal_test.c \
 		test/test_parse.c \
