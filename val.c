@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "sym.h"
 #include "val.h"
 
 val_t
@@ -24,17 +24,6 @@ mk_null(void)
 	return v;
 }
 
-val_t
-mk_sym(const char *s, size_t len)
-{
-	val_t v = _mk_undef();
-	sym_t sym = sym_alloc(s, len);
-
-	_set_boxed_sym(&v, sym);
-
-	return v;
-}
-
 int
 is_immed(val_t v)
 {
@@ -52,13 +41,6 @@ is_null(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_IMMED
 	    && _get_immed_type(v) == VAL_IMMED_TYPE_NULL;
-}
-
-int
-is_sym(val_t v)
-{
-	return _get_storage(v) == VAL_STORAGE_BOXED
-	    && _get_boxed_type(v) == VAL_BOXED_TYPE_SYM;
 }
 
 int
@@ -115,12 +97,6 @@ is_eq(val_t v, val_t w)
 	return 0;
 }
 
-const char *
-get_sym_str(val_t v)
-{
-	return sym_str(_get_boxed_sym_ptr(v));
-}
-
 void
 val_free(val_t v)
 {
@@ -130,7 +106,7 @@ val_free(val_t v)
 	case VAL_STORAGE_BOXED:
 		switch (_get_boxed_type(v)) {
 		case VAL_BOXED_TYPE_SYM:
-			sym_free(_get_boxed_sym_ptr(v));
+			free(_get_boxed_sym_ptr(v));
 			return;
 		default:
 			assert(0 && "NOTREACHED");

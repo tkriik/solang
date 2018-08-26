@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "val.h"
 
 unsigned long
@@ -46,13 +48,18 @@ _get_boxed_sym_ptr(val_t v)
 {
 	assert_boxed_sym(v);
 
-	return _get_boxed_ptr(v);
+	void *p = _get_boxed_ptr(v);
+
+	assert(p != NULL);
+
+	return p;
 }
 
 void
 _set_boxed_sym(val_t *vp, void *p)
 {
 	assert_undef(*vp);
+	assert(p != NULL);
 
 	vp->p = p;
 	vp->u |= VAL_BOXED_TYPE_SYM << VAL_BOXED_TYPE_OFFSET;

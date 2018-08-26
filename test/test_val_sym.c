@@ -3,46 +3,54 @@
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit.h"
 
-#include "sym.h"
+#include "val.h"
 
 static MunitResult
-test_str(const char *expected)
+test_is_sym(const MunitParameter params[], void *fixture)
 {
-	size_t len = strlen(expected);
-	sym_t sym = sym_alloc(expected, len);
-	const char *actual = sym_str(sym);
+	val_t v = mk_sym("foobar", 6);
 
-	assert_string_equal(actual, expected);
+	assert_true(is_sym(v));
+
+	val_free(v);
 
 	return MUNIT_OK;
 }
 
-static MunitResult
-test_empty(const MunitParameter params[], void *fixture)
+static void
+test_str(const char *expected)
 {
-	return test_str("");
+	val_t v = mk_sym(expected, strlen(expected));
+	const char *actual = get_sym_str(v);
+	
+	assert_string_equal(expected, actual);
+
+	val_free(v);
 }
 
 static MunitResult
 test_short(const MunitParameter params[], void *fixture)
 {
-	return test_str("short_sym");
+	test_str("foobar");
+
+	return MUNIT_OK;
 }
 
 static MunitResult
 test_long(const MunitParameter params[], void *fixture)
 {
-	char str[4096 + 1];
-	memset(str, 0, sizeof(str) - 1);
-	str[4096] = '\0';
+	char s[4096 + 1] = {0};
+	memset(s, 'A', 4096);
 
-	return test_str(str);
+	test_str(s);
+
+	return MUNIT_OK;
 }
 
-MunitTest sym_tests[] = {
+MunitTest val_sym_tests[] = {
 	{
-		.name		= "/empty",
-		.test		= test_empty,
+		.name		= "/is-sym",
+		.test		= test_is_sym,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

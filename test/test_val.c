@@ -14,18 +14,6 @@ test_is_null(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
-test_is_sym(const MunitParameter params[], void *fixture)
-{
-	val_t v = mk_sym("a", 6);
-
-	assert_true(is_sym(v));
-
-	val_free(v);
-
-	return MUNIT_OK;
-}
-
-static MunitResult
 test_eq(val_t v, val_t w)
 {
 	assert_true(is_eq(v, w));
@@ -95,30 +83,10 @@ test_neq_sym(const MunitParameter params[], void *fixture)
 	return res;
 }
 
-static MunitResult
-test_get_sym_str(const MunitParameter params[], void *fixture)
-{
-	val_t v = mk_sym("foobar", 6);
-	const char *str = get_sym_str(v);
-
-	assert_string_equal(str, "foobar");
-
-	val_free(v);
-
-	return MUNIT_OK;
-}
-
 MunitTest val_tests[] = {
 	{
 		.name		= "/is-null",
 		.test		= test_is_null,
-		.setup		= NULL,
-		.tear_down	= NULL,
-		.options	= MUNIT_TEST_OPTION_NONE,
-		.parameters	= NULL
-	}, {
-		.name		= "/is-sym",
-		.test		= test_is_sym,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
@@ -147,13 +115,6 @@ MunitTest val_tests[] = {
 	}, {
 		.name		= "/neq-sym",
 		.test		= test_neq_sym,
-		.setup		= NULL,
-		.tear_down	= NULL,
-		.options	= MUNIT_TEST_OPTION_NONE,
-		.parameters	= NULL
-	}, {
-		.name		= "/get-sym-str",
-		.test		= test_get_sym_str,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
