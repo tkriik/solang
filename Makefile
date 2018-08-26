@@ -9,21 +9,20 @@ SRC=		tal.c \
 
 CORE_SRC=	parse.c \
 		parse.h \
-		sym.c \
-		sym.h \
 		token.c \
 		token.h \
 		val.c \
 		val.h \
 		val_assert.c \
 		val_debug.c \
+		val_sym.c \
 		val_util.c
 
 TEST_SRC=	test/tal_test.c \
 		test/test_parse.c \
-		test/test_sym.c \
 		test/test_token.c \
-		test/test_val.c
+		test/test_val.c \
+		test/test_val_sym.c
 
 DEPS_LINKS=	test/munit.c \
 		test/munit.h \

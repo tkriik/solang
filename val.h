@@ -110,19 +110,20 @@ void		  assert_boxed_sym(val_t);
  */
 val_t		 _mk_undef(void);
 val_t		  mk_null(void);
-val_t		  mk_sym(const char *, size_t);
 
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
 int		  is_null(val_t);
-int		  is_sym(val_t);
 int		  is_eq(val_t, val_t);
-
-const char	 *get_sym_str(val_t);
 
 void		  val_free(val_t);
 
-/* val.debug.c */
+/* val_sym.c */
+val_t		  mk_sym(const char *, size_t);
+int		  is_sym(val_t);
+const char	 *get_sym_str(val_t);
+
+/* val_debug.c */
 void		  val_debug(const char *, val_t);
 
 #endif
