@@ -9,13 +9,15 @@
 static int
 is_sym_char(char c)
 {
-	return isalnum(c) || strchr("<_-/*>!?", c) != NULL;
+	return isalnum(c)
+	    || (c != '\0' && strchr("<_-/*>!?", c) != NULL);
 }
 
 static int
 is_sym_start(char c)
 {
-	return isalpha(c) || strchr("<_-/*>!?", c) != NULL;
+	return isalpha(c)
+	    || (c != '\0' && strchr("<_-/*>!?", c) != NULL);
 }
 
 static int
@@ -30,161 +32,177 @@ is_end(char c)
 	return c == '\0';
 }
 
-enum tokenize_result
-tokenize(const char *src, struct token_info *token_buf,
-    size_t max_tokens, size_t *ntokens)
+enum token_res
+token_next(const char **srcp, struct token_info *token)
 {
-	assert(src != NULL);
-	assert(token_buf != NULL);
-	assert(0 < max_tokens);
-	assert(ntokens != NULL);
+	assert(srcp != NULL);
+	assert(*srcp != NULL);
+	assert(token != NULL);
 
-	const char *s = src;
-	size_t token_idx = 0;
-
-	*ntokens = 0;
-
+	/*
+	 * State transitions, from current state to most likely next state:
+	 *
+	 *   NEXT_TOKEN -> NEXT_TOKEN
+	 *               | AT_SYM
+	 *               | <return>
+	 *               | AT_ERR
+	 *
+	 *   AT_SYM     -> AT_SYM
+	 *               | <return>
+	 *               | AT_NULL
+	 *               | AT_ERR
+	 *
+	 *   AT_NULL    -> <return>
+	 *               | AT_SYM
+	 *               | AT_ERR
+	 *
+	 *   AT_ERR     -> AT_ERR
+	 *               | <return>
+	 */
 	enum {
 		NEXT_TOKEN,
-		AT_NULL,
 		AT_SYM,
+		AT_NULL,
 		AT_ERR
 	} state = NEXT_TOKEN;
 
-	do {
-		if (token_idx >= max_tokens)
-			return TOKENIZE_LIMIT;
+	const char *cur = *srcp;
+	while (1) {
+		char c = *cur;
 
-		if (is_end(*s))
-			break;
-
-		struct token_info *token = &token_buf[token_idx];
-
-		/*
-		 * State transitions:
-		 *
-		 *   NEXT_TOKEN -> NEXT_TOKEN | AT_SYM | AT_ERR
-		 *   AT_SYM     -> AT_SYM | AT_NULL | NEXT_TOKEN | AT_ERR
-		 *   AT_NULL    -> NEXT_TOKEN | AT_SYM | AT_ERR
-		 *   AT_ERR     -> AT_ERR | NEXT_TOKEN
-		 */
 		switch (state) {
 		case NEXT_TOKEN:
-			if (is_whitespace(*s))
+			/* NEXT_TOKEN -> NEXT_TOKEN */
+			if (is_whitespace(c)) {
+				cur++;
 				continue;
+			}
 
-			if (is_sym_start(*s)) {
-				state = AT_SYM;
-				token->type = TOKEN_SYM;
+			/* NEXT_TOKEN -> AT_SYM */
+			if (is_sym_start(c)) {
+				token->type = TOKEN_TYPE_SYM;
 				token->len = 1;
-				token->src = s;
-				(*ntokens)++;
+				token->src = cur;
+				state = AT_SYM;
+				cur++;
 				continue;
 			}
 
-			state = AT_ERR;
-			token->type = TOKEN_ERR;
+			/* NEXT_TOKEN -> <return> */
+			if (is_end(c)) {
+				*srcp = NULL;
+				return TOKEN_RES_NONE;
+			}
+
+			/* NEXT_TOKEN -> AT_ERR */
+			token->type = TOKEN_TYPE_ERR;
 			token->len = 1;
-			token->src = s;
-			(*ntokens)++;
-			continue;
-
-		case AT_NULL:
-			if (is_whitespace(*s)) {
-				state = NEXT_TOKEN;
-				token_idx++;
-				continue;
-			}
-
-			if (is_sym_char(*s)) {
-				token->len++;
-				token->type = AT_SYM;
-				continue;
-			}
-
+			token->src = cur;
 			state = AT_ERR;
-			token->type = TOKEN_ERR;
-			token->len++;
+			cur++;
 			continue;
 
 		case AT_SYM:
-			if (is_sym_char(*s)) {
+			/*
+			 * AT_SYM -> AT_SYM
+			 *         | AT_NULL
+			 */
+			if (is_sym_char(c)) {
 				token->len++;
 				if (token->len == 4 &&
 				    strncmp(token->src, "null", 4) == 0) {
-					token->type = TOKEN_NULL;
+					token->type = TOKEN_TYPE_NULL;
 					state = AT_NULL;
 				}
+				cur++;
 				continue;
 			}
 
-			if (is_whitespace(*s)) {
-				state = NEXT_TOKEN;
-				token_idx++;
-				continue;
+			/* AT_SYM -> <return> */
+			if (is_whitespace(c) || is_end(c)) {
+				*srcp = cur;
+				return TOKEN_RES_OK;
 			}
 
-			token->type = TOKEN_ERR;
+			/* AT_SYM -> AT_ERR */
+			token->type = TOKEN_TYPE_ERR;
 			token->len++;
+			state = AT_ERR;
+			cur++;
+			continue;
+
+		case AT_NULL:
+			/* AT_NULL -> <return> */
+			if (is_whitespace(c) || is_end(c)) {
+				*srcp = cur;
+				return TOKEN_RES_OK;
+			}
+
+			/* AT_NULL -> AT_SYM */
+			if (is_sym_char(c)) {
+				token->type = TOKEN_TYPE_SYM;
+				token->len++;
+				state = AT_SYM;
+				cur++;
+				continue;
+			}
+
+			/* AT_NULL -> AT_ERR */
+			token->type = TOKEN_TYPE_ERR;
+			token->len++;
+			state = AT_ERR;
+			cur++;
 			continue;
 
 		case AT_ERR:
-			if (is_whitespace(*s)) {
-				state = NEXT_TOKEN;
-				token_idx++;
-				continue;
+			/* AT_ERR -> <return> */
+			if (is_whitespace(c) || is_end(c)) {
+				*srcp = cur;
+				return TOKEN_RES_OK;
 			}
 
+			/* AT_ERR -> AT_ERR */
 			token->len++;
+			cur++;
 			continue;
-		}
-	} while (*s++ != '\0');
 
-	return TOKENIZE_OK;
+		};
+	}
+
+	assert(0 && "NOTREACHED");
+	return TOKEN_RES_NONE;
 }
 
 const char *
 token_type_str(enum token_type type)
 {
 	switch (type) {
-	case TOKEN_NULL:	return "NULL";
-	case TOKEN_SYM:		return "SYM";
-	case TOKEN_ERR:		return "ERR";
-	default:		return "UNKNOWN";
+	case TOKEN_TYPE_NULL:	return "TOKEN_TYPE_NULL";
+	case TOKEN_TYPE_SYM:	return "TOKEN_TYPE_SYM";
+	case TOKEN_TYPE_ERR:	return "TOKEN_TYPE_ERR";
+	default:		return "TOKEN_TYPE_<INVALID>";
 	}
 }
 
 void
-token_debug(const char *info, struct token_info *tokens, size_t ntokens)
+token_debug(const char *info, struct token_info *token)
 {
-	assert(tokens != NULL);
+	assert(info != NULL);
+	assert(token != NULL);
 
 	printf("-------- %s\n", info);
-
 	printf("{\n");
-	for (size_t i = 0; i < ntokens; i++) {
-		struct token_info *token = &tokens[i];
 
-		if (i == 0)
-			printf("\t{\n");
-
-		char *src_data = strndup(token->src, token->len);
-		printf(
-		    "\t\t.type = %s\n"
-		    "\t\t.len  = %zu\n"
-		    "\t\t.src  = %p \"%s\"\n",
-		    token_type_str(token->type),
-		    token->len,
-		    token->src, src_data);
-		free(src_data);
-
-		if (i < ntokens - 1)
-			printf("\t}, {\n");
-		else
-			printf("\t}\n");
-	}
+	char *src_data = strndup(token->src, token->len);
+	printf(
+	    "\t\t.type = %s\n"
+	    "\t\t.len  = %zu\n"
+	    "\t\t.src  = %p \"%s\"\n",
+	    token_type_str(token->type),
+	    token->len,
+	    token->src, src_data);
+	free(src_data);
 
 	printf("}\n");
-
 	printf("--------\n");
 }

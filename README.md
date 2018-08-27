@@ -40,19 +40,15 @@ Work in progress
 
     $ make deps
 
-### Build executable (with GCC)
+### Build project (with GCC)
 
     $ make
 
-### Build executable (with Clang)
+### Build project (with Clang)
 
     $ CC=clang make
 
-### Build test executable
-
-    $ make test
-
-### Run
+### Run shell
 
     $ ./tal
 
@@ -60,11 +56,11 @@ Work in progress
 
     $ ./tal_test
 
-### Print test help
+### Print test options
 
     $ ./tal_test --help
 
-### Clean executable
+### Clean project
 
     $ make clean
 

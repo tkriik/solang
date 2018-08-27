@@ -14,6 +14,7 @@
 
 enum cmd_type {
 	CMD_CONFIG,
+	CMD_DEBUG_EVAL,
 	CMD_DEBUG_TOKENS,
 	CMD_HELP,
 	CMD_QUIT
@@ -27,17 +28,23 @@ struct cmd_info {
 };
 
 static void config_handler();
+static void debug_eval_handler(sds *);
 static void debug_tokens_handler(sds *);
 static void help_handler();
 static void quit_handler();
 
-#define CMD_CNT 4
+#define CMD_CNT 5
 static struct cmd_info CMD_INFO_TAB[CMD_CNT] = {
 	{
 		.type		= CMD_CONFIG,
 		.name		= "\\c",
 		.arity		= 0,
 		.handler	= config_handler
+	}, {
+		.type		= CMD_DEBUG_EVAL,
+		.name		= "\\de",
+		.arity		= 1,
+		.handler	= debug_eval_handler
 	}, {
 		.type		= CMD_DEBUG_TOKENS,
 		.name		= "\\dt",
@@ -59,15 +66,18 @@ static struct cmd_info CMD_INFO_TAB[CMD_CNT] = {
 static const char *CMD_HELP_MSG =
     "\n"
     "\\c           - print REPL configuration\n"
+    "\\de [on|off] - turn eval debugging on/off\n"
     "\\dt [on|off] - turn token debugging on/off\n"
     "\\h           - help\n"
     "\\q           - quit\n"
     "\n";
 
 static struct {
+	int debug_eval;
 	int debug_tokens;
-} CONFIG = {
-	.debug_tokens = 0
+} config = {
+	.debug_eval	= 0,
+	.debug_tokens	= 0
 };
 
 static void
@@ -75,9 +85,25 @@ config_handler()
 {
 	printf(
 	    "\n"
+	    "debug_eval   = %d\n"
 	    "debug_tokens = %d\n"
 	    "\n",
-	    CONFIG.debug_tokens);
+	    config.debug_eval,
+	    config.debug_tokens);
+}
+
+static void
+debug_eval_handler(sds *argv)
+{
+	sds mode = argv[0];
+	if (strcmp(mode, "on") == 0)
+		config.debug_eval = 1;
+	else if (strcmp(mode, "off") == 0)
+		config.debug_eval = 0;
+	else {
+		printf("no such eval debug mode: %s\n", mode);
+		return;
+	}
 }
 
 static void
@@ -85,11 +111,11 @@ debug_tokens_handler(sds *argv)
 {
 	sds mode = argv[0];
 	if (strcmp(mode, "on") == 0)
-		CONFIG.debug_tokens = 1;
+		config.debug_tokens = 1;
 	else if (strcmp(mode, "off") == 0)
-		CONFIG.debug_tokens = 0;
+		config.debug_tokens = 0;
 	else {
-		printf("no such debug mode: %s\n", mode);
+		printf("no such token debug mode: %s\n", mode);
 		return;
 	}
 }
@@ -138,43 +164,28 @@ handle_command(sds input)
 static void
 eval(sds input)
 {
-	size_t max_tokens = 64;
-	struct token_info tokens[max_tokens];
-	size_t ntokens;
+	const char *src = input;
+	struct token_info token;
 
-	enum tokenize_result tresult = tokenize(input, tokens, max_tokens, &ntokens);
-
-	if (tresult == TOKENIZE_LIMIT) {
-		printf("token limit (%zu) reached\n", max_tokens);
+	enum token_res tres = token_next((const char **)&src, &token);
+	if (tres == TOKEN_RES_NONE) {
+		if (config.debug_tokens)
+			printf("no tokens read\n");
 		return;
 	}
 
-	if (CONFIG.debug_tokens)
-		token_debug("tokens", tokens, ntokens);
-
-	int invalid_tokens = 0;
-	for (size_t i = 0; i < ntokens; i++) {
-		struct token_info *token = &tokens[i];
-		if (token->type == TOKEN_ERR) {
-			invalid_tokens = 1;
-			char *token_data = strndup(token->src, token->len);
-			printf("invalid token: %s\n", token_data);
-			free(token_data);
-		}
-	}
-
-	if (invalid_tokens)
-		return;
+	if (config.debug_tokens)
+		token_debug("token", &token);
 
 	val_t v;
-	struct token_info *next_tokens;
-	enum parse_result presult = parse(tokens, ntokens, &v, &next_tokens);
-	if (presult != PARSE_OK) {
-		printf("cannot evaluate multiple values\n");
+	enum parse_res pres = parse_token(&token, &v);
+	if (pres == PARSE_RES_ERR) {
+		printf("parse error\n");
 		return;
 	}
 
-	val_debug("eval", v);
+	if (config.debug_eval)
+		val_debug("eval", v);
 
 	val_free(v);
 }
@@ -213,8 +224,6 @@ repl_enter(void)
 	    VSN_MAJOR, VSN_MINOR, VSN_PATCH);
 
 	help_handler();
-
-	val_debug("test", mk_sym("foobar", 6));
 
 	loop();
 }

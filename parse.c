@@ -4,47 +4,36 @@
 #include "token.h"
 #include "val.h"
 
-enum parse_result
-parse(struct token_info *tokens, size_t ntokens, val_t *vp,
-    struct token_info **next_tokensp)
+enum parse_res
+parse_token(struct token_info *token, val_t *vp)
 {
-	assert(tokens != NULL);
-	assert(0 < ntokens);
+	assert(token != NULL);
 	assert(vp != NULL);
-	assert(next_tokensp != NULL);
 
-	enum parse_result result;
+	switch (token->type) {
+	case TOKEN_TYPE_NULL:
+		*vp = mk_null();
+		return PARSE_RES_OK;
 
-	size_t token_idx;
-	for (token_idx = 0; token_idx < ntokens; token_idx++) {
-		struct token_info *token = &tokens[token_idx];
+	case TOKEN_TYPE_SYM:
+		*vp = mk_sym(token->src, token->len);
+		return PARSE_RES_OK;
 
-		switch (token->type) {
-		case TOKEN_NULL:
-			*vp = mk_null();
-			result = PARSE_OK;
-			goto finish;
-
-		case TOKEN_SYM:
-			*vp = mk_sym(token->src, token->len);
-			result = PARSE_OK;
-			goto finish;
-
-		case TOKEN_ERR:
-			/* We assume erroneous tokens are handled before this point */
-			assert(0 && "NOTREACHED");
-			goto finish;
-		}
+	case TOKEN_TYPE_ERR:
+		*vp = _mk_undef();
+		return PARSE_RES_ERR;
 	}
 
-finish:
-	if (token_idx < ntokens - 1) {
-		*next_tokensp = &tokens[token_idx + 1];
-		result = PARSE_CONT;
-	} else {
-		*next_tokensp = NULL;
-		result = PARSE_OK;
-	}
+	assert(0 && "NOTREACHED");
+	return PARSE_RES_ERR;
+}
 
-	return result;
+const char *
+parse_res_str(enum parse_res res)
+{
+	switch (res) {
+	case PARSE_RES_OK:	return "PARSE_RES_OK";
+	case PARSE_RES_ERR:	return "PARSE_RES_ERR";
+	default:		return "PARSE_RES_<INVALID>";
+	}
 }

@@ -1,5 +1,5 @@
-CC=		cc
-CFLAGS=		-std=gnu99 -Wall -Wextra -O0 -g -Wno-unused-parameter
+CC=		gcc
+CFLAGS=		-std=c99 -Wall -Wextra -O0 -g -Wno-unused-parameter
 LDFLAGS=	-lreadline
 
 SRC=		tal.c \
@@ -36,7 +36,7 @@ TEST_BIN=	tal_test
 
 .PHONY: all clean clean_deps deps_links
 
-all: $(BIN)
+all: $(BIN) $(TEST_BIN)
 
 $(BIN): $(SRC) $(CORE_SRC)
 	$(CC) -o $(BIN) $(CFLAGS) $(SRC) $(CORE_SRC) $(DEPS_LINKS) $(LDFLAGS)
