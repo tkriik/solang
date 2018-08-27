@@ -14,7 +14,7 @@ token_type_str(enum token_type type)
 	case TOKEN_TYPE_ERR:		return "TOKEN_TYPE_ERR";
 	case TOKEN_TYPE_LIST_START:	return "TOKEN_TYPE_LIST_START";
 	case TOKEN_TYPE_LIST_END:	return "TOKEN_TYPE_LIST_END";
-	default:		return "TOKEN_TYPE_<INVALID>";
+	default:			return "TOKEN_TYPE_<INVALID>";
 	}
 }
 

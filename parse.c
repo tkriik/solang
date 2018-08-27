@@ -4,36 +4,90 @@
 #include "token.h"
 #include "val.h"
 
-enum parse_res
-parse_token(struct token_info *token, val_t *vp)
+struct state {
+	const char	*src;
+	long		 level;
+};
+
+/* TODO: free on error */
+static val_t
+do_parse(struct state *st)
 {
-	assert(token != NULL);
-	assert(vp != NULL);
+	assert(st != NULL);
+	assert(st->src != NULL);
 
-	switch (token->type) {
-	case TOKEN_TYPE_NULL:
-		*vp = mk_null();
-		return PARSE_RES_OK;
+	val_t l = mk_list();
 
-	case TOKEN_TYPE_SYM:
-		*vp = mk_sym(token->src, token->len);
-		return PARSE_RES_OK;
+	long cur_level = st->level;
 
-	case TOKEN_TYPE_ERR:
-		*vp = _mk_undef();
-		return PARSE_RES_ERR;
+	struct token_info token;
+	for (enum token_res tres = token_next(&st->src, &token);
+	     tres != TOKEN_RES_NONE;
+	     tres = token_next(&st->src, &token)) {
+
+		val_t v = _mk_undef();
+
+		switch (token.type) {
+			case TOKEN_TYPE_NULL:
+				v = mk_null();
+				break;
+
+			case TOKEN_TYPE_SYM:
+				v = mk_sym(token.src, token.len);
+				break;
+
+			case TOKEN_TYPE_LIST_START:
+				st->level++;
+				v = do_parse(st);
+				if (_is_undef(v)) {
+					val_free(l);
+					return v;
+				}
+				break;
+
+			case TOKEN_TYPE_LIST_END:
+				if (0 < st->level) {
+					st->level--;
+					l = list_reverse_inplace(l);
+					return l;
+				}
+
+				val_free(l);
+				return _mk_undef();
+
+			case TOKEN_TYPE_ERR:
+				val_free(l);
+				return _mk_undef();
+
+			default:
+				assert(0 && "NOTREACHED");
+		}
+
+		l = list_cons(v, l);
 	}
 
-	assert(0 && "NOTREACHED");
-	return PARSE_RES_ERR;
+	if (cur_level != st->level) {
+		val_free(l);
+		return _mk_undef();
+	}
+
+	l = list_reverse_inplace(l);
+
+	return l;
 }
 
-const char *
-parse_res_str(enum parse_res res)
+val_t
+parse(const char *src)
 {
-	switch (res) {
-	case PARSE_RES_OK:	return "PARSE_RES_OK";
-	case PARSE_RES_ERR:	return "PARSE_RES_ERR";
-	default:		return "PARSE_RES_<INVALID>";
-	}
+	assert(src != NULL);
+
+	struct state st = {
+		.src	= src,
+		.level	= 0
+	};
+
+	val_t l = do_parse(&st);
+	assert(is_list(l) || _is_undef(l));
+
+	return l;
 }

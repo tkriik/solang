@@ -18,7 +18,7 @@ test_token_next(const char	**curp,
 
 	if (exp_res == TOKEN_RES_NONE) {
 		assert_int(res, ==, TOKEN_RES_NONE);
-		assert_ptr_equal(cur, NULL);
+		assert_ptr_equal(cur, exp_cur);
 
 		*curp = cur;
 		return;
@@ -46,7 +46,7 @@ test_empty(const MunitParameter params[], void *fixture)
 	const char *src = "";
 
 	const char *cur = src;
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src);
 
 	return MUNIT_OK;
 }
@@ -58,7 +58,7 @@ test_null(const MunitParameter params[], void *fixture)
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL, 4, src + 4);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 4);
 
 	return MUNIT_OK;
 }
@@ -70,7 +70,7 @@ test_sym(const MunitParameter params[], void *fixture)
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM, 3, src + 3);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
 
 	return MUNIT_OK;
 }
@@ -82,7 +82,7 @@ test_list_start(const MunitParameter params[], void *fixture)
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_START, 1, src + 1);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 1);
 
 	return MUNIT_OK;
 }
@@ -94,7 +94,7 @@ test_list_end(const MunitParameter params[], void *fixture)
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END, 1, src + 1);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 1);
 
 	return MUNIT_OK;
 }
@@ -106,7 +106,7 @@ test_err(const MunitParameter params[], void *fixture)
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, 3, src + 3);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
 
 	return MUNIT_OK;
 }
@@ -116,7 +116,7 @@ test_multi(const MunitParameter params[], void *fixture)
 {
 	const char *src =
 	    "         "		"\n"	// 0  -  9
-	    "null     "		"\t"	// 10 - 19
+	    "null)    "		"\t"	// 10 - 19
 	    "foo      "		"\v"	// 20 - 29
 	    "   bar   "		"\r"	// 30 - 39
 	    "   ,,,   "		"\n"	// 40 - 49
@@ -125,13 +125,14 @@ test_multi(const MunitParameter params[], void *fixture)
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL,       4, src + 10 + 4);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 10 + 5);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 20 + 3);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 30 + 6);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR,        3, src + 40 + 6);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 50 + 6);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_START, 1, src + 60 + 1);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 60 + 2);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 70);
 
 	return MUNIT_OK;
 }

@@ -131,6 +131,7 @@ val_t		  mk_null(void);
 
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
+int		 _is_undef(val_t);
 int		  is_null(val_t);
 int		  is_eq(val_t, val_t);
 
@@ -157,9 +158,10 @@ int		  is_list(val_t);
 val_t		  list_cons(val_t, val_t);
 val_t		  list_head(val_t);
 val_t		  list_tail(val_t);
+size_t		  list_count(val_t);
+val_t		  list_reverse_inplace(val_t);
 
 int		 _blist_eq(val_t, val_t);
-
 void		 _blist_free(val_t);
 
 /*

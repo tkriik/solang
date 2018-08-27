@@ -7,34 +7,57 @@
 #include "val_test.h"
 
 static void
-test_parse_token(struct token_info *token,
-	         enum parse_res exp_res,
-	         val_t exp_v)
+test_parse(const char *src, val_t exp_v)
 {
-	val_t v;
-	enum parse_res res = parse_token(token, &v);
-
-	const char *res_s = parse_res_str(res);
-	const char *exp_res_s = parse_res_str(exp_res);
-	assert_string_equal(res_s, exp_res_s);
-	assert_int(res, ==, exp_res);
-
+	val_t v = parse(src);
 	assert_val_eq(v, exp_v);
+	val_free(v);
+}
 
-	val_free(exp_v);
+static void
+test_parse_err(const char *src)
+{
+	val_t v = parse(src);
+	assert_val_eq(v, _mk_undef());
+	val_free(v);
+}
+
+struct parse_fixture {
+	const char	*src;
+	val_t		 exp_v;
+};
+
+static void
+test_parse_fixtures(struct parse_fixture *pfs)
+{
+	for (struct parse_fixture *pf = pfs; pf->src != NULL; pf++) {
+		test_parse(pf->src, pf->exp_v);
+		val_free(pf->exp_v);
+	}
 }
 
 static MunitResult
 test_null(const MunitParameter params[], void *fixture)
 {
-	const char *src = "null";
-	struct token_info token = {
-		.type	= TOKEN_TYPE_NULL,
-		.src	= src,
-		.len	= 4
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "null",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= " null",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= "null ",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= "\n\v\tnull\r\n",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= NULL
+		}
 	};
 
-	test_parse_token(&token, PARSE_RES_OK, mk_null());
+	test_parse_fixtures(pfs);
 
 	return MUNIT_OK;
 }
@@ -42,29 +65,99 @@ test_null(const MunitParameter params[], void *fixture)
 static MunitResult
 test_sym(const MunitParameter params[], void *fixture)
 {
-	const char *src = "foo";
-	struct token_info token = {
-		.type	= TOKEN_TYPE_SYM,
-		.src	= src,
-		.len	= 3
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "foo",
+			.exp_v	= list_cons(mk_sym("foo", 3), mk_list())
+		}, {
+			.src	= " ->bar",
+			.exp_v	= list_cons(mk_sym("->bar", 5), mk_list())
+		}, {
+			.src	= "foo-> ",
+			.exp_v	= list_cons(mk_sym("foo->", 5), mk_list())
+		}, {
+			.src	= "\n\r\tbaz9\r\n",
+			.exp_v	= list_cons(mk_sym("baz9", 4), mk_list())
+		}, {
+			.src	= NULL
+		}
 	};
 
-	test_parse_token(&token, PARSE_RES_OK, mk_sym("foo", 3));
+	test_parse_fixtures(pfs);
 
 	return MUNIT_OK;
 }
 
 static MunitResult
-test_err(const MunitParameter params[], void *fixture)
+test_list_0(const MunitParameter params[], void *fixture)
 {
-	const char *src = ",,,";
-	struct token_info token = {
-		.type	= TOKEN_TYPE_ERR,
-		.src	= src,
-		.len	= 3
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "",
+			.exp_v	= mk_list()
+		}, {
+			.src	= "()",
+			.exp_v	= list_cons(mk_list(), mk_list())
+		}, {
+			.src	= "(())",
+			.exp_v	= list_cons(list_cons(mk_list(),
+				                      mk_list()),
+				            mk_list())
+		}, {
+			.src	= "\n(\t\t(  (\n)\t)\r)\n",
+			.exp_v	= list_cons(list_cons(list_cons(mk_list(),
+				                                mk_list()),
+				                      mk_list()),
+				            mk_list())
+		}, {
+			.src	= NULL
+		}
 	};
 
-	test_parse_token(&token, PARSE_RES_ERR, _mk_undef());
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_list_n(const MunitParameter params[], void *fixture)
+{
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "foo null baz",
+			.exp_v	= list_cons(mk_sym("foo", 3),
+				            list_cons(mk_null(),
+				                      list_cons(mk_sym("baz", 3),
+				                                mk_list())))
+		}, {
+			.src	= NULL
+		}
+	};
+
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_list_err(const MunitParameter params[], void *fixture)
+{
+	const char *srcs[] = {
+	    "(",
+	    "(foo",
+	    "(foo bar",
+	    "(foo (bar",
+	    "(foo (bar)",
+	    "(foo (bar ,))",
+	    ")",
+	    "foo)",
+	    "foo bar)",
+	    "foo (bar))",
+	    NULL
+	};
+
+	for (const char **srcp = srcs; *srcp != NULL; srcp++)
+		test_parse_err(*srcp);
 
 	return MUNIT_OK;
 }
@@ -85,8 +178,22 @@ MunitTest parse_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/err",
-		.test		= test_err,
+		.name		= "/list-0",
+		.test		= test_list_0,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/list-n",
+		.test		= test_list_n,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/list-err",
+		.test		= test_list_err,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

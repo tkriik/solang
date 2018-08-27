@@ -76,8 +76,8 @@ static struct {
 	int debug_value;
 	int debug_token;
 } config = {
-	.debug_value	= 0,
-	.debug_token	= 0
+	.debug_value	= 1,
+	.debug_token	= 1
 };
 
 static void
@@ -159,41 +159,44 @@ handle_command(sds input)
 
 	if (handled == 0)
 		printf("unknown command: %s\n", tokens[0]);
+
+	sdsfreesplitres(tokens, ntokens);
 }
 
 static void
 eval(sds input)
 {
 	const char *src = input;
-	struct token_info token;
-	enum token_res tres;
 
-	int multi_eval = 0;
-	do {
-		tres = token_next((const char **)&src, &token);
-		if (tres == TOKEN_RES_NONE) {
-			if (!multi_eval && config.debug_token)
-				printf("no tokens read\n");
-			break;
-		}
+	if (config.debug_token) {
+		struct token_info token;
+		enum token_res tres;
+		int multi_token = 0;
+		const char *cur = src;
+		do {
+			tres = token_next(&cur, &token);
+			if (tres == TOKEN_RES_NONE) {
+				if (!multi_token && config.debug_token)
+					printf("no tokens read\n");
+				break;
+			}
 
-		if (config.debug_token)
-			token_debug("token", &token);
+			if (config.debug_token)
+				token_debug("token", &token);
 
-		val_t v;
-		enum parse_res pres = parse_token(&token, &v);
-		if (pres == PARSE_RES_ERR) {
-			printf("parse error\n");
-			continue;
-		}
+			multi_token = 1;
+		} while (tres == TOKEN_RES_OK);
+	}
 
-		if (config.debug_value)
-			val_debug("value", v);
+	val_t l = parse(src);
+	if (config.debug_value)
+		val_debug("values", l);
 
-		val_free(v);
+	if (_is_undef(l))
+		printf("parse error\n");
 
-		multi_eval = 1;
-	} while (tres == TOKEN_RES_OK);
+
+	val_free(l);
 }
 
 static void
@@ -210,16 +213,18 @@ static void
 loop(void)
 {
 	while (1) {
-		sds input = sdsnew(readline(">> "));
-		if (input == NULL)
+		char *in = readline(">> ");
+		if (in == NULL)
 			err(0, "EOF while reading standard input");
 
+		sds input = sdsnew(in);
 		input = sdstrim(input, " \t");
 
 		add_history(input);
 		handle_input(input);
 
 		sdsfree(input);
+		free(in);
 	}
 }
 

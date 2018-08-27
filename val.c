@@ -37,6 +37,13 @@ is_boxed(val_t v)
 }
 
 int
+_is_undef(val_t v)
+{
+	return _get_storage(v) == VAL_STORAGE_IMMED
+	    && _get_immed_type(v) == VAL_IMMED_TYPE_UNDEF;
+}
+
+int
 is_null(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_IMMED

@@ -37,7 +37,7 @@ _mk_blist(val_t hd, val_t tl)
 val_t
 mk_list(void)
 {
-	_mk_elist();
+	return _mk_elist();
 }
 
 int
@@ -61,7 +61,7 @@ is_list(val_t v)
 }
 
 val_t
-list_cons(val_t l, val_t v)
+list_cons(val_t v, val_t l)
 {
 	assert_list(l);
 
@@ -81,8 +81,52 @@ list_tail(val_t l)
 {
 	struct blist *bl = _get_boxed_list_ptr(l);
 
-	assert_list(l);
+	assert_list(bl->tl);
 	return bl->tl;
+}
+
+size_t
+list_count(val_t l)
+{
+	assert_list(l);
+
+	size_t count = 0;
+	val_t node = l;
+	while (_is_blist(node)) {
+		count++;
+		node = list_tail(node);
+	}
+
+	return count;
+}
+
+static val_t
+blist_reverse_inplace(val_t l)
+{
+	val_t p = l;
+	val_t q = mk_list();
+	val_t r;
+
+	while (!_is_elist(p)) {
+		r = q;
+		q = p;
+		p = list_tail(p);
+		struct blist *bl_q = _get_boxed_list_ptr(q);
+		bl_q->tl = r;
+	}
+
+	return q;
+}
+
+val_t
+list_reverse_inplace(val_t l)
+{
+	assert_list(l);
+
+	if (_is_elist(l))
+		return l;
+
+	return blist_reverse_inplace(l);
 }
 
 int

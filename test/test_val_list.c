@@ -25,12 +25,12 @@ test_eq(const MunitParameter params[], void *fixture)
 	val_t l1 = mk_list();
 	assert_val_eq(l0, l1);
 
-	l0 = list_cons(l0, mk_null());
-	l1 = list_cons(l1, mk_null());
+	l0 = list_cons(mk_null(), l0);
+	l1 = list_cons(mk_null(), l1);
 	assert_val_eq(l0, l1);
 
-	l0 = list_cons(l0, mk_sym("foo", 3));
-	l1 = list_cons(l1, mk_sym("foo", 3));
+	l0 = list_cons(mk_sym("foo", 3), l0);
+	l1 = list_cons(mk_sym("foo", 3), l1);
 	assert_val_eq(l0, l1);
 
 	val_free(l0);
@@ -45,11 +45,11 @@ test_neq(const MunitParameter params[], void *fixture)
 	val_t l0 = mk_list();
 	val_t l1 = mk_list();
 
-	l0 = list_cons(l0, mk_sym("foo", 3));
-	l1 = list_cons(l1, mk_sym("bar", 3));
+	l0 = list_cons(mk_sym("foo", 3), l0);
+	l1 = list_cons(mk_sym("bar", 3), l1);
 	assert_val_neq(l0, l1);
 
-	l0 = list_cons(l0, mk_sym("foo", 3));
+	l0 = list_cons(mk_sym("foo", 3), l0);
 	assert_val_neq(l0, l1);
 
 	val_free(l0);
@@ -67,24 +67,55 @@ test_cons_head_tail(const MunitParameter params[], void *fixture)
 	val_t v2 = mk_sym("bar", 3);
 	val_t v3 = mk_sym("baz", 3);
 
-	val_t l1 = list_cons(l0, v1);
+	val_t l1 = list_cons(v1, l0);
 	assert_val_eq(list_head(l1), v1);
 	assert_val_eq(list_tail(l1), l0);
 
-	val_t l2 = list_cons(l1, v2);
+	val_t l2 = list_cons(v2, l1);
 	assert_val_eq(list_head(l2), v2);
 	assert_val_eq(list_head(list_tail(l2)), v1);
 	assert_val_eq(list_tail(l2), l1);
 	assert_val_eq(list_tail(list_tail(l2)), l0);
 
-	val_t l3 = list_cons(l2, v3);
+	val_t l3 = list_cons(v3, l2);
 	assert_val_eq(list_head(l3), v3);
 	assert_val_eq(list_head(list_tail(l3)), v2);
 	assert_val_eq(list_head(list_tail(list_tail(l3))), v1);
 	assert_val_eq(list_tail(l3), l2);
 	assert_val_eq(list_tail(list_tail(l3)), l1);
 
-	val_free(l2);
+	val_free(l3);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_reverse_inplace(const MunitParameter params[], void *fixture)
+{
+	val_t v0 = mk_sym("foo", 3);
+	val_t v1 = mk_null();
+	val_t v2 = mk_sym("baz", 3);
+
+	val_t l = mk_list();
+	l = list_reverse_inplace(l);
+	assert_val_eq(l, mk_list());
+
+	l = list_cons(v0, l);
+	l = list_reverse_inplace(l);
+	assert_val_eq(v0, list_head(l));
+
+	l = list_cons(v1, l);
+	l = list_reverse_inplace(l);
+	assert_val_eq(v0, list_head(l));
+	assert_val_eq(v1, list_head(list_tail(l)));
+
+	l = list_cons(v2, l);
+	l = list_reverse_inplace(l);
+	assert_val_eq(v1, list_head(l));
+	assert_val_eq(v0, list_head(list_tail(l)));
+	assert_val_eq(v2, list_head(list_tail(list_tail(l))));
+
+	val_free(l);
 
 	return MUNIT_OK;
 }
@@ -114,6 +145,13 @@ MunitTest val_list_tests[] = {
 	}, {
 		.name		= "/cons-head-tail",
 		.test		= test_cons_head_tail,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/reverse-inplace",
+		.test		= test_reverse_inplace,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

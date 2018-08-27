@@ -40,7 +40,7 @@ TEST_BIN=	tal_test
 
 .PHONY: all clean clean_deps deps_links
 
-all: $(BIN) $(TEST_BIN)
+all: $(BIN)
 
 $(BIN): $(SRC) $(CORE_SRC)
 	$(CC) -o $(BIN) $(CFLAGS) $(SRC) $(CORE_SRC) $(DEPS_LINKS) $(LDFLAGS)
@@ -62,6 +62,8 @@ deps/sds:
 	git clone https://github.com/antirez/sds.git deps/sds
 
 deps: deps/munit deps/sds deps_links
+
+test: $(TEST_BIN)
 
 clean:
 	rm -f $(BIN) $(TEST_BIN)

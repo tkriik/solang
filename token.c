@@ -121,7 +121,7 @@ token_next(const char **srcp, struct token_info *token)
 
 			/* NEXT_TOKEN -> <return> */
 			if (is_end(c)) {
-				*srcp = NULL;
+				*srcp = cur;
 				return TOKEN_RES_NONE;
 			}
 
@@ -158,7 +158,7 @@ token_next(const char **srcp, struct token_info *token)
 			}
 
 			/* AT_SYM -> <return> */
-			if (is_whitespace(c) || is_end(c)) {
+			if (is_list_char(c) || is_whitespace(c) || is_end(c)) {
 				*srcp = cur;
 				return TOKEN_RES_OK;
 			}
@@ -172,7 +172,7 @@ token_next(const char **srcp, struct token_info *token)
 
 		case AT_NULL:
 			/* AT_NULL -> <return> */
-			if (is_whitespace(c) || is_end(c)) {
+			if (is_list_char(c) || is_whitespace(c) || is_end(c)) {
 				*srcp = cur;
 				return TOKEN_RES_OK;
 			}
@@ -195,7 +195,7 @@ token_next(const char **srcp, struct token_info *token)
 
 		case AT_ERR:
 			/* AT_ERR -> <return> */
-			if (is_whitespace(c) || is_end(c)) {
+			if (is_list_char(c) || is_whitespace(c) || is_end(c)) {
 				*srcp = cur;
 				return TOKEN_RES_OK;
 			}
