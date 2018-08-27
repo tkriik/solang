@@ -166,28 +166,34 @@ eval(sds input)
 {
 	const char *src = input;
 	struct token_info token;
+	enum token_res tres;
 
-	enum token_res tres = token_next((const char **)&src, &token);
-	if (tres == TOKEN_RES_NONE) {
+	int multi_eval = 0;
+	do {
+		tres = token_next((const char **)&src, &token);
+		if (tres == TOKEN_RES_NONE) {
+			if (!multi_eval && config.debug_token)
+				printf("no tokens read\n");
+			break;
+		}
+
 		if (config.debug_token)
-			printf("no tokens read\n");
-		return;
-	}
+			token_debug("token", &token);
 
-	if (config.debug_token)
-		token_debug("token", &token);
+		val_t v;
+		enum parse_res pres = parse_token(&token, &v);
+		if (pres == PARSE_RES_ERR) {
+			printf("parse error\n");
+			continue;
+		}
 
-	val_t v;
-	enum parse_res pres = parse_token(&token, &v);
-	if (pres == PARSE_RES_ERR) {
-		printf("parse error\n");
-		return;
-	}
+		if (config.debug_value)
+			val_debug("value", v);
 
-	if (config.debug_value)
-		val_debug("value", v);
+		val_free(v);
 
-	val_free(v);
+		multi_eval = 1;
+	} while (tres == TOKEN_RES_OK);
 }
 
 static void
