@@ -11,6 +11,7 @@ CORE_SRC=	parse.c \
 		parse.h \
 		token.c \
 		token.h \
+		token_debug.c \
 		val.c \
 		val.h \
 		val_assert.c \

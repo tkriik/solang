@@ -20,8 +20,10 @@ enum token_res {
 	TOKEN_RES_NONE
 };
 
+/* token.c */
 enum token_res	 token_next(const char **, struct token_info *);
 
+/* token_debug.c */
 const char	*token_type_str(enum token_type);
 void		 token_debug(const char *, struct token_info *);
 

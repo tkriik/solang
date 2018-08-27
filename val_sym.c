@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "val.h"
@@ -12,9 +14,13 @@ mk_sym(const char *s, size_t len)
 {
 	assert(*s != '\0');
 	assert(0 < len);
+	assert(len < SIZE_MAX);
 
 	val_t v = _mk_undef();
-	char *sym = strndup(s, len);
+
+	char *sym = calloc(1, len + 1);
+	assert(sym != NULL);
+	memcpy(sym, s, len);
 
 	_set_boxed_sym(&v, sym);
 
