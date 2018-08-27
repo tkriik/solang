@@ -76,6 +76,30 @@ test_sym(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
+test_list_start(const MunitParameter params[], void *fixture)
+{
+	const char *src = "(";
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_START, 1, src + 1);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_list_end(const MunitParameter params[], void *fixture)
+{
+	const char *src = ")";
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END, 1, src + 1);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
 test_err(const MunitParameter params[], void *fixture)
 {
 	const char *src = "$$$";
@@ -96,14 +120,17 @@ test_multi(const MunitParameter params[], void *fixture)
 	    "foo      "		"\v"	// 20 - 29
 	    "   bar   "		"\r"	// 30 - 39
 	    "   ,,,   "		"\n"	// 40 - 49
-	    "   baz   "		"\n";	// 50 - 59
+	    "   baz   "		"\n"	// 50 - 59
+	    "()       "		"\n";	// 60 - 69
 
 	const char *cur = src;
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL, 4, src + 10 + 4);
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,  3, src + 20 + 3);
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,  3, src + 30 + 6);
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR,  3, src + 40 + 6);
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,  3, src + 50 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL,       4, src + 10 + 4);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 20 + 3);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 30 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR,        3, src + 40 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 50 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_START, 1, src + 60 + 1);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 60 + 2);
 	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, NULL);
 
 	return MUNIT_OK;
@@ -127,6 +154,20 @@ MunitTest token_tests[] = {
 	}, {
 		.name		= "/sym",
 		.test		= test_sym,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/list-start",
+		.test		= test_list_start,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/list-end",
+		.test		= test_list_end,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

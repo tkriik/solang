@@ -5,6 +5,18 @@
 #include "token.h"
 
 static int
+is_whitespace(char c)
+{
+	return isspace(c);
+}
+
+static int
+is_end(char c)
+{
+	return c == '\0';
+}
+
+static int
 is_sym_char(char c)
 {
 	return isalnum(c)
@@ -18,16 +30,27 @@ is_sym_start(char c)
 	    || (c != '\0' && strchr("<_-/*>!?", c) != NULL);
 }
 
-static int
-is_whitespace(char c)
-{
-	return isspace(c);
-}
+enum list_char {
+	LIST_CHAR_START	= '(',
+	LIST_CHAR_END	= ')'
+};
 
 static int
-is_end(char c)
+is_list_char(char c)
 {
-	return c == '\0';
+	return c == LIST_CHAR_START || c == LIST_CHAR_END;
+}
+
+enum token_type
+list_char_token_type(char c)
+{
+	switch (c) {
+	case LIST_CHAR_START:	return TOKEN_TYPE_LIST_START;
+	case LIST_CHAR_END:	return TOKEN_TYPE_LIST_END;
+	}
+
+	assert(0 && "NOTREACHED");
+	return -1;
 }
 
 enum token_res
@@ -41,9 +64,12 @@ token_next(const char **srcp, struct token_info *token)
 	 * State transitions, from current state to most likely next state:
 	 *
 	 *   NEXT_TOKEN -> NEXT_TOKEN
+	 *               | AT_LIST
 	 *               | AT_SYM
 	 *               | <return>
 	 *               | AT_ERR
+	 *
+	 *   AT_LIST    -> <return>
 	 *
 	 *   AT_SYM     -> AT_SYM
 	 *               | <return>
@@ -59,6 +85,7 @@ token_next(const char **srcp, struct token_info *token)
 	 */
 	enum {
 		NEXT_TOKEN,
+		AT_LIST,
 		AT_SYM,
 		AT_NULL,
 		AT_ERR
@@ -73,6 +100,12 @@ token_next(const char **srcp, struct token_info *token)
 			/* NEXT_TOKEN -> NEXT_TOKEN */
 			if (is_whitespace(c)) {
 				cur++;
+				continue;
+			}
+
+			/* NEXT_TOKEN -> AT_LIST */
+			if (is_list_char(c)) {
+				state = AT_LIST;
 				continue;
 			}
 
@@ -99,6 +132,14 @@ token_next(const char **srcp, struct token_info *token)
 			state = AT_ERR;
 			cur++;
 			continue;
+
+		case AT_LIST:
+			/* AT_LIST -> <return> */
+			token->type = list_char_token_type(c);
+			token->len = 1;
+			token->src = cur;
+			*srcp = cur + 1;
+			return TOKEN_RES_OK;
 
 		case AT_SYM:
 			/*
