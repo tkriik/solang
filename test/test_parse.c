@@ -4,6 +4,7 @@
 #include "parse.h"
 #include "token.h"
 #include "val.h"
+#include "val_test.h"
 
 static void
 test_parse_token(struct token_info *token,
@@ -18,8 +19,7 @@ test_parse_token(struct token_info *token,
 	assert_string_equal(res_s, exp_res_s);
 	assert_int(res, ==, exp_res);
 
-	assert_true(is_eq(v, exp_v));
-	assert_true(is_eq(exp_v, v));
+	assert_val_eq(v, exp_v);
 
 	val_free(exp_v);
 }

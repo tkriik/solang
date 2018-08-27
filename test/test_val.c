@@ -2,6 +2,7 @@
 #include "munit.h"
 
 #include "val.h"
+#include "val_test.h"
 
 static MunitResult
 test_is_null(const MunitParameter params[], void *fixture)
@@ -14,21 +15,12 @@ test_is_null(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
-test_eq(val_t v, val_t w)
-{
-	assert_true(is_eq(v, w));
-	assert_true(is_eq(w, v));
-
-	return MUNIT_OK;
-}
-
-static MunitResult
 test_eq_null(const MunitParameter params[], void *fixture)
 {
 	val_t v = mk_null();
 	val_t w = mk_null();
 
-	test_eq(v, w);
+	assert_val_eq(v, w);
 
 	return MUNIT_OK;
 }
@@ -39,19 +31,10 @@ test_eq_sym(const MunitParameter params[], void *fixture)
 	val_t v = mk_sym("foobar", 6);
 	val_t w = mk_sym("foobar", 6);
 
-	MunitResult res = test_eq(v, w);
+	assert_val_eq(v, w);
 
 	val_free(v);
 	val_free(w);
-
-	return res;
-}
-
-static MunitResult
-test_neq(val_t v, val_t w)
-{
-	assert_false(is_eq(v, w));
-	assert_false(is_eq(w, v));
 
 	return MUNIT_OK;
 }
@@ -62,11 +45,11 @@ test_neq_null(const MunitParameter params[], void *fixture)
 	val_t v = mk_null();
 	val_t w = mk_sym("foobar", 6);
 
-	MunitResult res = test_neq(v, w);
+	assert_val_neq(v, w);
 
 	val_free(w);
 
-	return res;
+	return MUNIT_OK;
 }
 
 static MunitResult
@@ -75,12 +58,12 @@ test_neq_sym(const MunitParameter params[], void *fixture)
 	val_t v = mk_sym("foo", 3);
 	val_t w = mk_sym("bar", 3);
 
-	MunitResult res = test_neq(v, w);
+	assert_val_neq(v, w);
 
 	val_free(v);
 	val_free(w);
 
-	return res;
+	return MUNIT_OK;
 }
 
 MunitTest val_tests[] = {
