@@ -69,7 +69,7 @@ cons(val_t v, val_t l)
 }
 
 val_t
-list_head(val_t l)
+car(val_t l)
 {
 	struct blist *bl = _get_boxed_list_ptr(l);
 
@@ -145,8 +145,8 @@ _blist_eq(val_t l0, val_t l1)
 		if (!_is_blist(node0) || !_is_blist(node1))
 			return 0;
 
-		val_t hd0 = list_head(node0);
-		val_t hd1 = list_head(node1);
+		val_t hd0 = car(node0);
+		val_t hd1 = car(node1);
 		if (!is_eq(hd0, hd1))
 			return 0;
 
@@ -163,7 +163,7 @@ _blist_free(val_t l)
 	val_t node = l;
 	while (!_is_elist(node)) {
 		val_t tmp = list_tail(node);
-		val_free(list_head(node));
+		val_free(car(node));
 		free(_get_boxed_list_ptr(node));
 		node = tmp;
 	}

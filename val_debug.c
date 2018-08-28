@@ -106,7 +106,7 @@ do_val_debug(val_t v, int depth)
 			while (1) {
 				if (_is_elist(node))
 					break;
-				val_t w = list_head(node);
+				val_t w = car(node);
 				depth_printf(depth + 1, "--------", "\n");
 				do_val_debug(w, depth + 1);
 				node = list_tail(node);
