@@ -145,7 +145,7 @@ int		  is_sym(val_t);
 const char	 *get_sym_str(val_t);
 
 /*
- * val_list.c
+ * list.c
  */
 val_t		 _mk_elist(void);
 val_t		 _mk_blist(val_t, val_t);
