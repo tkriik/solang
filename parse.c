@@ -63,7 +63,7 @@ do_parse(struct state *st)
 				assert(0 && "NOTREACHED");
 		}
 
-		l = list_cons(v, l);
+		l = cons(v, l);
 	}
 
 	if (cur_level != st->level) {

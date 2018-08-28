@@ -42,16 +42,16 @@ test_null(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "null",
-			.exp_v	= list_cons(null(), list())
+			.exp_v	= cons(null(), list())
 		}, {
 			.src	= " null",
-			.exp_v	= list_cons(null(), list())
+			.exp_v	= cons(null(), list())
 		}, {
 			.src	= "null ",
-			.exp_v	= list_cons(null(), list())
+			.exp_v	= cons(null(), list())
 		}, {
 			.src	= "\n\v\tnull\r\n",
-			.exp_v	= list_cons(null(), list())
+			.exp_v	= cons(null(), list())
 		}, {
 			.src	= NULL
 		}
@@ -68,16 +68,16 @@ test_sym(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "foo",
-			.exp_v	= list_cons(sym("foo", 3), list())
+			.exp_v	= cons(sym("foo", 3), list())
 		}, {
 			.src	= " ->bar",
-			.exp_v	= list_cons(sym("->bar", 5), list())
+			.exp_v	= cons(sym("->bar", 5), list())
 		}, {
 			.src	= "foo-> ",
-			.exp_v	= list_cons(sym("foo->", 5), list())
+			.exp_v	= cons(sym("foo->", 5), list())
 		}, {
 			.src	= "\n\r\tbaz9\r\n",
-			.exp_v	= list_cons(sym("baz9", 4), list())
+			.exp_v	= cons(sym("baz9", 4), list())
 		}, {
 			.src	= NULL
 		}
@@ -97,18 +97,18 @@ test_list_0(const MunitParameter params[], void *fixture)
 			.exp_v	= list()
 		}, {
 			.src	= "()",
-			.exp_v	= list_cons(list(), list())
+			.exp_v	= cons(list(), list())
 		}, {
 			.src	= "(())",
-			.exp_v	= list_cons(list_cons(list(),
-				                      list()),
-				            list())
+			.exp_v	= cons(cons(list(),
+				            list()),
+				       list())
 		}, {
 			.src	= "\n(\t\t(  (\n)\t)\r)\n",
-			.exp_v	= list_cons(list_cons(list_cons(list(),
-				                                list()),
-				                      list()),
-				            list())
+			.exp_v	= cons(cons(cons(list(),
+				                 list()),
+				            list()),
+				       list())
 		}, {
 			.src	= NULL
 		}
@@ -125,10 +125,10 @@ test_list_n(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "foo null baz",
-			.exp_v	= list_cons(sym("foo", 3),
-				            list_cons(null(),
-				                      list_cons(sym("baz", 3),
-				                                list())))
+			.exp_v	= cons(sym("foo", 3),
+				       cons(null(),
+				            cons(sym("baz", 3),
+				                 list())))
 		}, {
 			.src	= NULL
 		}

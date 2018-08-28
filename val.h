@@ -155,7 +155,7 @@ int		 _is_elist(val_t);
 int		 _is_blist(val_t);
 int		  is_list(val_t);
 
-val_t		  list_cons(val_t, val_t);
+val_t		  cons(val_t, val_t);
 val_t		  list_head(val_t);
 val_t		  list_tail(val_t);
 size_t		  list_count(val_t);

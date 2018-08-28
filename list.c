@@ -61,7 +61,7 @@ is_list(val_t v)
 }
 
 val_t
-list_cons(val_t v, val_t l)
+cons(val_t v, val_t l)
 {
 	assert_list(l);
 
