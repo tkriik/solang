@@ -59,7 +59,7 @@ test_neq(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
-test_cons_head_tail(const MunitParameter params[], void *fixture)
+test_cons_car_cdr(const MunitParameter params[], void *fixture)
 {
 	val_t l0 = list();
 
@@ -69,20 +69,20 @@ test_cons_head_tail(const MunitParameter params[], void *fixture)
 
 	val_t l1 = cons(v1, l0);
 	assert_val_eq(car(l1), v1);
-	assert_val_eq(list_tail(l1), l0);
+	assert_val_eq(cdr(l1), l0);
 
 	val_t l2 = cons(v2, l1);
 	assert_val_eq(car(l2), v2);
-	assert_val_eq(car(list_tail(l2)), v1);
-	assert_val_eq(list_tail(l2), l1);
-	assert_val_eq(list_tail(list_tail(l2)), l0);
+	assert_val_eq(car(cdr(l2)), v1);
+	assert_val_eq(cdr(l2), l1);
+	assert_val_eq(cdr(cdr(l2)), l0);
 
 	val_t l3 = cons(v3, l2);
 	assert_val_eq(car(l3), v3);
-	assert_val_eq(car(list_tail(l3)), v2);
-	assert_val_eq(car(list_tail(list_tail(l3))), v1);
-	assert_val_eq(list_tail(l3), l2);
-	assert_val_eq(list_tail(list_tail(l3)), l1);
+	assert_val_eq(car(cdr(l3)), v2);
+	assert_val_eq(car(cdr(cdr(l3))), v1);
+	assert_val_eq(cdr(l3), l2);
+	assert_val_eq(cdr(cdr(l3)), l1);
 
 	val_free(l3);
 
@@ -107,13 +107,13 @@ test_reverse_inplace(const MunitParameter params[], void *fixture)
 	l = cons(v1, l);
 	l = list_reverse_inplace(l);
 	assert_val_eq(v0, car(l));
-	assert_val_eq(v1, car(list_tail(l)));
+	assert_val_eq(v1, car(cdr(l)));
 
 	l = cons(v2, l);
 	l = list_reverse_inplace(l);
 	assert_val_eq(v1, car(l));
-	assert_val_eq(v0, car(list_tail(l)));
-	assert_val_eq(v2, car(list_tail(list_tail(l))));
+	assert_val_eq(v0, car(cdr(l)));
+	assert_val_eq(v2, car(cdr(cdr(l))));
 
 	val_free(l);
 
@@ -143,8 +143,8 @@ MunitTest val_list_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/cons-head-tail",
-		.test		= test_cons_head_tail,
+		.name		= "/cons-car-cdr",
+		.test		= test_cons_car_cdr,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

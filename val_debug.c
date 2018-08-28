@@ -109,7 +109,7 @@ do_val_debug(val_t v, int depth)
 				val_t w = car(node);
 				depth_printf(depth + 1, "--------", "\n");
 				do_val_debug(w, depth + 1);
-				node = list_tail(node);
+				node = cdr(node);
 			}
 			break;
 		default:

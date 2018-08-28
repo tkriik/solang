@@ -77,7 +77,7 @@ car(val_t l)
 }
 
 val_t
-list_tail(val_t l)
+cdr(val_t l)
 {
 	struct blist *bl = _get_boxed_list_ptr(l);
 
@@ -94,7 +94,7 @@ list_count(val_t l)
 	val_t node = l;
 	while (_is_blist(node)) {
 		count++;
-		node = list_tail(node);
+		node = cdr(node);
 	}
 
 	return count;
@@ -110,7 +110,7 @@ blist_reverse_inplace(val_t l)
 	while (!_is_elist(p)) {
 		r = q;
 		q = p;
-		p = list_tail(p);
+		p = cdr(p);
 		struct blist *bl_q = _get_boxed_list_ptr(q);
 		bl_q->tl = r;
 	}
@@ -150,8 +150,8 @@ _blist_eq(val_t l0, val_t l1)
 		if (!is_eq(hd0, hd1))
 			return 0;
 
-		node0 = list_tail(node0);
-		node1 = list_tail(node1);
+		node0 = cdr(node0);
+		node1 = cdr(node1);
 	}
 }
 
@@ -162,7 +162,7 @@ _blist_free(val_t l)
 
 	val_t node = l;
 	while (!_is_elist(node)) {
-		val_t tmp = list_tail(node);
+		val_t tmp = cdr(node);
 		val_free(car(node));
 		free(_get_boxed_list_ptr(node));
 		node = tmp;

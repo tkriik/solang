@@ -157,7 +157,8 @@ int		  is_list(val_t);
 
 val_t		  cons(val_t, val_t);
 val_t		  car(val_t);
-val_t		  list_tail(val_t);
+val_t		  cdr(val_t);
+
 size_t		  list_count(val_t);
 val_t		  list_reverse_inplace(val_t);
 
