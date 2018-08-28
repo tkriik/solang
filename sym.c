@@ -27,6 +27,12 @@ sym(const char *s, size_t len)
 	return v;
 }
 
+val_t
+sym_s(const char *s)
+{
+	return sym(s, strlen(s));
+}
+
 int
 is_sym(val_t v)
 {

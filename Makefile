@@ -7,7 +7,11 @@ SRC=		tal.c \
 		repl.c \
 		repl.h
 
-CORE_SRC=	list.c \
+CORE_SRC=	conf.h \
+		env.c \
+		env.h \
+		eval.c \
+		list.c \
 		parse.c \
 		parse.h \
 		sym.c \
@@ -18,9 +22,12 @@ CORE_SRC=	list.c \
 		val.h \
 		val_assert.c \
 		val_debug.c \
-		val_util.c
+		val_util.c \
+		vtab.c \
+		vtab.h
 
 TEST_SRC=	test/tal_test.c \
+		test/test_env.c \
 		test/test_parse.c \
 		test/test_token.c \
 		test/test_val.c \

@@ -6,6 +6,7 @@
 
 #include "sds.h"
 
+#include "eval.h"
 #include "parse.h"
 #include "repl.h"
 #include "tal.h"
@@ -132,6 +133,8 @@ quit_handler()
 	exit(0);
 }
 
+struct env env;
+
 static void
 handle_command(sds input)
 {
@@ -169,7 +172,7 @@ handle_command(sds input)
 }
 
 static void
-eval(sds input)
+handle_expression(sds input)
 {
 	const char *src = input;
 
@@ -193,15 +196,26 @@ eval(sds input)
 		} while (tres == TOKEN_RES_OK);
 	}
 
-	val_t l = parse(src);
+	val_t exps = parse(src);
 	if (config.debug_value)
-		val_debug("values", l);
+		val_debug("expressions", exps);
 
-	if (_is_undef(l))
-		printf("parse error\n");
+	/* TODO: parse error info */
+	if (_is_undef(exps)) {
+		printf("failed to parse expressions\n");
+		val_free(exps);
+		return;
+	}
 
+	val_t exp;
+	val_t l = exps;
+	LIST_FOREACH(exp, l) {
+		val_t v = eval(&env, exp);
+		val_debug("eval", v);
+	};
 
-	val_free(l);
+	/* TODO: free eval result */
+	val_free(exps);
 }
 
 static void
@@ -210,7 +224,7 @@ handle_input(sds input)
 	if (strncmp(input, "\\", 1) == 0)
 		handle_command(input);
 	else
-		eval(input);
+		handle_expression(input);
 }
 
 
@@ -243,5 +257,6 @@ repl_enter(void)
 
 	help_handler();
 
+	env_init(&env);
 	loop();
 }

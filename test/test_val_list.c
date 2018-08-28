@@ -120,6 +120,35 @@ test_reverse_inplace(const MunitParameter params[], void *fixture)
 	return MUNIT_OK;
 }
 
+static MunitResult
+test_foreach(const MunitParameter params[], void *fixture)
+{
+	val_t v0 = sym("foo", 3);
+	val_t v1 = nil();
+	val_t v2 = sym("baz", 3);
+	val_t vs[] = {
+		v0,
+		v1,
+		v2
+	};
+
+	val_t l = cons(v0, cons(v1, cons(v2, list())));
+
+	size_t i = 0;
+	val_t v;
+	val_t j = l;
+	LIST_FOREACH(v, j) {
+		assert_val_eq(v, vs[i]);
+		i++;
+	}
+
+	assert_size(i, ==, 3);
+
+	val_free(l);
+
+	return MUNIT_OK;
+}
+
 MunitTest val_list_tests[] = {
 	{
 		.name		= "/is-list",
@@ -152,6 +181,13 @@ MunitTest val_list_tests[] = {
 	}, {
 		.name		= "/reverse-inplace",
 		.test		= test_reverse_inplace,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/foreach",
+		.test		= test_foreach,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
