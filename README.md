@@ -4,8 +4,6 @@
 
 LISP attempt, do not use in production.
 
---------------------------------------------------------------------------------
-
 ## Status
 
 Work in progress
@@ -52,7 +50,7 @@ Work in progress
 
 ### Build (with Clang)
 
-    $ CC=clang make
+    $ make CC=clang
 
 ### Build tests
 
@@ -84,9 +82,10 @@ C99-compliant code with [OpenBSD style](https://man.openbsd.org/style)
 
 ### Tools
 
+  - [AFL](http://lcamtuf.coredump.cx/afl/)
   - [Valgrind](http://valgrind.org/)
 
-#### Check memory leaks
+#### Memory leak checking
 
 ##### In shell
 
@@ -97,5 +96,15 @@ Note: SDS strings are are detected as *possibly* lost by Valgrind.
 ##### In tests
 
     $ valgrind --leak-check=full ./tal_test --no-fork
+
+#### Fuzzing
+
+##### Build instrumented binary
+
+    $ make clean && make CC=afl-gcc
+
+##### Run fuzzer
+
+    $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./tal
 
 --------------------------------------------------------------------------------

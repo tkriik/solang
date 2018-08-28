@@ -76,8 +76,8 @@ static struct {
 	int debug_value;
 	int debug_token;
 } config = {
-	.debug_value	= 1,
-	.debug_token	= 1
+	.debug_value	= 0,
+	.debug_token	= 0
 };
 
 static void
@@ -137,6 +137,11 @@ handle_command(sds input)
 {
 	int ntokens;
 	sds *tokens = sdssplitargs(input, &ntokens);
+	if (ntokens == 0) {
+		printf("invalid input: %s\n", input);
+		return;
+	}
+
 	sds cmd = tokens[0];
 	int argc = ntokens - 1;
 
@@ -214,8 +219,10 @@ loop(void)
 {
 	while (1) {
 		char *in = readline(">> ");
-		if (in == NULL)
-			err(0, "EOF while reading standard input");
+		if (in == NULL) {
+			printf("\nEOF\n");
+			return;
+		}
 
 		sds input = sdsnew(in);
 		input = sdstrim(input, " \t");
