@@ -4,47 +4,90 @@
 #include "token.h"
 #include "val.h"
 
-enum parse_result
-parse(struct token_info *tokens, size_t ntokens, val_t *vp,
-    struct token_info **next_tokensp)
+struct state {
+	const char	*src;
+	long		 level;
+};
+
+/* TODO: free on error */
+static val_t
+do_parse(struct state *st)
 {
-	assert(tokens != NULL);
-	assert(0 < ntokens);
-	assert(vp != NULL);
-	assert(next_tokensp != NULL);
+	assert(st != NULL);
+	assert(st->src != NULL);
 
-	enum parse_result result;
+	val_t l = mk_list();
 
-	size_t token_idx;
-	for (token_idx = 0; token_idx < ntokens; token_idx++) {
-		struct token_info *token = &tokens[token_idx];
+	long cur_level = st->level;
 
-		switch (token->type) {
-		case TOKEN_NULL:
-			*vp = mk_null();
-			result = PARSE_OK;
-			goto finish;
+	struct token_info token;
+	for (enum token_res tres = token_next(&st->src, &token);
+	     tres != TOKEN_RES_NONE;
+	     tres = token_next(&st->src, &token)) {
 
-		case TOKEN_SYM:
-			*vp = mk_sym(token->src, token->len);
-			result = PARSE_OK;
-			goto finish;
+		val_t v = _mk_undef();
 
-		case TOKEN_ERR:
-			/* We assume erroneous tokens are handled before this point */
-			assert(0 && "NOTREACHED");
-			goto finish;
+		switch (token.type) {
+			case TOKEN_TYPE_NULL:
+				v = mk_null();
+				break;
+
+			case TOKEN_TYPE_SYM:
+				v = mk_sym(token.src, token.len);
+				break;
+
+			case TOKEN_TYPE_LIST_START:
+				st->level++;
+				v = do_parse(st);
+				if (_is_undef(v)) {
+					val_free(l);
+					return v;
+				}
+				break;
+
+			case TOKEN_TYPE_LIST_END:
+				if (0 < st->level) {
+					st->level--;
+					l = list_reverse_inplace(l);
+					return l;
+				}
+
+				val_free(l);
+				return _mk_undef();
+
+			case TOKEN_TYPE_ERR:
+				val_free(l);
+				return _mk_undef();
+
+			default:
+				assert(0 && "NOTREACHED");
 		}
+
+		l = list_cons(v, l);
 	}
 
-finish:
-	if (token_idx < ntokens - 1) {
-		*next_tokensp = &tokens[token_idx + 1];
-		result = PARSE_CONT;
-	} else {
-		*next_tokensp = NULL;
-		result = PARSE_OK;
+	if (cur_level != st->level) {
+		val_free(l);
+		return _mk_undef();
 	}
 
-	return result;
+	l = list_reverse_inplace(l);
+
+	return l;
+}
+
+val_t
+parse(const char *src)
+{
+	assert(src != NULL);
+
+	struct state st = {
+		.src	= src,
+		.level	= 0
+	};
+
+	val_t l = do_parse(&st);
+	assert(is_list(l) || _is_undef(l));
+
+	return l;
 }

@@ -4,132 +4,196 @@
 #include "parse.h"
 #include "token.h"
 #include "val.h"
+#include "val_test.h"
+
+static void
+test_parse(const char *src, val_t exp_v)
+{
+	val_t v = parse(src);
+	assert_val_eq(v, exp_v);
+	val_free(v);
+}
+
+static void
+test_parse_err(const char *src)
+{
+	val_t v = parse(src);
+	assert_val_eq(v, _mk_undef());
+	val_free(v);
+}
+
+struct parse_fixture {
+	const char	*src;
+	val_t		 exp_v;
+};
+
+static void
+test_parse_fixtures(struct parse_fixture *pfs)
+{
+	for (struct parse_fixture *pf = pfs; pf->src != NULL; pf++) {
+		test_parse(pf->src, pf->exp_v);
+		val_free(pf->exp_v);
+	}
+}
 
 static MunitResult
-test_parse(struct token_info *tokens, size_t ntokens,
-    enum parse_result exp_result, val_t exp_v,
-    struct token_info *exp_next_tokens)
+test_null(const MunitParameter params[], void *fixture)
 {
-	val_t v;
-	struct token_info *next_tokens;
-	enum parse_result result = parse(tokens, ntokens, &v, &next_tokens);
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "null",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= " null",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= "null ",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= "\n\v\tnull\r\n",
+			.exp_v	= list_cons(mk_null(), mk_list())
+		}, {
+			.src	= NULL
+		}
+	};
 
-	assert_int(result, ==, exp_result);
-	assert(is_eq(v, exp_v));
-	assert_ptr_equal(next_tokens, exp_next_tokens);
-
-	val_free(v);
+	test_parse_fixtures(pfs);
 
 	return MUNIT_OK;
 }
 
 static MunitResult
-test_single_null(const MunitParameter params[], void *fixture)
+test_sym(const MunitParameter params[], void *fixture)
 {
-	size_t ntokens = 1;
-	struct token_info tokens[1] = {
+	struct parse_fixture pfs[] = {
 		{
-			.type	= TOKEN_NULL,
-			.len	= 4,
-			.src	= "null"
+			.src	= "foo",
+			.exp_v	= list_cons(mk_sym("foo", 3), mk_list())
+		}, {
+			.src	= " ->bar",
+			.exp_v	= list_cons(mk_sym("->bar", 5), mk_list())
+		}, {
+			.src	= "foo-> ",
+			.exp_v	= list_cons(mk_sym("foo->", 5), mk_list())
+		}, {
+			.src	= "\n\r\tbaz9\r\n",
+			.exp_v	= list_cons(mk_sym("baz9", 4), mk_list())
+		}, {
+			.src	= NULL
 		}
 	};
 
-	val_t exp_v = mk_null();
-	struct token_info *exp_next_tokens = NULL;
+	test_parse_fixtures(pfs);
 
-	return test_parse(tokens, ntokens, PARSE_OK, exp_v, exp_next_tokens);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_single_sym(const MunitParameter params[], void *fixture)
+test_list_0(const MunitParameter params[], void *fixture)
 {
-	size_t ntokens = 1;
-	struct token_info tokens[1] = {
+	struct parse_fixture pfs[] = {
 		{
-			.type	= TOKEN_SYM,
-			.len	= 6,
-			.src	= "foobar"
+			.src	= "",
+			.exp_v	= mk_list()
+		}, {
+			.src	= "()",
+			.exp_v	= list_cons(mk_list(), mk_list())
+		}, {
+			.src	= "(())",
+			.exp_v	= list_cons(list_cons(mk_list(),
+				                      mk_list()),
+				            mk_list())
+		}, {
+			.src	= "\n(\t\t(  (\n)\t)\r)\n",
+			.exp_v	= list_cons(list_cons(list_cons(mk_list(),
+				                                mk_list()),
+				                      mk_list()),
+				            mk_list())
+		}, {
+			.src	= NULL
 		}
 	};
 
-	val_t exp_v = mk_sym("foobar", 6);
-	struct token_info *exp_next_tokens = NULL;
+	test_parse_fixtures(pfs);
 
-	return test_parse(tokens, ntokens, PARSE_OK, exp_v, exp_next_tokens);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_multi(const MunitParameter params[], void *fixture)
+test_list_n(const MunitParameter params[], void *fixture)
 {
-	const char *src =
-	    "foo       "
-	    "   null   "
-	    "   baz    ";
-
-	val_t exp_v;
-	struct token_info *exp_next_tokens;
-	MunitResult res;
-
-	size_t ntokens = 3;
-	struct token_info tokens[3] = {
+	struct parse_fixture pfs[] = {
 		{
-			.type	= TOKEN_SYM,
-			.len	= 3,
-			.src	= src + 0
+			.src	= "foo null baz",
+			.exp_v	= list_cons(mk_sym("foo", 3),
+				            list_cons(mk_null(),
+				                      list_cons(mk_sym("baz", 3),
+				                                mk_list())))
 		}, {
-			.type	= TOKEN_NULL,
-			.len	= 4,
-			.src	= src + 10 + 3
-		}, {
-			.type	= TOKEN_SYM,
-			.len	= 3,
-			.src	= src + 10 + 10 + 3
+			.src	= NULL
 		}
 	};
 
-	exp_v = mk_sym("foo", 3);
-	exp_next_tokens = &tokens[1];
-	res = test_parse(tokens, ntokens, PARSE_CONT, exp_v, exp_next_tokens);
-	if (res != MUNIT_OK)
-		return res;
-	val_free(exp_v);
+	test_parse_fixtures(pfs);
 
-	exp_v = mk_null();
-	exp_next_tokens = &tokens[2];
-	res = test_parse(&tokens[1], ntokens - 1, PARSE_CONT, exp_v, exp_next_tokens);
-	if (res != MUNIT_OK)
-		return res;
-	val_free(exp_v);
+	return MUNIT_OK;
+}
 
-	exp_v = mk_sym("baz", 3);
-	exp_next_tokens = NULL;
-	res = test_parse(&tokens[2], ntokens - 2, PARSE_OK, exp_v, exp_next_tokens);
-	if (res != MUNIT_OK)
-		return res;
-	val_free(exp_v);
+static MunitResult
+test_list_err(const MunitParameter params[], void *fixture)
+{
+	const char *srcs[] = {
+	    "(",
+	    "(foo",
+	    "(foo bar",
+	    "(foo (bar",
+	    "(foo (bar)",
+	    "(foo (bar ,))",
+	    ")",
+	    "foo)",
+	    "foo bar)",
+	    "foo (bar))",
+	    NULL
+	};
+
+	for (const char **srcp = srcs; *srcp != NULL; srcp++)
+		test_parse_err(*srcp);
 
 	return MUNIT_OK;
 }
 
 MunitTest parse_tests[] = {
 	{
-		.name		= "/single-null",
-		.test		= test_single_null,
+		.name		= "/null",
+		.test		= test_null,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/single-sym",
-		.test		= test_single_sym,
+		.name		= "/sym",
+		.test		= test_sym,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/multi",
-		.test		= test_multi,
+		.name		= "/list-0",
+		.test		= test_list_0,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/list-n",
+		.test		= test_list_n,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/list-err",
+		.test		= test_list_err,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

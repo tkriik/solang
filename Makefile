@@ -1,5 +1,5 @@
-CC=		cc
-CFLAGS=		-std=gnu99 -Wall -Wextra -O0 -g -Wno-unused-parameter
+CC=		gcc
+CFLAGS=		-std=c99 -Wall -Wextra -O0 -g -Wno-unused-parameter
 LDFLAGS=	-lreadline
 
 SRC=		tal.c \
@@ -11,10 +11,12 @@ CORE_SRC=	parse.c \
 		parse.h \
 		token.c \
 		token.h \
+		token_debug.c \
 		val.c \
 		val.h \
 		val_assert.c \
 		val_debug.c \
+		val_list.c \
 		val_sym.c \
 		val_util.c
 
@@ -22,7 +24,9 @@ TEST_SRC=	test/tal_test.c \
 		test/test_parse.c \
 		test/test_token.c \
 		test/test_val.c \
-		test/test_val_sym.c
+		test/test_val_list.c \
+		test/test_val_sym.c \
+		test/val_test.h
 
 DEPS_LINKS=	test/munit.c \
 		test/munit.h \
@@ -41,8 +45,6 @@ all: $(BIN)
 $(BIN): $(SRC) $(CORE_SRC)
 	$(CC) -o $(BIN) $(CFLAGS) $(SRC) $(CORE_SRC) $(DEPS_LINKS) $(LDFLAGS)
 
-test: $(TEST_BIN)
-
 $(TEST_BIN): $(TEST_SRC) $(CORE_SRC)
 	$(CC) -I ./ -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC) $(DEPS_LINKS)
 
@@ -60,6 +62,8 @@ deps/sds:
 	git clone https://github.com/antirez/sds.git deps/sds
 
 deps: deps/munit deps/sds deps_links
+
+test: $(TEST_BIN)
 
 clean:
 	rm -f $(BIN) $(TEST_BIN)

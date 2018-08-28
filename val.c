@@ -37,6 +37,13 @@ is_boxed(val_t v)
 }
 
 int
+_is_undef(val_t v)
+{
+	return _get_storage(v) == VAL_STORAGE_IMMED
+	    && _get_immed_type(v) == VAL_IMMED_TYPE_UNDEF;
+}
+
+int
 is_null(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_IMMED
@@ -84,6 +91,9 @@ is_eq(val_t v, val_t w)
 			w_sym_str = get_sym_str(w);
 			return strcmp(v_sym_str, w_sym_str) == 0;
 
+		case VAL_BOXED_TYPE_LIST:
+			return _blist_eq(v, w);
+
 		default:
 			break;
 		}
@@ -102,18 +112,19 @@ val_free(val_t v)
 {
 	switch (_get_storage(v)) {
 	case VAL_STORAGE_IMMED:
-		break;
+		return;
+
 	case VAL_STORAGE_BOXED:
 		switch (_get_boxed_type(v)) {
 		case VAL_BOXED_TYPE_SYM:
 			free(_get_boxed_sym_ptr(v));
 			return;
-		default:
-			assert(0 && "NOTREACHED");
+
+		case VAL_BOXED_TYPE_LIST:
+			_blist_free(v);
 			return;
 		}
-	default:
-		assert(0 && "NOTREACHED");
-		return;
 	}
+
+	assert(0 && "NOTREACHED");
 }

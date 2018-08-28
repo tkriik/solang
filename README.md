@@ -4,6 +4,8 @@
 
 LISP attempt, do not use in production.
 
+--------------------------------------------------------------------------------
+
 ## Status
 
 Work in progress
@@ -15,6 +17,8 @@ Work in progress
 ### Missing features
 
   - Everything else
+
+--------------------------------------------------------------------------------
 
 ## Dependencies
 
@@ -28,6 +32,8 @@ Work in progress
   - [µnit](https://github.com/nemequ/munit)
   - [SDS](https://github.com/antirez/sds)
 
+--------------------------------------------------------------------------------
+
 ## Development
 
 ### Install system dependencies
@@ -40,19 +46,19 @@ Work in progress
 
     $ make deps
 
-### Build executable (with GCC)
+### Build (with GCC)
 
     $ make
 
-### Build executable (with Clang)
+### Build (with Clang)
 
     $ CC=clang make
 
-### Build test executable
+### Build tests
 
     $ make test
 
-### Run
+### Run shell
 
     $ ./tal
 
@@ -60,11 +66,11 @@ Work in progress
 
     $ ./tal_test
 
-### Print test help
+### Print test options
 
     $ ./tal_test --help
 
-### Clean executable
+### Clean project
 
     $ make clean
 
@@ -75,3 +81,21 @@ Work in progress
 ### Code style
 
 C99-compliant code with [OpenBSD style](https://man.openbsd.org/style)
+
+### Tools
+
+  - [Valgrind](http://valgrind.org/)
+
+#### Check memory leaks
+
+##### In shell
+
+    $ valgrind --leak-check=full ./tal
+
+Note: SDS strings are are detected as *possibly* lost by Valgrind.
+
+##### In tests
+
+    $ valgrind --leak-check=full ./tal_test --no-fork
+
+--------------------------------------------------------------------------------

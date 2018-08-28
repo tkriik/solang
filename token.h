@@ -4,24 +4,29 @@
 #include <stddef.h>
 
 enum token_type {
-	TOKEN_NULL	= 1,
-	TOKEN_SYM,
-	TOKEN_ERR
+	TOKEN_TYPE_NULL		= 1,
+	TOKEN_TYPE_SYM,
+	TOKEN_TYPE_LIST_START,
+	TOKEN_TYPE_LIST_END,
+	TOKEN_TYPE_ERR
 };
 
 struct token_info {
-	enum		 token_type type;
+	enum token_type	 type;
 	size_t		 len;
 	const char	*src;
 };
 
-enum tokenize_result {
-	TOKENIZE_OK	= 1,
-	TOKENIZE_LIMIT
+enum token_res {
+	TOKEN_RES_OK	= 1,
+	TOKEN_RES_NONE
 };
 
-enum tokenize_result tokenize(const char *, struct token_info *, size_t, size_t *);
+/* token.c */
+enum token_res	 token_next(const char **, struct token_info *);
 
-void token_debug(const char *, struct token_info *, size_t);
+/* token_debug.c */
+const char	*token_type_str(enum token_type);
+void		 token_debug(const char *, struct token_info *);
 
 #endif

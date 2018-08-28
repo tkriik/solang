@@ -15,6 +15,7 @@
 enum cmd_type {
 	CMD_CONFIG,
 	CMD_DEBUG_TOKENS,
+	CMD_DEBUG_VAL,
 	CMD_HELP,
 	CMD_QUIT
 };
@@ -27,11 +28,12 @@ struct cmd_info {
 };
 
 static void config_handler();
-static void debug_tokens_handler(sds *);
+static void debug_value_handler(sds *);
+static void debug_token_handler(sds *);
 static void help_handler();
 static void quit_handler();
 
-#define CMD_CNT 4
+#define CMD_CNT 5
 static struct cmd_info CMD_INFO_TAB[CMD_CNT] = {
 	{
 		.type		= CMD_CONFIG,
@@ -39,10 +41,15 @@ static struct cmd_info CMD_INFO_TAB[CMD_CNT] = {
 		.arity		= 0,
 		.handler	= config_handler
 	}, {
+		.type		= CMD_DEBUG_VAL,
+		.name		= "\\dv",
+		.arity		= 1,
+		.handler	= debug_value_handler
+	}, {
 		.type		= CMD_DEBUG_TOKENS,
 		.name		= "\\dt",
 		.arity		= 1,
-		.handler	= debug_tokens_handler
+		.handler	= debug_token_handler
 	}, {
 		.type		= CMD_HELP,
 		.name		= "\\h",
@@ -60,14 +67,17 @@ static const char *CMD_HELP_MSG =
     "\n"
     "\\c           - print REPL configuration\n"
     "\\dt [on|off] - turn token debugging on/off\n"
+    "\\dv [on|off] - turn value debugging on/off\n"
     "\\h           - help\n"
     "\\q           - quit\n"
     "\n";
 
 static struct {
-	int debug_tokens;
-} CONFIG = {
-	.debug_tokens = 0
+	int debug_value;
+	int debug_token;
+} config = {
+	.debug_value	= 1,
+	.debug_token	= 1
 };
 
 static void
@@ -75,21 +85,37 @@ config_handler()
 {
 	printf(
 	    "\n"
-	    "debug_tokens = %d\n"
+	    "debug_value = %d\n"
+	    "debug_token = %d\n"
 	    "\n",
-	    CONFIG.debug_tokens);
+	    config.debug_value,
+	    config.debug_token);
 }
 
 static void
-debug_tokens_handler(sds *argv)
+debug_value_handler(sds *argv)
 {
 	sds mode = argv[0];
 	if (strcmp(mode, "on") == 0)
-		CONFIG.debug_tokens = 1;
+		config.debug_value = 1;
 	else if (strcmp(mode, "off") == 0)
-		CONFIG.debug_tokens = 0;
+		config.debug_value = 0;
 	else {
-		printf("no such debug mode: %s\n", mode);
+		printf("no such value debug mode: %s\n", mode);
+		return;
+	}
+}
+
+static void
+debug_token_handler(sds *argv)
+{
+	sds mode = argv[0];
+	if (strcmp(mode, "on") == 0)
+		config.debug_token = 1;
+	else if (strcmp(mode, "off") == 0)
+		config.debug_token = 0;
+	else {
+		printf("no such token debug mode: %s\n", mode);
 		return;
 	}
 }
@@ -133,50 +159,44 @@ handle_command(sds input)
 
 	if (handled == 0)
 		printf("unknown command: %s\n", tokens[0]);
+
+	sdsfreesplitres(tokens, ntokens);
 }
 
 static void
 eval(sds input)
 {
-	size_t max_tokens = 64;
-	struct token_info tokens[max_tokens];
-	size_t ntokens;
+	const char *src = input;
 
-	enum tokenize_result tresult = tokenize(input, tokens, max_tokens, &ntokens);
+	if (config.debug_token) {
+		struct token_info token;
+		enum token_res tres;
+		int multi_token = 0;
+		const char *cur = src;
+		do {
+			tres = token_next(&cur, &token);
+			if (tres == TOKEN_RES_NONE) {
+				if (!multi_token && config.debug_token)
+					printf("no tokens read\n");
+				break;
+			}
 
-	if (tresult == TOKENIZE_LIMIT) {
-		printf("token limit (%zu) reached\n", max_tokens);
-		return;
+			if (config.debug_token)
+				token_debug("token", &token);
+
+			multi_token = 1;
+		} while (tres == TOKEN_RES_OK);
 	}
 
-	if (CONFIG.debug_tokens)
-		token_debug("tokens", tokens, ntokens);
+	val_t l = parse(src);
+	if (config.debug_value)
+		val_debug("values", l);
 
-	int invalid_tokens = 0;
-	for (size_t i = 0; i < ntokens; i++) {
-		struct token_info *token = &tokens[i];
-		if (token->type == TOKEN_ERR) {
-			invalid_tokens = 1;
-			char *token_data = strndup(token->src, token->len);
-			printf("invalid token: %s\n", token_data);
-			free(token_data);
-		}
-	}
+	if (_is_undef(l))
+		printf("parse error\n");
 
-	if (invalid_tokens)
-		return;
 
-	val_t v;
-	struct token_info *next_tokens;
-	enum parse_result presult = parse(tokens, ntokens, &v, &next_tokens);
-	if (presult != PARSE_OK) {
-		printf("cannot evaluate multiple values\n");
-		return;
-	}
-
-	val_debug("eval", v);
-
-	val_free(v);
+	val_free(l);
 }
 
 static void
@@ -193,16 +213,18 @@ static void
 loop(void)
 {
 	while (1) {
-		sds input = sdsnew(readline(">> "));
-		if (input == NULL)
+		char *in = readline(">> ");
+		if (in == NULL)
 			err(0, "EOF while reading standard input");
 
+		sds input = sdsnew(in);
 		input = sdstrim(input, " \t");
 
 		add_history(input);
 		handle_input(input);
 
 		sdsfree(input);
+		free(in);
 	}
 }
 
@@ -213,8 +235,6 @@ repl_enter(void)
 	    VSN_MAJOR, VSN_MINOR, VSN_PATCH);
 
 	help_handler();
-
-	val_debug("test", mk_sym("foobar", 6));
 
 	loop();
 }

@@ -5,173 +5,136 @@
 
 #include "token.h"
 
-static MunitResult
-test_tokens(const char *src, size_t max_tokens,
-    struct token_info *exp_tokens, size_t nexp_tokens,
-    enum tokenize_result exp_result)
+static void
+test_token_next(const char	**curp,
+                enum token_res	  exp_res,
+	        enum token_type	  exp_type,
+	        size_t		  exp_len,
+	        const char	 *exp_cur)
 {
-	struct token_info tokens[max_tokens];
-	memset(tokens, 0, sizeof(tokens));
-	size_t ntokens;
+	const char *cur = *curp;
+	struct token_info token;
+	enum token_res res = token_next(&cur, &token);
 
-	enum tokenize_result result = tokenize(src, tokens, max_tokens, &ntokens);
+	if (exp_res == TOKEN_RES_NONE) {
+		assert_int(res, ==, TOKEN_RES_NONE);
+		assert_ptr_equal(cur, exp_cur);
 
-	assert_int(result, ==, exp_result);
-	assert_size(ntokens, ==, nexp_tokens);
-
-	for (size_t i = 0; i < nexp_tokens; i++) {
-		struct token_info *token = &tokens[i];
-		struct token_info *exp_token = &exp_tokens[i];
-
-		assert_int(token->type, ==, exp_token->type);
-		assert_size(token->len, ==, exp_token->len);
-		assert_ptr_equal(token->src, exp_token->src);
-		assert(strncmp(token->src, exp_token->src, exp_token->len) == 0);
+		*curp = cur;
+		return;
 	}
 
-	return MUNIT_OK;
+	assert_int(res, ==, TOKEN_RES_OK);
+
+	assert_string_equal(cur, exp_cur);
+
+	const char *type_s = token_type_str(token.type);
+	const char *exp_type_s = token_type_str(exp_type);
+	assert_string_equal(type_s, exp_type_s);
+	assert_int(token.type, ==, exp_type);
+
+	assert_size(token.len, ==, exp_len);
+
+	assert_true(strncmp(token.src, cur - exp_len, exp_len) == 0);
+
+	*curp = cur;
 }
 
 static MunitResult
 test_empty(const MunitParameter params[], void *fixture)
 {
 	const char *src = "";
-	size_t max_tokens = 64;
 
-	size_t exp_ntokens = 0;
-	struct token_info exp_tokens[0];
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src);
 
-	return test_tokens(src, max_tokens, exp_tokens, exp_ntokens, TOKENIZE_OK);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_limit(const MunitParameter params[], void *fixture)
+test_null(const MunitParameter params[], void *fixture)
 {
-	const char *src = "a b c d e f g h";
-	size_t max_tokens = 3;
+	const char *src = "null";
 
-	size_t exp_ntokens = 3;
-	struct token_info exp_tokens[3] = {
-		{
-			.type	= TOKEN_SYM,
-			.len	= 1,
-			.src	= src + 0
-		}, {
-			.type	= TOKEN_SYM,
-			.len	= 1,
-			.src	= src + 2
-		}, {
-			.type	= TOKEN_SYM,
-			.len	= 1,
-			.src	= src + 4
-		}
-	};
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL, 4, src + 4);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 4);
 
-	return test_tokens(src, max_tokens, exp_tokens, exp_ntokens, TOKENIZE_LIMIT);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_single_standalone(const MunitParameter params[], void *fixture)
+test_sym(const MunitParameter params[], void *fixture)
 {
-	const char *src = "my-symbol";
-	size_t max_tokens = 64;
+	const char *src = "foo";
 
-	size_t exp_ntokens = 1;
-	struct token_info exp_tokens[1] = {
-		{
-			.type	= TOKEN_SYM,
-			.len	= 9,
-			.src	= src + 0
-		}
-	};
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM, 3, src + 3);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
 
-	return test_tokens(src, max_tokens, exp_tokens, exp_ntokens, TOKENIZE_OK);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_single_padded(const MunitParameter params[], void *fixture)
+test_list_start(const MunitParameter params[], void *fixture)
 {
-	const char *src = "  \n\tmy-symbol  \t\n";
-	size_t max_tokens = 64;
+	const char *src = "(";
 
-	size_t exp_ntokens = 1;
-	struct token_info exp_tokens[1] = {
-		{
-			.type	= TOKEN_SYM,
-			.len	= 9,
-			.src	= src + 4
-		}
-	};
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_START, 1, src + 1);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 1);
 
-	return test_tokens(src, max_tokens, exp_tokens, exp_ntokens, TOKENIZE_OK);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_multi_standalone(const MunitParameter params[], void *fixture)
+test_list_end(const MunitParameter params[], void *fixture)
 {
-	const char *src = "a ab) 1bc abcd null";
-	size_t max_tokens = 64;
+	const char *src = ")";
 
-	size_t exp_ntokens = 5;
-	struct token_info exp_tokens[5] = {
-		{
-			.type	= TOKEN_SYM,
-			.len	= 1,
-			.src	= src + 0
-		}, {
-			.type	= TOKEN_ERR,
-			.len	= 3,
-			.src	= src + 2
-		}, {
-			.type	= TOKEN_ERR,
-			.len	= 3,
-			.src	= src + 6
-		}, {
-			.type	= TOKEN_SYM,
-			.len	= 4,
-			.src	= src + 10
-		}, {
-			.type	= TOKEN_NULL,
-			.len	= 4,
-			.src	= src + 15
-		}
-	};
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END, 1, src + 1);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 1);
 
-	return test_tokens(src, max_tokens, exp_tokens, exp_ntokens, TOKENIZE_OK);
+	return MUNIT_OK;
 }
 
 static MunitResult
-test_multi_padded(const MunitParameter params[], void *fixture)
+test_err(const MunitParameter params[], void *fixture)
 {
-	const char *src = "\n \t a\t\n ab null  1bc\n\nabcd\t\t ";
-	size_t max_tokens = 64;
+	const char *src = "$$$";
 
-	size_t exp_ntokens = 5;
-	struct token_info exp_tokens[5] = {
-		{
-			.type	= TOKEN_SYM,
-			.len	= 1,
-			.src	= src + 4
-		}, {
-			.type	= TOKEN_SYM,
-			.len	= 2,
-			.src	= src + 8
-		}, {
-			.type	= TOKEN_NULL,
-			.len	= 4,
-			.src	= src + 11,
-		}, {
-			.type	= TOKEN_ERR,
-			.len	= 3,
-			.src	= src + 17
-		}, {
-			.type	= TOKEN_SYM,
-			.len	= 4,
-			.src	= src + 22
-		}
-	};
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, 3, src + 3);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
 
-	return test_tokens(src, max_tokens, exp_tokens, exp_ntokens, TOKENIZE_OK);
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_multi(const MunitParameter params[], void *fixture)
+{
+	const char *src =
+	    "         "		"\n"	// 0  -  9
+	    "null)    "		"\t"	// 10 - 19
+	    "foo      "		"\v"	// 20 - 29
+	    "   bar   "		"\r"	// 30 - 39
+	    "   ,,,   "		"\n"	// 40 - 49
+	    "   baz   "		"\n"	// 50 - 59
+	    "()       "		"\n";	// 60 - 69
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL,       4, src + 10 + 4);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 10 + 5);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 20 + 3);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 30 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR,        3, src + 40 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 50 + 6);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_START, 1, src + 60 + 1);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 60 + 2);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 70);
+
+	return MUNIT_OK;
 }
 
 MunitTest token_tests[] = {
@@ -183,36 +146,43 @@ MunitTest token_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/limit",
-		.test		= test_limit,
+		.name		= "/null",
+		.test		= test_null,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/single-standalone",
-		.test		= test_single_standalone,
+		.name		= "/sym",
+		.test		= test_sym,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/single-padded",
-		.test		= test_single_padded,
+		.name		= "/list-start",
+		.test		= test_list_start,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/multi-standalone",
-		.test		= test_multi_standalone,
+		.name		= "/list-end",
+		.test		= test_list_end,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/multi-padded",
-		.test		= test_multi_padded,
+		.name		= "/err",
+		.test		= test_err,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/multi",
+		.test		= test_multi,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
