@@ -10,13 +10,13 @@
  */
 
 val_t
-mk_sym(const char *s, size_t len)
+sym(const char *s, size_t len)
 {
 	assert(*s != '\0');
 	assert(0 < len);
 	assert(len < SIZE_MAX);
 
-	val_t v = _mk_undef();
+	val_t v = _undef();
 
 	char *sym = calloc(1, len + 1);
 	assert(sym != NULL);

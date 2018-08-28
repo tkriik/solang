@@ -6,7 +6,7 @@
 #include "val.h"
 
 val_t
-_mk_undef(void)
+_undef(void)
 {
 	val_t v;
 	v.u = 0;
@@ -15,9 +15,9 @@ _mk_undef(void)
 }
 
 val_t
-mk_null(void)
+null(void)
 {
-	val_t v = _mk_undef();
+	val_t v = _undef();
 
 	_set_immed_null(&v);
 

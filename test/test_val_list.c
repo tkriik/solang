@@ -9,7 +9,7 @@
 static MunitResult
 test_is_list(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_list();
+	val_t v = list();
 
 	assert_true(is_list(v));
 
@@ -21,16 +21,16 @@ test_is_list(const MunitParameter params[], void *fixture)
 static MunitResult
 test_eq(const MunitParameter params[], void *fixture)
 {
-	val_t l0 = mk_list();
-	val_t l1 = mk_list();
+	val_t l0 = list();
+	val_t l1 = list();
 	assert_val_eq(l0, l1);
 
-	l0 = list_cons(mk_null(), l0);
-	l1 = list_cons(mk_null(), l1);
+	l0 = list_cons(null(), l0);
+	l1 = list_cons(null(), l1);
 	assert_val_eq(l0, l1);
 
-	l0 = list_cons(mk_sym("foo", 3), l0);
-	l1 = list_cons(mk_sym("foo", 3), l1);
+	l0 = list_cons(sym("foo", 3), l0);
+	l1 = list_cons(sym("foo", 3), l1);
 	assert_val_eq(l0, l1);
 
 	val_free(l0);
@@ -42,14 +42,14 @@ test_eq(const MunitParameter params[], void *fixture)
 static MunitResult
 test_neq(const MunitParameter params[], void *fixture)
 {
-	val_t l0 = mk_list();
-	val_t l1 = mk_list();
+	val_t l0 = list();
+	val_t l1 = list();
 
-	l0 = list_cons(mk_sym("foo", 3), l0);
-	l1 = list_cons(mk_sym("bar", 3), l1);
+	l0 = list_cons(sym("foo", 3), l0);
+	l1 = list_cons(sym("bar", 3), l1);
 	assert_val_neq(l0, l1);
 
-	l0 = list_cons(mk_sym("foo", 3), l0);
+	l0 = list_cons(sym("foo", 3), l0);
 	assert_val_neq(l0, l1);
 
 	val_free(l0);
@@ -61,11 +61,11 @@ test_neq(const MunitParameter params[], void *fixture)
 static MunitResult
 test_cons_head_tail(const MunitParameter params[], void *fixture)
 {
-	val_t l0 = mk_list();
+	val_t l0 = list();
 
-	val_t v1 = mk_sym("foo", 3);
-	val_t v2 = mk_sym("bar", 3);
-	val_t v3 = mk_sym("baz", 3);
+	val_t v1 = sym("foo", 3);
+	val_t v2 = sym("bar", 3);
+	val_t v3 = sym("baz", 3);
 
 	val_t l1 = list_cons(v1, l0);
 	assert_val_eq(list_head(l1), v1);
@@ -92,13 +92,13 @@ test_cons_head_tail(const MunitParameter params[], void *fixture)
 static MunitResult
 test_reverse_inplace(const MunitParameter params[], void *fixture)
 {
-	val_t v0 = mk_sym("foo", 3);
-	val_t v1 = mk_null();
-	val_t v2 = mk_sym("baz", 3);
+	val_t v0 = sym("foo", 3);
+	val_t v1 = null();
+	val_t v2 = sym("baz", 3);
 
-	val_t l = mk_list();
+	val_t l = list();
 	l = list_reverse_inplace(l);
-	assert_val_eq(l, mk_list());
+	assert_val_eq(l, list());
 
 	l = list_cons(v0, l);
 	l = list_reverse_inplace(l);

@@ -9,16 +9,16 @@ struct blist {
 };
 
 val_t
-_mk_elist(void)
+_elist(void)
 {
-	val_t v = _mk_undef();
+	val_t v = _undef();
 	_set_immed_elist(&v);
 
 	return v;
 }
 
 val_t
-_mk_blist(val_t hd, val_t tl)
+_blist(val_t hd, val_t tl)
 {
 	assert_list(tl);
 
@@ -28,16 +28,16 @@ _mk_blist(val_t hd, val_t tl)
 	bl->hd = hd;
 	bl->tl = tl;
 
-	val_t v = _mk_undef();
+	val_t v = _undef();
 	_set_boxed_list(&v, bl);
 
 	return v;
 }
 
 val_t
-mk_list(void)
+list(void)
 {
-	return _mk_elist();
+	return _elist();
 }
 
 int
@@ -65,7 +65,7 @@ list_cons(val_t v, val_t l)
 {
 	assert_list(l);
 
-	return _mk_blist(v, l);
+	return _blist(v, l);
 }
 
 val_t
@@ -104,7 +104,7 @@ static val_t
 blist_reverse_inplace(val_t l)
 {
 	val_t p = l;
-	val_t q = mk_list();
+	val_t q = list();
 	val_t r;
 
 	while (!_is_elist(p)) {

@@ -7,7 +7,7 @@
 static MunitResult
 test_is_null(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_null();
+	val_t v = null();
 
 	assert_true(is_null(v));
 
@@ -17,8 +17,8 @@ test_is_null(const MunitParameter params[], void *fixture)
 static MunitResult
 test_eq_null(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_null();
-	val_t w = mk_null();
+	val_t v = null();
+	val_t w = null();
 
 	assert_val_eq(v, w);
 
@@ -28,8 +28,8 @@ test_eq_null(const MunitParameter params[], void *fixture)
 static MunitResult
 test_eq_sym(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_sym("foobar", 6);
-	val_t w = mk_sym("foobar", 6);
+	val_t v = sym("foobar", 6);
+	val_t w = sym("foobar", 6);
 
 	assert_val_eq(v, w);
 
@@ -42,8 +42,8 @@ test_eq_sym(const MunitParameter params[], void *fixture)
 static MunitResult
 test_neq_null(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_null();
-	val_t w = mk_sym("foobar", 6);
+	val_t v = null();
+	val_t w = sym("foobar", 6);
 
 	assert_val_neq(v, w);
 
@@ -55,8 +55,8 @@ test_neq_null(const MunitParameter params[], void *fixture)
 static MunitResult
 test_neq_sym(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_sym("foo", 3);
-	val_t w = mk_sym("bar", 3);
+	val_t v = sym("foo", 3);
+	val_t w = sym("bar", 3);
 
 	assert_val_neq(v, w);
 

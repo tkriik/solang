@@ -126,8 +126,8 @@ void		  assert_list(val_t);
 /*
  * val.c
  */
-val_t		 _mk_undef(void);
-val_t		  mk_null(void);
+val_t		 _undef(void);
+val_t		  null(void);
 
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
@@ -140,16 +140,16 @@ void		  val_free(val_t);
 /*
  * sym.c
  */
-val_t		  mk_sym(const char *, size_t);
+val_t		  sym(const char *, size_t);
 int		  is_sym(val_t);
 const char	 *get_sym_str(val_t);
 
 /*
  * list.c
  */
-val_t		 _mk_elist(void);
-val_t		 _mk_blist(val_t, val_t);
-val_t		  mk_list(void);
+val_t		 _elist(void);
+val_t		 _blist(val_t, val_t);
+val_t		  list(void);
 
 int		 _is_elist(val_t);
 int		 _is_blist(val_t);

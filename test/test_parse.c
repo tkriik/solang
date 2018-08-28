@@ -18,7 +18,7 @@ static void
 test_parse_err(const char *src)
 {
 	val_t v = parse(src);
-	assert_val_eq(v, _mk_undef());
+	assert_val_eq(v, _undef());
 	val_free(v);
 }
 
@@ -42,16 +42,16 @@ test_null(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "null",
-			.exp_v	= list_cons(mk_null(), mk_list())
+			.exp_v	= list_cons(null(), list())
 		}, {
 			.src	= " null",
-			.exp_v	= list_cons(mk_null(), mk_list())
+			.exp_v	= list_cons(null(), list())
 		}, {
 			.src	= "null ",
-			.exp_v	= list_cons(mk_null(), mk_list())
+			.exp_v	= list_cons(null(), list())
 		}, {
 			.src	= "\n\v\tnull\r\n",
-			.exp_v	= list_cons(mk_null(), mk_list())
+			.exp_v	= list_cons(null(), list())
 		}, {
 			.src	= NULL
 		}
@@ -68,16 +68,16 @@ test_sym(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "foo",
-			.exp_v	= list_cons(mk_sym("foo", 3), mk_list())
+			.exp_v	= list_cons(sym("foo", 3), list())
 		}, {
 			.src	= " ->bar",
-			.exp_v	= list_cons(mk_sym("->bar", 5), mk_list())
+			.exp_v	= list_cons(sym("->bar", 5), list())
 		}, {
 			.src	= "foo-> ",
-			.exp_v	= list_cons(mk_sym("foo->", 5), mk_list())
+			.exp_v	= list_cons(sym("foo->", 5), list())
 		}, {
 			.src	= "\n\r\tbaz9\r\n",
-			.exp_v	= list_cons(mk_sym("baz9", 4), mk_list())
+			.exp_v	= list_cons(sym("baz9", 4), list())
 		}, {
 			.src	= NULL
 		}
@@ -94,21 +94,21 @@ test_list_0(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "",
-			.exp_v	= mk_list()
+			.exp_v	= list()
 		}, {
 			.src	= "()",
-			.exp_v	= list_cons(mk_list(), mk_list())
+			.exp_v	= list_cons(list(), list())
 		}, {
 			.src	= "(())",
-			.exp_v	= list_cons(list_cons(mk_list(),
-				                      mk_list()),
-				            mk_list())
+			.exp_v	= list_cons(list_cons(list(),
+				                      list()),
+				            list())
 		}, {
 			.src	= "\n(\t\t(  (\n)\t)\r)\n",
-			.exp_v	= list_cons(list_cons(list_cons(mk_list(),
-				                                mk_list()),
-				                      mk_list()),
-				            mk_list())
+			.exp_v	= list_cons(list_cons(list_cons(list(),
+				                                list()),
+				                      list()),
+				            list())
 		}, {
 			.src	= NULL
 		}
@@ -125,10 +125,10 @@ test_list_n(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "foo null baz",
-			.exp_v	= list_cons(mk_sym("foo", 3),
-				            list_cons(mk_null(),
-				                      list_cons(mk_sym("baz", 3),
-				                                mk_list())))
+			.exp_v	= list_cons(sym("foo", 3),
+				            list_cons(null(),
+				                      list_cons(sym("baz", 3),
+				                                list())))
 		}, {
 			.src	= NULL
 		}
