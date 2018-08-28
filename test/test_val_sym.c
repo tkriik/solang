@@ -8,7 +8,7 @@
 static MunitResult
 test_is_sym(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_sym("foobar", 6);
+	val_t v = sym("foobar", 6);
 
 	assert_true(is_sym(v));
 
@@ -20,7 +20,7 @@ test_is_sym(const MunitParameter params[], void *fixture)
 static void
 test_str(const char *expected)
 {
-	val_t v = mk_sym(expected, strlen(expected));
+	val_t v = sym(expected, strlen(expected));
 	const char *actual = get_sym_str(v);
 	
 	assert_string_equal(expected, actual);

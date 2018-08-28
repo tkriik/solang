@@ -6,7 +6,7 @@
 #include "val.h"
 
 val_t
-_mk_undef(void)
+_undef(void)
 {
 	val_t v;
 	v.u = 0;
@@ -15,11 +15,11 @@ _mk_undef(void)
 }
 
 val_t
-mk_null(void)
+nil(void)
 {
-	val_t v = _mk_undef();
+	val_t v = _undef();
 
-	_set_immed_null(&v);
+	_set_immed_nil(&v);
 
 	return v;
 }
@@ -44,10 +44,10 @@ _is_undef(val_t v)
 }
 
 int
-is_null(val_t v)
+is_nil(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_IMMED
-	    && _get_immed_type(v) == VAL_IMMED_TYPE_NULL;
+	    && _get_immed_type(v) == VAL_IMMED_TYPE_NIL;
 }
 
 int

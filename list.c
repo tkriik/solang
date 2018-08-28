@@ -9,16 +9,16 @@ struct blist {
 };
 
 val_t
-_mk_elist(void)
+_elist(void)
 {
-	val_t v = _mk_undef();
+	val_t v = _undef();
 	_set_immed_elist(&v);
 
 	return v;
 }
 
 val_t
-_mk_blist(val_t hd, val_t tl)
+_blist(val_t hd, val_t tl)
 {
 	assert_list(tl);
 
@@ -28,16 +28,16 @@ _mk_blist(val_t hd, val_t tl)
 	bl->hd = hd;
 	bl->tl = tl;
 
-	val_t v = _mk_undef();
+	val_t v = _undef();
 	_set_boxed_list(&v, bl);
 
 	return v;
 }
 
 val_t
-mk_list(void)
+list(void)
 {
-	return _mk_elist();
+	return _elist();
 }
 
 int
@@ -61,15 +61,15 @@ is_list(val_t v)
 }
 
 val_t
-list_cons(val_t v, val_t l)
+cons(val_t v, val_t l)
 {
 	assert_list(l);
 
-	return _mk_blist(v, l);
+	return _blist(v, l);
 }
 
 val_t
-list_head(val_t l)
+car(val_t l)
 {
 	struct blist *bl = _get_boxed_list_ptr(l);
 
@@ -77,7 +77,7 @@ list_head(val_t l)
 }
 
 val_t
-list_tail(val_t l)
+cdr(val_t l)
 {
 	struct blist *bl = _get_boxed_list_ptr(l);
 
@@ -94,7 +94,7 @@ list_count(val_t l)
 	val_t node = l;
 	while (_is_blist(node)) {
 		count++;
-		node = list_tail(node);
+		node = cdr(node);
 	}
 
 	return count;
@@ -104,13 +104,13 @@ static val_t
 blist_reverse_inplace(val_t l)
 {
 	val_t p = l;
-	val_t q = mk_list();
+	val_t q = list();
 	val_t r;
 
 	while (!_is_elist(p)) {
 		r = q;
 		q = p;
-		p = list_tail(p);
+		p = cdr(p);
 		struct blist *bl_q = _get_boxed_list_ptr(q);
 		bl_q->tl = r;
 	}
@@ -145,13 +145,13 @@ _blist_eq(val_t l0, val_t l1)
 		if (!_is_blist(node0) || !_is_blist(node1))
 			return 0;
 
-		val_t hd0 = list_head(node0);
-		val_t hd1 = list_head(node1);
+		val_t hd0 = car(node0);
+		val_t hd1 = car(node1);
 		if (!is_eq(hd0, hd1))
 			return 0;
 
-		node0 = list_tail(node0);
-		node1 = list_tail(node1);
+		node0 = cdr(node0);
+		node1 = cdr(node1);
 	}
 }
 
@@ -162,8 +162,8 @@ _blist_free(val_t l)
 
 	val_t node = l;
 	while (!_is_elist(node)) {
-		val_t tmp = list_tail(node);
-		val_free(list_head(node));
+		val_t tmp = cdr(node);
+		val_free(car(node));
 		free(_get_boxed_list_ptr(node));
 		node = tmp;
 	}

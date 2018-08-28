@@ -73,10 +73,10 @@ token_next(const char **srcp, struct token_info *token)
 	 *
 	 *   AT_SYM     -> AT_SYM
 	 *               | <return>
-	 *               | AT_NULL
+	 *               | AT_NIL
 	 *               | AT_ERR
 	 *
-	 *   AT_NULL    -> <return>
+	 *   AT_NIL     -> <return>
 	 *               | AT_SYM
 	 *               | AT_ERR
 	 *
@@ -87,7 +87,7 @@ token_next(const char **srcp, struct token_info *token)
 		NEXT_TOKEN,
 		AT_LIST,
 		AT_SYM,
-		AT_NULL,
+		AT_NIL,
 		AT_ERR
 	} state = NEXT_TOKEN;
 
@@ -144,14 +144,14 @@ token_next(const char **srcp, struct token_info *token)
 		case AT_SYM:
 			/*
 			 * AT_SYM -> AT_SYM
-			 *         | AT_NULL
+			 *         | AT_NIL
 			 */
 			if (is_sym_char(c)) {
 				token->len++;
-				if (token->len == 4 &&
-				    strncmp(token->src, "null", 4) == 0) {
-					token->type = TOKEN_TYPE_NULL;
-					state = AT_NULL;
+				if (token->len == 3 &&
+				    strncmp(token->src, "nil", 3) == 0) {
+					token->type = TOKEN_TYPE_NIL;
+					state = AT_NIL;
 				}
 				cur++;
 				continue;
@@ -170,14 +170,14 @@ token_next(const char **srcp, struct token_info *token)
 			cur++;
 			continue;
 
-		case AT_NULL:
-			/* AT_NULL -> <return> */
+		case AT_NIL:
+			/* AT_NIL -> <return> */
 			if (is_list_char(c) || is_whitespace(c) || is_end(c)) {
 				*srcp = cur;
 				return TOKEN_RES_OK;
 			}
 
-			/* AT_NULL -> AT_SYM */
+			/* AT_NIL -> AT_SYM */
 			if (is_sym_char(c)) {
 				token->type = TOKEN_TYPE_SYM;
 				token->len++;
@@ -186,7 +186,7 @@ token_next(const char **srcp, struct token_info *token)
 				continue;
 			}
 
-			/* AT_NULL -> AT_ERR */
+			/* AT_NIL -> AT_ERR */
 			token->type = TOKEN_TYPE_ERR;
 			token->len++;
 			state = AT_ERR;

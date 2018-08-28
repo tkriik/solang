@@ -16,7 +16,7 @@ do_parse(struct state *st)
 	assert(st != NULL);
 	assert(st->src != NULL);
 
-	val_t l = mk_list();
+	val_t l = list();
 
 	long cur_level = st->level;
 
@@ -25,15 +25,15 @@ do_parse(struct state *st)
 	     tres != TOKEN_RES_NONE;
 	     tres = token_next(&st->src, &token)) {
 
-		val_t v = _mk_undef();
+		val_t v = _undef();
 
 		switch (token.type) {
-			case TOKEN_TYPE_NULL:
-				v = mk_null();
+			case TOKEN_TYPE_NIL:
+				v = nil();
 				break;
 
 			case TOKEN_TYPE_SYM:
-				v = mk_sym(token.src, token.len);
+				v = sym(token.src, token.len);
 				break;
 
 			case TOKEN_TYPE_LIST_START:
@@ -53,22 +53,22 @@ do_parse(struct state *st)
 				}
 
 				val_free(l);
-				return _mk_undef();
+				return _undef();
 
 			case TOKEN_TYPE_ERR:
 				val_free(l);
-				return _mk_undef();
+				return _undef();
 
 			default:
 				assert(0 && "NOTREACHED");
 		}
 
-		l = list_cons(v, l);
+		l = cons(v, l);
 	}
 
 	if (cur_level != st->level) {
 		val_free(l);
-		return _mk_undef();
+		return _undef();
 	}
 
 	l = list_reverse_inplace(l);

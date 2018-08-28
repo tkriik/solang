@@ -9,7 +9,7 @@
 static MunitResult
 test_is_list(const MunitParameter params[], void *fixture)
 {
-	val_t v = mk_list();
+	val_t v = list();
 
 	assert_true(is_list(v));
 
@@ -21,16 +21,16 @@ test_is_list(const MunitParameter params[], void *fixture)
 static MunitResult
 test_eq(const MunitParameter params[], void *fixture)
 {
-	val_t l0 = mk_list();
-	val_t l1 = mk_list();
+	val_t l0 = list();
+	val_t l1 = list();
 	assert_val_eq(l0, l1);
 
-	l0 = list_cons(mk_null(), l0);
-	l1 = list_cons(mk_null(), l1);
+	l0 = cons(nil(), l0);
+	l1 = cons(nil(), l1);
 	assert_val_eq(l0, l1);
 
-	l0 = list_cons(mk_sym("foo", 3), l0);
-	l1 = list_cons(mk_sym("foo", 3), l1);
+	l0 = cons(sym("foo", 3), l0);
+	l1 = cons(sym("foo", 3), l1);
 	assert_val_eq(l0, l1);
 
 	val_free(l0);
@@ -42,14 +42,14 @@ test_eq(const MunitParameter params[], void *fixture)
 static MunitResult
 test_neq(const MunitParameter params[], void *fixture)
 {
-	val_t l0 = mk_list();
-	val_t l1 = mk_list();
+	val_t l0 = list();
+	val_t l1 = list();
 
-	l0 = list_cons(mk_sym("foo", 3), l0);
-	l1 = list_cons(mk_sym("bar", 3), l1);
+	l0 = cons(sym("foo", 3), l0);
+	l1 = cons(sym("bar", 3), l1);
 	assert_val_neq(l0, l1);
 
-	l0 = list_cons(mk_sym("foo", 3), l0);
+	l0 = cons(sym("foo", 3), l0);
 	assert_val_neq(l0, l1);
 
 	val_free(l0);
@@ -59,30 +59,30 @@ test_neq(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
-test_cons_head_tail(const MunitParameter params[], void *fixture)
+test_cons_car_cdr(const MunitParameter params[], void *fixture)
 {
-	val_t l0 = mk_list();
+	val_t l0 = list();
 
-	val_t v1 = mk_sym("foo", 3);
-	val_t v2 = mk_sym("bar", 3);
-	val_t v3 = mk_sym("baz", 3);
+	val_t v1 = sym("foo", 3);
+	val_t v2 = sym("bar", 3);
+	val_t v3 = sym("baz", 3);
 
-	val_t l1 = list_cons(v1, l0);
-	assert_val_eq(list_head(l1), v1);
-	assert_val_eq(list_tail(l1), l0);
+	val_t l1 = cons(v1, l0);
+	assert_val_eq(car(l1), v1);
+	assert_val_eq(cdr(l1), l0);
 
-	val_t l2 = list_cons(v2, l1);
-	assert_val_eq(list_head(l2), v2);
-	assert_val_eq(list_head(list_tail(l2)), v1);
-	assert_val_eq(list_tail(l2), l1);
-	assert_val_eq(list_tail(list_tail(l2)), l0);
+	val_t l2 = cons(v2, l1);
+	assert_val_eq(car(l2), v2);
+	assert_val_eq(car(cdr(l2)), v1);
+	assert_val_eq(cdr(l2), l1);
+	assert_val_eq(cdr(cdr(l2)), l0);
 
-	val_t l3 = list_cons(v3, l2);
-	assert_val_eq(list_head(l3), v3);
-	assert_val_eq(list_head(list_tail(l3)), v2);
-	assert_val_eq(list_head(list_tail(list_tail(l3))), v1);
-	assert_val_eq(list_tail(l3), l2);
-	assert_val_eq(list_tail(list_tail(l3)), l1);
+	val_t l3 = cons(v3, l2);
+	assert_val_eq(car(l3), v3);
+	assert_val_eq(car(cdr(l3)), v2);
+	assert_val_eq(car(cdr(cdr(l3))), v1);
+	assert_val_eq(cdr(l3), l2);
+	assert_val_eq(cdr(cdr(l3)), l1);
 
 	val_free(l3);
 
@@ -92,28 +92,28 @@ test_cons_head_tail(const MunitParameter params[], void *fixture)
 static MunitResult
 test_reverse_inplace(const MunitParameter params[], void *fixture)
 {
-	val_t v0 = mk_sym("foo", 3);
-	val_t v1 = mk_null();
-	val_t v2 = mk_sym("baz", 3);
+	val_t v0 = sym("foo", 3);
+	val_t v1 = nil();
+	val_t v2 = sym("baz", 3);
 
-	val_t l = mk_list();
+	val_t l = list();
 	l = list_reverse_inplace(l);
-	assert_val_eq(l, mk_list());
+	assert_val_eq(l, list());
 
-	l = list_cons(v0, l);
+	l = cons(v0, l);
 	l = list_reverse_inplace(l);
-	assert_val_eq(v0, list_head(l));
+	assert_val_eq(v0, car(l));
 
-	l = list_cons(v1, l);
+	l = cons(v1, l);
 	l = list_reverse_inplace(l);
-	assert_val_eq(v0, list_head(l));
-	assert_val_eq(v1, list_head(list_tail(l)));
+	assert_val_eq(v0, car(l));
+	assert_val_eq(v1, car(cdr(l)));
 
-	l = list_cons(v2, l);
+	l = cons(v2, l);
 	l = list_reverse_inplace(l);
-	assert_val_eq(v1, list_head(l));
-	assert_val_eq(v0, list_head(list_tail(l)));
-	assert_val_eq(v2, list_head(list_tail(list_tail(l))));
+	assert_val_eq(v1, car(l));
+	assert_val_eq(v0, car(cdr(l)));
+	assert_val_eq(v2, car(cdr(cdr(l))));
 
 	val_free(l);
 
@@ -143,8 +143,8 @@ MunitTest val_list_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/cons-head-tail",
-		.test		= test_cons_head_tail,
+		.name		= "/cons-car-cdr",
+		.test		= test_cons_car_cdr,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

@@ -75,8 +75,8 @@ do_val_debug(val_t v, int depth)
 		case VAL_IMMED_TYPE_UNDEF:
 			printf("undefined (%lu)\n", immed_type);
 			break;
-		case VAL_IMMED_TYPE_NULL:
-			printf("null (%lu)\n", immed_type);
+		case VAL_IMMED_TYPE_NIL:
+			printf("nil (%lu)\n", immed_type);
 			break;
 		case VAL_IMMED_TYPE_ELIST:
 			printf("empty list (%lu)\n", immed_type);
@@ -106,10 +106,10 @@ do_val_debug(val_t v, int depth)
 			while (1) {
 				if (_is_elist(node))
 					break;
-				val_t w = list_head(node);
+				val_t w = car(node);
 				depth_printf(depth + 1, "--------", "\n");
 				do_val_debug(w, depth + 1);
-				node = list_tail(node);
+				node = cdr(node);
 			}
 			break;
 		default:
