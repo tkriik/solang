@@ -138,7 +138,7 @@ int		  is_eq(val_t, val_t);
 void		  val_free(val_t);
 
 /*
- * val_sym.c
+ * sym.c
  */
 val_t		  mk_sym(const char *, size_t);
 int		  is_sym(val_t);
