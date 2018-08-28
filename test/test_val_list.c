@@ -25,8 +25,8 @@ test_eq(const MunitParameter params[], void *fixture)
 	val_t l1 = list();
 	assert_val_eq(l0, l1);
 
-	l0 = cons(null(), l0);
-	l1 = cons(null(), l1);
+	l0 = cons(nil(), l0);
+	l1 = cons(nil(), l1);
 	assert_val_eq(l0, l1);
 
 	l0 = cons(sym("foo", 3), l0);
@@ -93,7 +93,7 @@ static MunitResult
 test_reverse_inplace(const MunitParameter params[], void *fixture)
 {
 	val_t v0 = sym("foo", 3);
-	val_t v1 = null();
+	val_t v1 = nil();
 	val_t v2 = sym("baz", 3);
 
 	val_t l = list();

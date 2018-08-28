@@ -15,7 +15,7 @@
  *
  *   For immediate values, the types are:
  *     - 0: undefined
- *     - 1: null
+ *     - 1: nil
  *     - 2: empty list
  *     - 3: <TODO>
  *
@@ -29,8 +29,8 @@
  *     - An undefined value is all zero by design, and for internal use only.
  *       It cannot be instantiated by any expression.
  *
- *   Null:
- *     - A null value represents nothing.
+ *   Nil:
+ *     - A nil value represents nothing.
  *
  *   Symbol:
  *     - A symbol contains a pointer to a heap-allocated string.
@@ -56,7 +56,7 @@ enum val_storage {
 
 enum val_immed_type {
 	VAL_IMMED_TYPE_UNDEF	= 0,
-	VAL_IMMED_TYPE_NULL	= 1,
+	VAL_IMMED_TYPE_NIL	= 1,
 	VAL_IMMED_TYPE_ELIST	= 2
 };
 
@@ -101,7 +101,7 @@ enum val_lim {
 unsigned long	 _get_storage(val_t);
 
 unsigned long	 _get_immed_type(val_t);
-void		 _set_immed_null(val_t *);
+void		 _set_immed_nil(val_t *);
 void		 _set_immed_elist(val_t *);
 
 unsigned long	 _get_boxed_type(val_t);
@@ -127,12 +127,12 @@ void		  assert_list(val_t);
  * val.c
  */
 val_t		 _undef(void);
-val_t		  null(void);
+val_t		  nil(void);
 
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
 int		 _is_undef(val_t);
-int		  is_null(val_t);
+int		  is_nil(val_t);
 int		  is_eq(val_t, val_t);
 
 void		  val_free(val_t);

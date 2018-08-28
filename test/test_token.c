@@ -52,13 +52,13 @@ test_empty(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
-test_null(const MunitParameter params[], void *fixture)
+test_nil(const MunitParameter params[], void *fixture)
 {
-	const char *src = "null";
+	const char *src = "nil";
 
 	const char *cur = src;
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL, 4, src + 4);
-	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 4);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NIL, 3, src + 3);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
 
 	return MUNIT_OK;
 }
@@ -116,7 +116,7 @@ test_multi(const MunitParameter params[], void *fixture)
 {
 	const char *src =
 	    "         "		"\n"	// 0  -  9
-	    "null)    "		"\t"	// 10 - 19
+	    "nil)     "		"\t"	// 10 - 19
 	    "foo      "		"\v"	// 20 - 29
 	    "   bar   "		"\r"	// 30 - 39
 	    "   ,,,   "		"\n"	// 40 - 49
@@ -124,8 +124,8 @@ test_multi(const MunitParameter params[], void *fixture)
 	    "()       "		"\n";	// 60 - 69
 
 	const char *cur = src;
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NULL,       4, src + 10 + 4);
-	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 10 + 5);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_NIL,       3, src + 10 + 3);
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 10 + 4);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 20 + 3);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 30 + 6);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR,        3, src + 40 + 6);
@@ -146,8 +146,8 @@ MunitTest token_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/null",
-		.test		= test_null,
+		.name		= "/nil",
+		.test		= test_nil,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

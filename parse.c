@@ -28,8 +28,8 @@ do_parse(struct state *st)
 		val_t v = _undef();
 
 		switch (token.type) {
-			case TOKEN_TYPE_NULL:
-				v = null();
+			case TOKEN_TYPE_NIL:
+				v = nil();
 				break;
 
 			case TOKEN_TYPE_SYM:
