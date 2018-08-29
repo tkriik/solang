@@ -141,12 +141,14 @@ void		  val_free(val_t);
  * sym.c
  */
 val_t		  sym(const char *, size_t);
+val_t		  sym_s(const char *);
 int		  is_sym(val_t);
 const char	 *get_sym_str(val_t);
 
 /*
  * list.c
  */
+
 val_t		 _elist(void);
 val_t		 _blist(val_t, val_t);
 val_t		  list(void);
@@ -164,6 +166,14 @@ val_t		  list_reverse_inplace(val_t);
 
 int		 _blist_eq(val_t, val_t);
 void		 _blist_free(val_t);
+
+/*
+ * Cannot properly assign both v and l in the same update statement,
+ * so do away with this hack.
+ */
+#define LIST_FOREACH(v, l)						\
+	for (int _once = 1; !_is_elist(l); (l) = cdr(l), _once = 1)	\
+		for ((v) = car(l); _once; _once = 0)
 
 /*
  * val_debug.c
