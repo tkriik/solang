@@ -29,8 +29,8 @@ test_eq(const MunitParameter params[], void *fixture)
 	l1 = cons(nil(), l1);
 	assert_val_eq(l0, l1);
 
-	l0 = cons(sym("foo", 3), l0);
-	l1 = cons(sym("foo", 3), l1);
+	l0 = cons(sym("foo"), l0);
+	l1 = cons(sym("foo"), l1);
 	assert_val_eq(l0, l1);
 
 	val_free(l0);
@@ -45,11 +45,11 @@ test_neq(const MunitParameter params[], void *fixture)
 	val_t l0 = list();
 	val_t l1 = list();
 
-	l0 = cons(sym("foo", 3), l0);
-	l1 = cons(sym("bar", 3), l1);
+	l0 = cons(sym("foo"), l0);
+	l1 = cons(sym("bar"), l1);
 	assert_val_neq(l0, l1);
 
-	l0 = cons(sym("foo", 3), l0);
+	l0 = cons(sym("foo"), l0);
 	assert_val_neq(l0, l1);
 
 	val_free(l0);
@@ -63,9 +63,9 @@ test_cons_car_cdr(const MunitParameter params[], void *fixture)
 {
 	val_t l0 = list();
 
-	val_t v1 = sym("foo", 3);
-	val_t v2 = sym("bar", 3);
-	val_t v3 = sym("baz", 3);
+	val_t v1 = sym("foo");
+	val_t v2 = sym("bar");
+	val_t v3 = sym("baz");
 
 	val_t l1 = cons(v1, l0);
 	assert_val_eq(car(l1), v1);
@@ -92,9 +92,9 @@ test_cons_car_cdr(const MunitParameter params[], void *fixture)
 static MunitResult
 test_reverse_inplace(const MunitParameter params[], void *fixture)
 {
-	val_t v0 = sym("foo", 3);
+	val_t v0 = sym("foo");
 	val_t v1 = nil();
-	val_t v2 = sym("baz", 3);
+	val_t v2 = sym("baz");
 
 	val_t l = list();
 	l = list_reverse_inplace(l);
@@ -123,9 +123,9 @@ test_reverse_inplace(const MunitParameter params[], void *fixture)
 static MunitResult
 test_foreach(const MunitParameter params[], void *fixture)
 {
-	val_t v0 = sym("foo", 3);
+	val_t v0 = sym("foo");
 	val_t v1 = nil();
-	val_t v2 = sym("baz", 3);
+	val_t v2 = sym("baz");
 	val_t vs[] = {
 		v0,
 		v1,

@@ -68,16 +68,16 @@ test_sym(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "foo",
-			.exp_v	= cons(sym("foo", 3), list())
+			.exp_v	= cons(sym("foo"), list())
 		}, {
 			.src	= " ->bar",
-			.exp_v	= cons(sym("->bar", 5), list())
+			.exp_v	= cons(sym("->bar"), list())
 		}, {
 			.src	= "foo-> ",
-			.exp_v	= cons(sym("foo->", 5), list())
+			.exp_v	= cons(sym("foo->"), list())
 		}, {
 			.src	= "\n\r\tbaz9\r\n",
-			.exp_v	= cons(sym("baz9", 4), list())
+			.exp_v	= cons(sym("baz9"), list())
 		}, {
 			.src	= NULL
 		}
@@ -125,9 +125,9 @@ test_list_n(const MunitParameter params[], void *fixture)
 	struct parse_fixture pfs[] = {
 		{
 			.src	= "foo nil baz",
-			.exp_v	= cons(sym("foo", 3),
+			.exp_v	= cons(sym("foo"),
 				       cons(nil(),
-				            cons(sym("baz", 3),
+				            cons(sym("baz"),
 				                 list())))
 		}, {
 			.src	= NULL

@@ -96,7 +96,7 @@ do_val_debug(val_t v, int depth)
 		switch (boxed_type) {
 		case VAL_BOXED_TYPE_SYM:
 			printf("symbol (%lu)\n", boxed_type);
-			depth_printf(depth, "symbol value", "\"%s\"\n", get_sym_str(v));
+			depth_printf(depth, "symbol value", "\"%s\"\n", sym_name(v));
 			break;
 		case VAL_BOXED_TYPE_LIST:
 			printf("list (%lu)\n", boxed_type);

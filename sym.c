@@ -3,34 +3,48 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "uthash.h"
+
+#include "conf.h"
 #include "val.h"
 
-/*
- * TODO: Use global hash table for avoiding allocating duplicate symbols
- */
+struct sym_entry {
+	char		name[SYM_MAX_LEN + 1];
+	UT_hash_handle	hh;
+};
+
+static struct sym_entry *sym_entries;
 
 val_t
-sym(const char *s, size_t len)
+sym(const char *name)
 {
-	assert(*s != '\0');
-	assert(0 < len);
-	assert(len < SIZE_MAX);
-
-	val_t v = _undef();
-
-	char *sym = calloc(1, len + 1);
-	assert(sym != NULL);
-	memcpy(sym, s, len);
-
-	_set_boxed_sym(&v, sym);
-
-	return v;
+	return symn(name, strlen(name));
 }
 
 val_t
-sym_s(const char *s)
+symn(const char *name, size_t len)
 {
-	return sym(s, strlen(s));
+	assert(0 < len);
+	assert(len <= SYM_MAX_LEN);
+	assert(HASH_COUNT(sym_entries) <= SYM_MAX_CNT);
+
+	val_t sym = _undef();
+
+	struct sym_entry *old_entry;
+	HASH_FIND_STR(sym_entries, name, old_entry);
+	if (old_entry != NULL) {
+		_set_boxed_sym(&sym, old_entry);
+		return sym;
+	}
+
+	struct sym_entry *new_entry = malloc(sizeof(*new_entry));
+	memset(new_entry->name, 0, sizeof(new_entry->name));
+	memcpy(new_entry->name, name, len);
+
+	HASH_ADD_STR(sym_entries, name, new_entry);
+	_set_boxed_sym(&sym, new_entry);
+
+	return sym;
 }
 
 int
@@ -41,7 +55,12 @@ is_sym(val_t v)
 }
 
 const char *
-get_sym_str(val_t v)
+sym_name(val_t v)
 {
-	return (const char*)(_get_boxed_sym_ptr(v));
+	assert(is_sym(v));
+
+	struct sym_entry *entry = _get_boxed_sym_ptr(v);
+	assert(entry != NULL);
+
+	return entry->name;
 }

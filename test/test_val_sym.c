@@ -3,12 +3,13 @@
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit.h"
 
+#include "conf.h"
 #include "val.h"
 
 static MunitResult
 test_is_sym(const MunitParameter params[], void *fixture)
 {
-	val_t v = sym("foobar", 6);
+	val_t v = sym("foobar");
 
 	assert_true(is_sym(v));
 
@@ -20,8 +21,8 @@ test_is_sym(const MunitParameter params[], void *fixture)
 static void
 test_str(const char *expected)
 {
-	val_t v = sym(expected, strlen(expected));
-	const char *actual = get_sym_str(v);
+	val_t v = sym(expected);
+	const char *actual = sym_name(v);
 	
 	assert_string_equal(expected, actual);
 
@@ -39,8 +40,8 @@ test_short(const MunitParameter params[], void *fixture)
 static MunitResult
 test_long(const MunitParameter params[], void *fixture)
 {
-	char s[4096 + 1] = {0};
-	memset(s, 'A', 4096);
+	char s[SYM_MAX_LEN + 1] = {0};
+	memset(s, 'A', SYM_MAX_LEN);
 
 	test_str(s);
 

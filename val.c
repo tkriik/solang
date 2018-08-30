@@ -61,8 +61,8 @@ is_eq(val_t v, val_t w)
 	unsigned long v_boxed_type;
 	unsigned long w_boxed_type;
 
-	const char *v_sym_str;
-	const char *w_sym_str;
+	const char *v_sym_name;
+	const char *w_sym_name;
 
 	switch (v_storage) {
 	case VAL_STORAGE_IMMED:
@@ -87,9 +87,9 @@ is_eq(val_t v, val_t w)
 
 		switch (v_boxed_type) {
 		case VAL_BOXED_TYPE_SYM:
-			v_sym_str = get_sym_str(v);
-			w_sym_str = get_sym_str(w);
-			return strcmp(v_sym_str, w_sym_str) == 0;
+			v_sym_name = sym_name(v);
+			w_sym_name = sym_name(w);
+			return strcmp(v_sym_name, w_sym_name) == 0;
 
 		case VAL_BOXED_TYPE_LIST:
 			return _blist_eq(v, w);
@@ -117,7 +117,6 @@ val_free(val_t v)
 	case VAL_STORAGE_BOXED:
 		switch (_get_boxed_type(v)) {
 		case VAL_BOXED_TYPE_SYM:
-			free(_get_boxed_sym_ptr(v));
 			return;
 
 		case VAL_BOXED_TYPE_LIST:

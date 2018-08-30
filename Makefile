@@ -39,7 +39,8 @@ DEPS_LINKS=	test/munit.c \
 		test/munit.h \
 		sds.c \
 		sds.h \
-		sdsalloc.h
+		sdsalloc.h \
+		uthash.h
 
 BIN=		tal
 
@@ -61,6 +62,7 @@ deps_links:
 	ln -sf deps/sds/sds.c sds.c
 	ln -sf deps/sds/sds.h sds.h
 	ln -sf deps/sds/sdsalloc.h sdsalloc.h
+	ln -sf deps/uthash/src/uthash.h uthash.h
 
 deps/munit:
 	git clone https://github.com/nemequ/munit.git deps/munit
@@ -68,7 +70,10 @@ deps/munit:
 deps/sds:
 	git clone https://github.com/antirez/sds.git deps/sds
 
-deps: deps/munit deps/sds deps_links
+deps/uthash:
+	git clone https://github.com/troydhanson/uthash.git deps/uthash
+
+deps: deps/munit deps/sds deps/uthash deps_links
 
 test: $(TEST_BIN)
 
