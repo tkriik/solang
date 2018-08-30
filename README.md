@@ -29,6 +29,7 @@ Work in progress
 
   - [µnit](https://github.com/nemequ/munit)
   - [SDS](https://github.com/antirez/sds)
+  - [uthash](https://troydhanson.github.io/uthash/)
 
 --------------------------------------------------------------------------------
 
