@@ -12,3 +12,4 @@ munit.h
 sds.c
 sds.h
 sdsalloc.h
+uthash.h

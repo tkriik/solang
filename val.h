@@ -33,7 +33,8 @@
  *     - A nil value represents nothing.
  *
  *   Symbol:
- *     - A symbol contains a pointer to a heap-allocated string.
+ *     - A symbol contains a pointer to a heap-allocated entry in a hash table,
+ *       which stores the symbol data.
  *
  *   List:
  *     - A list stores other values in a linked list. An empty list
@@ -140,10 +141,11 @@ void		  val_free(val_t);
 /*
  * sym.c
  */
-val_t		  sym(const char *, size_t);
-val_t		  sym_s(const char *);
+val_t		  sym(const char *);
+val_t		  symn(const char *, size_t);
+const char	 *sym_name(val_t);
+
 int		  is_sym(val_t);
-const char	 *get_sym_str(val_t);
 
 /*
  * list.c

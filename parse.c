@@ -33,7 +33,7 @@ do_parse(struct state *st)
 				break;
 
 			case TOKEN_TYPE_SYM:
-				v = sym(token.src, token.len);
+				v = symn(token.src, token.len);
 				break;
 
 			case TOKEN_TYPE_LIST_START:

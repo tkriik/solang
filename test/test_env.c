@@ -11,8 +11,8 @@ test_define_multi(const MunitParameter params[], void *fixture)
 	struct env env;
 	env_init(&env);
 
-	val_t s = sym_s("foo");
-	val_t v = sym_s("fooval");
+	val_t s = sym("foo");
+	val_t v = sym("fooval");
 
 	val_t res = env_define(&env, s, v);
 	assert_val_eq(res, s);
@@ -32,13 +32,13 @@ test_define_lookup(const MunitParameter params[], void *fixture)
 	struct env env;
 	env_init(&env);
 
-	val_t sym0 = sym_s("foo");
-	val_t sym1 = sym_s("bar");
-	val_t sym2 = sym_s("baz");
+	val_t sym0 = sym("foo");
+	val_t sym1 = sym("bar");
+	val_t sym2 = sym("baz");
 
-	val_t v0 = sym_s("fooval");
-	val_t v1 = sym_s("barval");
-	val_t v2 = sym_s("bazval");
+	val_t v0 = sym("fooval");
+	val_t v1 = sym("barval");
+	val_t v2 = sym("bazval");
 
 	val_t res0;
 	val_t res1;
