@@ -25,9 +25,7 @@ CORE_SRC=	builtin.c \
 		val.c \
 		val.h \
 		val_debug.c \
-		val_util.c \
-		vtab.c \
-		vtab.h
+		val_util.c
 
 TEST_SRC=	test/tal_test.c \
 		test/test_env.c \

@@ -13,7 +13,7 @@ struct sym_entry {
 	UT_hash_handle	hh;
 };
 
-static struct sym_entry *sym_entries;
+static struct sym_entry *sym_entries = NULL;
 
 val_t
 sym(const char *name)
@@ -60,7 +60,6 @@ sym_name(val_t v)
 	assert(is_sym(v));
 
 	struct sym_entry *entry = _get_boxed_sym_ptr(v);
-	assert(entry != NULL);
 
 	return entry->name;
 }

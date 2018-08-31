@@ -20,8 +20,7 @@ test_define_multi(const MunitParameter params[], void *fixture)
 	res = env_define(&env, s, v);
 	assert_val_eq(res, err_undef());
 
-	val_free(s);
-	val_free(v);
+	env_destroy(&env);
 
 	return MUNIT_OK;
 }
@@ -69,12 +68,7 @@ test_define_lookup(const MunitParameter params[], void *fixture)
 	assert_val_eq(res1, v1);
 	assert_val_eq(res2, v2);
 
-	val_free(sym0);
-	val_free(sym1);
-	val_free(sym2);
-	val_free(v0);
-	val_free(v1);
-	val_free(v2);
+	env_destroy(&env);
 
 	return MUNIT_OK;
 }
