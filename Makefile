@@ -7,7 +7,9 @@ SRC=		tal.c \
 		repl.c \
 		repl.h
 
-CORE_SRC=	conf.h \
+CORE_SRC=	builtin.c \
+		builtin.h \
+		conf.h \
 		env.c \
 		env.h \
 		err.c \

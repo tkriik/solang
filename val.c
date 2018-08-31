@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "builtin.h"
 #include "val.h"
 
 int
@@ -15,6 +16,26 @@ int
 is_boxed(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_BOXED;
+}
+
+val_t
+quote(val_t v)
+{
+	return _blist(BUILTIN.sym.quote, _blist(v, _elist()));
+}
+
+val_t
+unquote(val_t v)
+{
+	assert(is_quoted(v));
+
+	return car(cdr(v));
+}
+
+int
+is_quoted(val_t v)
+{
+	return _is_blist(v) && is_eq(BUILTIN.sym.quote, car(v));
 }
 
 int

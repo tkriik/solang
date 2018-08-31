@@ -21,7 +21,7 @@
  *     - 0: error
  *     - 1: symbol
  *     - 2: list
- *     - 3: <TODO>
+ *     - 3: quote
  *
  * Value info:
  *
@@ -44,6 +44,9 @@
  *     - A list stores other values in a linked list. An empty list
  *       is an immediate value, while a boxed list contains a value
  *       and the remaining list as a val_t.
+ *
+ *   Quote
+ *     - Quoted value
  */
 
 #include <stddef.h>
@@ -67,7 +70,8 @@ enum val_immed_type {
 enum val_boxed_type {
 	VAL_BOXED_TYPE_ERR	= 0,
 	VAL_BOXED_TYPE_SYM	= 1,
-	VAL_BOXED_TYPE_LIST	= 2
+	VAL_BOXED_TYPE_LIST	= 2,
+	VAL_BOXED_TYPE_QUOTE	= 3
 };
 
 enum val_bits {
@@ -127,6 +131,10 @@ void		 _set_boxed_list(val_t *, void *);
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
 int		  is_eq(val_t, val_t);
+
+val_t		  quote(val_t);
+val_t		  unquote(val_t);
+int		  is_quoted(val_t);
 
 void		  val_free(val_t);
 
