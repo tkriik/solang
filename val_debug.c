@@ -76,13 +76,16 @@ do_val_debug(val_t v, int depth)
 			printf("error (%lu)\n", immed_type);
 			depth_printf(depth, "error", "%s\n", err_str(v));
 			break;
+
 		case VAL_IMMED_TYPE_ELIST:
 			printf("empty list (%lu)\n", immed_type);
 			break;
+
 		default:
 			printf("<INVALID> (%lu)\n", immed_type);
 			break;
 		}
+
 		break;
 
 	case VAL_STORAGE_BOXED:
@@ -96,6 +99,7 @@ do_val_debug(val_t v, int depth)
 			printf("symbol (%lu)\n", boxed_type);
 			depth_printf(depth, "symbol value", "\"%s\"\n", sym_name(v));
 			break;
+
 		case VAL_BOXED_TYPE_LIST:
 			printf("list (%lu)\n", boxed_type);
 			depth_printf(depth, "list count", "%zu\n", list_count(v));
@@ -110,6 +114,12 @@ do_val_debug(val_t v, int depth)
 				node = cdr(node);
 			}
 			break;
+
+		case VAL_BOXED_TYPE_LAMBDA:
+			printf("lambda (%lu)\n", boxed_type);
+			depth_printf(depth, "type", "%s\n", lambda_type_str(v));
+			break;
+
 		default:
 			printf("<INVALID> (%lu)\n", boxed_type);
 			break;

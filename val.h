@@ -21,20 +21,20 @@
  *     - 0: error
  *     - 1: symbol
  *     - 2: list
- *     - 3: quote
+ *     - 3: lambda
  *
  * Value info:
  *
  *   Error
  *     - Immediate errors represent internal errors, which are:
- *       0: undefined
- *       1: out-of-memory
+ *         0: undefined
+ *         1: out-of-memory
  *
  *     - Boxed errors represent run-time errors, such as:
- *       * symbol limit
- *       * head of empty list
- *       * tail of empty list
- *       * ...
+ *         * symbol limit
+ *         * head of empty list
+ *         * tail of empty list
+ *         * ...
  *
  *   Symbol
  *     - A symbol contains a pointer to a heap-allocated entry in a hash table,
@@ -45,8 +45,10 @@
  *       is an immediate value, while a boxed list contains a value
  *       and the remaining list as a val_t.
  *
- *   Quote
- *     - Quoted value
+ *   Lambda
+ *     - A lambda points to an entry which contains function info,
+ *       such as the type of the function (user-defined/builtin),
+ *       arity and function body.
  */
 
 #include <stddef.h>
@@ -71,7 +73,7 @@ enum val_boxed_type {
 	VAL_BOXED_TYPE_ERR	= 0,
 	VAL_BOXED_TYPE_SYM	= 1,
 	VAL_BOXED_TYPE_LIST	= 2,
-	VAL_BOXED_TYPE_QUOTE	= 3
+	VAL_BOXED_TYPE_LAMBDA	= 3
 };
 
 enum val_bits {
@@ -120,10 +122,15 @@ void		 _set_immed_elist(val_t *);
 
 unsigned long	 _get_boxed_type(val_t);
 void		*_get_boxed_ptr(val_t);
+
 void		*_get_boxed_sym_ptr(val_t);
 void		 _set_boxed_sym(val_t *, void *);
+
 void		*_get_boxed_list_ptr(val_t);
 void		 _set_boxed_list(val_t *, void *);
+
+void		*_get_boxed_lambda_ptr(val_t);
+void		 _set_boxed_lambda(val_t *, void *);
 
 /*
  * val.c
@@ -183,6 +190,20 @@ void		 _blist_free(val_t);
 #define LIST_FOREACH(v, l)						\
 	for (int _once = 1; !_is_elist(l); (l) = cdr(l), _once = 1)	\
 		for ((v) = car(l); _once; _once = 0)
+
+/*
+ * lambda.c
+ */
+
+struct env;
+
+typedef val_t (*builtin_fn)(struct env *env, val_t);
+
+val_t		  lambda_builtin(unsigned long, builtin_fn);
+int		  is_lambda_builtin(val_t);
+void		  lambda_free(val_t);
+
+const char	 *lambda_type_str(val_t);
 
 /*
  * val_debug.c

@@ -4,5 +4,6 @@
 void
 builtin_init(void)
 {
-	BUILTIN.sym.quote = sym("quote");
+	BUILTIN.quote.sym = sym("quote");
+	BUILTIN.quote.fn = NULL;
 }

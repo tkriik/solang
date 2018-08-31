@@ -14,6 +14,7 @@ CORE_SRC=	builtin.c \
 		env.h \
 		err.c \
 		eval.c \
+		lambda.c \
 		list.c \
 		parse.c \
 		parse.h \
@@ -30,6 +31,7 @@ CORE_SRC=	builtin.c \
 
 TEST_SRC=	test/tal_test.c \
 		test/test_env.c \
+		test/test_lambda.c \
 		test/test_parse.c \
 		test/test_token.c \
 		test/test_val.c \
