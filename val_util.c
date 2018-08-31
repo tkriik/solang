@@ -90,6 +90,28 @@ _set_boxed_list(val_t *vp, void *p)
 	assert(p != NULL);
 
 	vp->p = p;
-	vp->u |= VAL_BOXED_TYPE_LIST << VAL_BOXED_TYPE_OFFSET;
 	vp->u |= VAL_STORAGE_BOXED << VAL_STORAGE_OFFSET;
+	vp->u |= VAL_BOXED_TYPE_LIST << VAL_BOXED_TYPE_OFFSET;
+}
+
+void *
+_get_boxed_lambda_ptr(val_t v)
+{
+	assert(is_boxed(v));
+
+	void *p = _get_boxed_ptr(v);
+
+	assert(p != NULL);
+	return p;
+}
+
+void
+_set_boxed_lambda(val_t *vp, void *p)
+{
+	assert(is_err_undef(*vp));
+	assert(p != NULL);
+
+	vp->p = p;
+	vp->u |= VAL_STORAGE_BOXED << VAL_STORAGE_OFFSET;
+	vp->u |= VAL_BOXED_TYPE_LAMBDA << VAL_BOXED_TYPE_OFFSET;
 }

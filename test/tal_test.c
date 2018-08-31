@@ -5,6 +5,7 @@
 #include "builtin.h"
 
 extern MunitTest env_tests[];
+extern MunitTest lambda_tests[];
 extern MunitTest parse_tests[];
 extern MunitTest token_tests[];
 extern MunitTest val_tests[];
@@ -33,6 +34,12 @@ static MunitSuite suites[] = {
 	}, {
 		.prefix		= "/env",
 		.tests		= env_tests,
+		.suites		= NULL,
+		.iterations	= 1,
+		.options	= MUNIT_SUITE_OPTION_NONE
+	}, {
+		.prefix		= "/lambda",
+		.tests		= lambda_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
