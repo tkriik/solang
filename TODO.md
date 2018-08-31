@@ -7,6 +7,7 @@
   1. `apply`
   1. deep val asserts with checking
   1. use unit test fixtures
+  1. replace malloc asserts with `ERR_NOMEM`
 
 ## Medium-term
 

@@ -32,6 +32,28 @@ test_neq_sym(const MunitParameter params[], void *fixture)
 	return MUNIT_OK;
 }
 
+static MunitResult
+test_quote(const MunitParameter params[], void *fixture)
+{
+	val_t v0 = sym("foo");
+
+	val_t qv0 = quote(v0);
+	assert_val_neq(v0, qv0);
+
+	val_t qqv = quote(qv0);
+	assert_val_neq(qv0, qqv);
+
+	val_t qv1 = unquote(qqv);
+	assert_val_eq(qv0, qv1);
+
+	val_t v1 = unquote(qv1);
+	assert_val_eq(v0, v1);
+
+	val_free(qqv);
+
+	return MUNIT_OK;
+}
+
 MunitTest val_tests[] = {
 	{
 		.name		= "/eq-sym",
@@ -43,6 +65,13 @@ MunitTest val_tests[] = {
 	}, {
 		.name		= "/neq-sym",
 		.test		= test_neq_sym,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/quote",
+		.test		= test_quote,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

@@ -2,6 +2,8 @@
 
 #include "munit.h"
 
+#include "builtin.h"
+
 extern MunitTest env_tests[];
 extern MunitTest parse_tests[];
 extern MunitTest token_tests[];
@@ -61,5 +63,7 @@ static const MunitSuite suite = {
 int
 main(int argc, char *argv[])
 {
+	builtin_init();
+
 	return munit_suite_main(&suite, NULL, argc, argv);
 }
