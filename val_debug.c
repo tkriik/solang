@@ -75,9 +75,6 @@ do_val_debug(val_t v, int depth)
 		case VAL_IMMED_TYPE_UNDEF:
 			printf("undefined (%lu)\n", immed_type);
 			break;
-		case VAL_IMMED_TYPE_NIL:
-			printf("nil (%lu)\n", immed_type);
-			break;
 		case VAL_IMMED_TYPE_ELIST:
 			printf("empty list (%lu)\n", immed_type);
 			break;

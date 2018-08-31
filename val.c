@@ -14,16 +14,6 @@ _undef(void)
 	return v;
 }
 
-val_t
-nil(void)
-{
-	val_t v = _undef();
-
-	_set_immed_nil(&v);
-
-	return v;
-}
-
 int
 is_immed(val_t v)
 {
@@ -41,13 +31,6 @@ _is_undef(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_IMMED
 	    && _get_immed_type(v) == VAL_IMMED_TYPE_UNDEF;
-}
-
-int
-is_nil(val_t v)
-{
-	return _get_storage(v) == VAL_STORAGE_IMMED
-	    && _get_immed_type(v) == VAL_IMMED_TYPE_NIL;
 }
 
 int

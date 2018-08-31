@@ -37,32 +37,6 @@ test_parse_fixtures(struct parse_fixture *pfs)
 }
 
 static MunitResult
-test_nil(const MunitParameter params[], void *fixture)
-{
-	struct parse_fixture pfs[] = {
-		{
-			.src	= "nil",
-			.exp_v	= cons(nil(), list())
-		}, {
-			.src	= " nil",
-			.exp_v	= cons(nil(), list())
-		}, {
-			.src	= "nil ",
-			.exp_v	= cons(nil(), list())
-		}, {
-			.src	= "\n\v\tnil\r\n",
-			.exp_v	= cons(nil(), list())
-		}, {
-			.src	= NULL
-		}
-	};
-
-	test_parse_fixtures(pfs);
-
-	return MUNIT_OK;
-}
-
-static MunitResult
 test_sym(const MunitParameter params[], void *fixture)
 {
 	struct parse_fixture pfs[] = {
@@ -124,9 +98,9 @@ test_list_n(const MunitParameter params[], void *fixture)
 {
 	struct parse_fixture pfs[] = {
 		{
-			.src	= "foo nil baz",
+			.src	= "foo bar baz",
 			.exp_v	= cons(sym("foo"),
-				       cons(nil(),
+				       cons(sym("bar"),
 				            cons(sym("baz"),
 				                 list())))
 		}, {
@@ -164,13 +138,6 @@ test_list_err(const MunitParameter params[], void *fixture)
 
 MunitTest parse_tests[] = {
 	{
-		.name		= "/nil",
-		.test		= test_nil,
-		.setup		= NULL,
-		.tear_down	= NULL,
-		.options	= MUNIT_TEST_OPTION_NONE,
-		.parameters	= NULL
-	}, {
 		.name		= "/sym",
 		.test		= test_sym,
 		.setup		= NULL,

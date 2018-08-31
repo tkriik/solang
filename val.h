@@ -15,9 +15,7 @@
  *
  *   For immediate values, the types are:
  *     - 0: undefined
- *     - 1: nil
- *     - 2: empty list
- *     - 3: <TODO>
+ *     - 1: empty list
  *
  *   For boxed values, the types are:
  *     - 0: symbol
@@ -57,8 +55,7 @@ enum val_storage {
 
 enum val_immed_type {
 	VAL_IMMED_TYPE_UNDEF	= 0,
-	VAL_IMMED_TYPE_NIL	= 1,
-	VAL_IMMED_TYPE_ELIST	= 2
+	VAL_IMMED_TYPE_ELIST	= 1
 };
 
 enum val_boxed_type {
@@ -69,7 +66,7 @@ enum val_boxed_type {
 enum val_bits {
 	VAL_BITS		= sizeof(val_t) * 8,
 	VAL_STORAGE_BITS	= 1,
-	VAL_IMMED_TYPE_BITS	= 2,
+	VAL_IMMED_TYPE_BITS	= 1,
 	VAL_IMMED_BITS		= VAL_BITS - (VAL_STORAGE_BITS + VAL_IMMED_TYPE_BITS),
 	VAL_BOXED_TYPE_BITS	= 1,
 	VAL_BOXED_BITS		= VAL_BITS - (VAL_STORAGE_BITS + VAL_BOXED_TYPE_BITS)
@@ -128,12 +125,10 @@ void		  assert_list(val_t);
  * val.c
  */
 val_t		 _undef(void);
-val_t		  nil(void);
 
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
 int		 _is_undef(val_t);
-int		  is_nil(val_t);
 int		  is_eq(val_t, val_t);
 
 void		  val_free(val_t);

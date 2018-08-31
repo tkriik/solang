@@ -9,7 +9,6 @@ const char *
 token_type_str(enum token_type type)
 {
 	switch (type) {
-	case TOKEN_TYPE_NIL:		return "TOKEN_TYPE_NIL";
 	case TOKEN_TYPE_SYM:		return "TOKEN_TYPE_SYM";
 	case TOKEN_TYPE_ERR:		return "TOKEN_TYPE_ERR";
 	case TOKEN_TYPE_LIST_START:	return "TOKEN_TYPE_LIST_START";

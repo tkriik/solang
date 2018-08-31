@@ -5,7 +5,8 @@
 int
 is_self_eval(val_t exp)
 {
-	return is_nil(exp);
+	// TODO
+	return 0;
 }
 
 val_t
