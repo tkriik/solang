@@ -72,8 +72,9 @@ do_val_debug(val_t v, int depth)
 
 		unsigned long immed_type = _get_immed_type(v);
 		switch (immed_type) {
-		case VAL_IMMED_TYPE_UNDEF:
-			printf("undefined (%lu)\n", immed_type);
+		case VAL_IMMED_TYPE_ERR:
+			printf("error (%lu)\n", immed_type);
+			depth_printf(depth, "error", "%s\n", err_str(v));
 			break;
 		case VAL_IMMED_TYPE_ELIST:
 			printf("empty list (%lu)\n", immed_type);

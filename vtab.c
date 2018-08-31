@@ -12,8 +12,8 @@ vtab_init(struct vtab *vtab)
 	vtab->count = 0;
 	for (size_t i = 0; i < VTAB_MAX_ENTRIES; i++) {
 		struct vtab_entry *entry = &vtab->entries[i];
-		entry->sym = _undef();
-		entry->v = _undef();
+		entry->sym = err_undef();
+		entry->v = err_undef();
 	};
 }
 
@@ -22,15 +22,14 @@ vtab_insert(struct vtab *vtab, val_t sym, val_t v)
 {
 	assert(vtab != NULL);
 	assert(is_sym(sym));
-	assert(!_is_undef(v));
 
 	size_t i;
 	for (i = 0; i < vtab->count + 1; i++) {
 		struct vtab_entry *entry = &vtab->entries[i];
 		if (is_eq(sym, entry->sym))
-			return _undef();
+			return err_undef();
 
-		if (_is_undef(entry->sym)) {
+		if (is_err_undef(entry->sym)) {
 			entry->sym = sym;
 			entry->v = v;
 			vtab->count++;
@@ -41,7 +40,7 @@ vtab_insert(struct vtab *vtab, val_t sym, val_t v)
 
 	assert(i < VTAB_MAX_ENTRIES);
 
-	return _undef();
+	return err_undef();
 
 }
 
@@ -59,5 +58,5 @@ vtab_lookup(struct vtab *vtab, val_t sym)
 		return entry->v;
 	}
 
-	return _undef();
+	return err_undef();
 }

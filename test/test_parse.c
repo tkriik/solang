@@ -18,7 +18,7 @@ static void
 test_parse_err(const char *src)
 {
 	val_t v = parse(src);
-	assert_val_eq(v, _undef());
+	assert_val_eq(v, err_undef());
 	val_free(v);
 }
 

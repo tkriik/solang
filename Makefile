@@ -10,6 +10,7 @@ SRC=		tal.c \
 CORE_SRC=	conf.h \
 		env.c \
 		env.h \
+		err.c \
 		eval.c \
 		list.c \
 		parse.c \

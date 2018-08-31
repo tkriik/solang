@@ -14,27 +14,33 @@
  * The next LSB after the storage tag denotes the type of the value.
  *
  *   For immediate values, the types are:
- *     - 0: undefined
+ *     - 0: error
  *     - 1: empty list
  *
  *   For boxed values, the types are:
- *     - 0: symbol
- *     - 1: list
+ *     - 0: error
+ *     - 1: symbol
+ *     - 2: list
+ *     - 3: <TODO>
  *
  * Value info:
  *
- *   Undefined:
- *     - An undefined value is all zero by design, and for internal use only.
- *       It cannot be instantiated by any expression.
+ *   Error
+ *     - Immediate errors represent internal errors, which are:
+ *       0: undefined
+ *       1: out-of-memory
  *
- *   Nil:
- *     - A nil value represents nothing.
+ *     - Boxed errors represent run-time errors, such as:
+ *       * symbol limit
+ *       * head of empty list
+ *       * tail of empty list
+ *       * ...
  *
- *   Symbol:
+ *   Symbol
  *     - A symbol contains a pointer to a heap-allocated entry in a hash table,
  *       which stores the symbol data.
  *
- *   List:
+ *   List
  *     - A list stores other values in a linked list. An empty list
  *       is an immediate value, while a boxed list contains a value
  *       and the remaining list as a val_t.
@@ -54,13 +60,14 @@ enum val_storage {
 };
 
 enum val_immed_type {
-	VAL_IMMED_TYPE_UNDEF	= 0,
+	VAL_IMMED_TYPE_ERR	= 0,
 	VAL_IMMED_TYPE_ELIST	= 1
 };
 
 enum val_boxed_type {
-	VAL_BOXED_TYPE_SYM	= 0,
-	VAL_BOXED_TYPE_LIST	= 1
+	VAL_BOXED_TYPE_ERR	= 0,
+	VAL_BOXED_TYPE_SYM	= 1,
+	VAL_BOXED_TYPE_LIST	= 2
 };
 
 enum val_bits {
@@ -68,7 +75,7 @@ enum val_bits {
 	VAL_STORAGE_BITS	= 1,
 	VAL_IMMED_TYPE_BITS	= 1,
 	VAL_IMMED_BITS		= VAL_BITS - (VAL_STORAGE_BITS + VAL_IMMED_TYPE_BITS),
-	VAL_BOXED_TYPE_BITS	= 1,
+	VAL_BOXED_TYPE_BITS	= 2,
 	VAL_BOXED_BITS		= VAL_BITS - (VAL_STORAGE_BITS + VAL_BOXED_TYPE_BITS)
 };
 
@@ -93,13 +100,18 @@ enum val_lim {
 	VAL_BOXED_LIM		= ULONG_MAX >> VAL_BOXED_OFFSET
 };
 
+enum val_immed_err_type {
+	VAL_IMMED_ERR_UNDEF	= 0,
+	VAL_IMMED_ERR_NOMEM	= 1
+};
+
 /*
  * val_util.c
  */
 unsigned long	 _get_storage(val_t);
 
 unsigned long	 _get_immed_type(val_t);
-void		 _set_immed_nil(val_t *);
+unsigned long	 _get_immed(val_t);
 void		 _set_immed_elist(val_t *);
 
 unsigned long	 _get_boxed_type(val_t);
@@ -112,7 +124,7 @@ void		 _set_boxed_list(val_t *, void *);
 /*
  * val_assert.c
  */
-void		  assert_undef(val_t);
+void		  assert_err_undef(val_t);
 void		  assert_immed(val_t);
 void		 _assert_immed_elist(val_t);
 void		  assert_boxed(val_t);
@@ -124,14 +136,19 @@ void		  assert_list(val_t);
 /*
  * val.c
  */
-val_t		 _undef(void);
-
 int		  is_immed(val_t);
 int		  is_boxed(val_t);
-int		 _is_undef(val_t);
 int		  is_eq(val_t, val_t);
 
 void		  val_free(val_t);
+
+/*
+ * err.c
+ */
+val_t		  err_undef(void);
+int		  is_err(val_t);
+int		  is_err_undef(val_t);
+const char	 *err_str(val_t);
 
 /*
  * sym.c
@@ -145,7 +162,6 @@ int		  is_sym(val_t);
 /*
  * list.c
  */
-
 val_t		 _elist(void);
 val_t		 _blist(val_t, val_t);
 val_t		  list(void);

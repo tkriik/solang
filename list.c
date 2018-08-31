@@ -11,7 +11,7 @@ struct blist {
 val_t
 _elist(void)
 {
-	val_t v = _undef();
+	val_t v = err_undef();
 	_set_immed_elist(&v);
 
 	return v;
@@ -28,7 +28,7 @@ _blist(val_t hd, val_t tl)
 	bl->hd = hd;
 	bl->tl = tl;
 
-	val_t v = _undef();
+	val_t v = err_undef();
 	_set_boxed_list(&v, bl);
 
 	return v;

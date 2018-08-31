@@ -201,7 +201,7 @@ handle_expression(sds input)
 		val_debug("expressions", exps);
 
 	/* TODO: parse error info */
-	if (_is_undef(exps)) {
+	if (is_err_undef(exps)) {
 		printf("failed to parse expressions\n");
 		val_free(exps);
 		return;

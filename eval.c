@@ -18,5 +18,5 @@ eval(struct env *env, val_t exp)
 	if (is_sym(exp))
 		return env_lookup(env, exp);
 
-	return _undef();
+	return err_undef();
 }

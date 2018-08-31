@@ -25,38 +25,38 @@ do_parse(struct state *st)
 	     tres != TOKEN_RES_NONE;
 	     tres = token_next(&st->src, &token)) {
 
-		val_t v = _undef();
+		val_t v = err_undef();
 
 		switch (token.type) {
-			case TOKEN_TYPE_SYM:
-				v = symn(token.src, token.len);
-				break;
+		case TOKEN_TYPE_SYM:
+			v = symn(token.src, token.len);
+			break;
 
-			case TOKEN_TYPE_LIST_START:
-				st->level++;
-				v = do_parse(st);
-				if (_is_undef(v)) {
-					val_free(l);
-					return v;
-				}
-				break;
-
-			case TOKEN_TYPE_LIST_END:
-				if (0 < st->level) {
-					st->level--;
-					l = list_reverse_inplace(l);
-					return l;
-				}
-
+		case TOKEN_TYPE_LIST_START:
+			st->level++;
+			v = do_parse(st);
+			if (is_err_undef(v)) {
 				val_free(l);
-				return _undef();
+				return v;
+			}
+			break;
 
-			case TOKEN_TYPE_ERR:
-				val_free(l);
-				return _undef();
+		case TOKEN_TYPE_LIST_END:
+			if (0 < st->level) {
+				st->level--;
+				l = list_reverse_inplace(l);
+				return l;
+			}
 
-			default:
-				assert(0 && "NOTREACHED");
+			val_free(l);
+			return err_undef();
+
+		case TOKEN_TYPE_ERR:
+			val_free(l);
+			return err_undef();
+
+		default:
+			assert(0 && "NOTREACHED");
 		}
 
 		l = cons(v, l);
@@ -64,7 +64,7 @@ do_parse(struct state *st)
 
 	if (cur_level != st->level) {
 		val_free(l);
-		return _undef();
+		return err_undef();
 	}
 
 	l = list_reverse_inplace(l);
@@ -83,7 +83,7 @@ parse(const char *src)
 	};
 
 	val_t l = do_parse(&st);
-	assert(is_list(l) || _is_undef(l));
+	assert(is_list(l) || is_err_undef(l));
 
 	return l;
 }
