@@ -21,7 +21,6 @@ CORE_SRC=	conf.h \
 		token_debug.c \
 		val.c \
 		val.h \
-		val_assert.c \
 		val_debug.c \
 		val_util.c \
 		vtab.c \

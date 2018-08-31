@@ -122,18 +122,6 @@ void		*_get_boxed_list_ptr(val_t);
 void		 _set_boxed_list(val_t *, void *);
 
 /*
- * val_assert.c
- */
-void		  assert_err_undef(val_t);
-void		  assert_immed(val_t);
-void		 _assert_immed_elist(val_t);
-void		  assert_boxed(val_t);
-void		  assert_boxed_sym(val_t);
-void		 _assert_boxed_list(val_t);
-
-void		  assert_list(val_t);
-
-/*
  * val.c
  */
 int		  is_immed(val_t);

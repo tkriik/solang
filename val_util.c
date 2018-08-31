@@ -11,7 +11,7 @@ _get_storage(val_t v)
 unsigned long
 _get_immed_type(val_t v)
 {
-	assert_immed(v);
+	assert(is_immed(v));
 
 	return (v.u & VAL_IMMED_TYPE_MASK) >> VAL_IMMED_TYPE_OFFSET;
 }
@@ -19,7 +19,7 @@ _get_immed_type(val_t v)
 unsigned long
 _get_immed(val_t v)
 {
-	assert_immed(v);
+	assert(is_immed(v));
 
 	return (v.u & VAL_IMMED_MASK) >> VAL_IMMED_OFFSET;
 }
@@ -36,7 +36,7 @@ _set_immed_elist(val_t *vp)
 unsigned long
 _get_boxed_type(val_t v)
 {
-	assert_boxed(v);
+	assert(is_boxed(v));
 
 	return (v.u & VAL_BOXED_TYPE_MASK) >> VAL_BOXED_TYPE_OFFSET;
 }
@@ -44,7 +44,7 @@ _get_boxed_type(val_t v)
 void *
 _get_boxed_ptr(val_t v)
 {
-	assert_boxed(v);
+	assert(is_boxed(v));
 
 	v.u &= VAL_BOXED_MASK;
 
@@ -54,7 +54,7 @@ _get_boxed_ptr(val_t v)
 void *
 _get_boxed_sym_ptr(val_t v)
 {
-	assert_boxed_sym(v);
+	assert(is_sym(v));
 	void *p = _get_boxed_ptr(v);
 
 	assert(p != NULL);
@@ -75,7 +75,7 @@ _set_boxed_sym(val_t *vp, void *p)
 void *
 _get_boxed_list_ptr(val_t v)
 {
-	_assert_boxed_list(v);
+	assert(is_boxed(v));
 
 	void *p = _get_boxed_ptr(v);
 

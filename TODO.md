@@ -2,10 +2,11 @@
 
 ## Short-term
 
-  1. use unit test fixtures
+  1. builtin function type
   1. builtin symbols
   1. `apply`
   1. deep val asserts with checking
+  1. use unit test fixtures
 
 ## Medium-term
 

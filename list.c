@@ -20,7 +20,7 @@ _elist(void)
 val_t
 _blist(val_t hd, val_t tl)
 {
-	assert_list(tl);
+	assert(is_list(tl));
 
 	struct blist *bl = calloc(1, sizeof(*bl));
 	assert(bl != NULL);
@@ -63,7 +63,7 @@ is_list(val_t v)
 val_t
 cons(val_t v, val_t l)
 {
-	assert_list(l);
+	assert(is_list(l));
 
 	return _blist(v, l);
 }
@@ -81,14 +81,14 @@ cdr(val_t l)
 {
 	struct blist *bl = _get_boxed_list_ptr(l);
 
-	assert_list(bl->tl);
+	assert(is_list(bl->tl));
 	return bl->tl;
 }
 
 size_t
 list_count(val_t l)
 {
-	assert_list(l);
+	assert(is_list(l));
 
 	size_t count = 0;
 	val_t node = l;
@@ -121,7 +121,7 @@ blist_reverse_inplace(val_t l)
 val_t
 list_reverse_inplace(val_t l)
 {
-	assert_list(l);
+	assert(is_list(l));
 
 	if (_is_elist(l))
 		return l;
@@ -132,8 +132,8 @@ list_reverse_inplace(val_t l)
 int
 _blist_eq(val_t l0, val_t l1)
 {
-	_assert_boxed_list(l0);
-	_assert_boxed_list(l1);
+	assert(_is_blist(l0));
+	assert(_is_blist(l1));
 
 	val_t node0 = l0;
 	val_t node1 = l1;
@@ -158,7 +158,7 @@ _blist_eq(val_t l0, val_t l1)
 void
 _blist_free(val_t l)
 {
-	_assert_boxed_list(l);
+	assert(_is_blist(l));
 
 	val_t node = l;
 	while (!_is_elist(node)) {
