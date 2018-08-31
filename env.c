@@ -22,7 +22,6 @@ env_define(struct env *env, val_t sym, val_t v)
 {
 	assert(env != NULL);
 	assert(is_sym(sym));
-	assert(!_is_undef(v));
 
 	return vtab_insert(&env->vtab, sym, v);
 }

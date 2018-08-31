@@ -5,15 +5,6 @@
 
 #include "val.h"
 
-val_t
-_undef(void)
-{
-	val_t v;
-	v.u = 0;
-
-	return v;
-}
-
 int
 is_immed(val_t v)
 {
@@ -24,13 +15,6 @@ int
 is_boxed(val_t v)
 {
 	return _get_storage(v) == VAL_STORAGE_BOXED;
-}
-
-int
-_is_undef(val_t v)
-{
-	return _get_storage(v) == VAL_STORAGE_IMMED
-	    && _get_immed_type(v) == VAL_IMMED_TYPE_UNDEF;
 }
 
 int

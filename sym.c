@@ -28,7 +28,7 @@ symn(const char *name, size_t len)
 	assert(len <= SYM_MAX_LEN);
 	assert(HASH_COUNT(sym_entries) <= SYM_MAX_CNT);
 
-	val_t sym = _undef();
+	val_t sym = err_undef();
 
 	struct sym_entry *old_entry;
 	HASH_FIND_STR(sym_entries, name, old_entry);
