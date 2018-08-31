@@ -17,15 +17,6 @@ _get_immed_type(val_t v)
 }
 
 void
-_set_immed_nil(val_t *vp)
-{
-	assert_undef(*vp);
-
-	vp->u |= VAL_IMMED_TYPE_NIL << VAL_IMMED_TYPE_OFFSET;
-	vp->u |= VAL_STORAGE_IMMED << VAL_STORAGE_OFFSET;
-}
-
-void
 _set_immed_elist(val_t *vp)
 {
 	assert_undef(*vp);

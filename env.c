@@ -14,7 +14,7 @@ env_init(struct env *env)
 	vtab_init(vtab);
 
 	/* TODO: store builtins elsewhere */
-	vtab_insert(vtab, sym("def"), nil());
+	vtab_insert(vtab, sym("def"), sym("TODO"));
 }
 
 val_t
