@@ -29,7 +29,7 @@ lambda_builtin(builtin_fn fn, size_t arity)
 	lambda->u.builtin_fn = fn;
 
 	val_t v = err_undef();
-	_set_boxed_lambda(&v, lambda);
+	set_boxed_lambda(&v, lambda);
 
 	return v;
 }
@@ -37,8 +37,8 @@ lambda_builtin(builtin_fn fn, size_t arity)
 int
 is_lambda(val_t v)
 {
-	return _get_storage(v) == VAL_STORAGE_BOXED
-	    && _get_boxed_type(v) == VAL_BOXED_TYPE_LAMBDA;
+	return get_storage(v) == VAL_STORAGE_BOXED
+	    && get_boxed_type(v) == VAL_BOXED_TYPE_LAMBDA;
 }
 
 int
@@ -47,7 +47,7 @@ is_lambda_builtin(val_t v)
 	if (!is_lambda(v))
 		return 0;
 
-	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+	struct lambda *lambda = get_boxed_lambda_ptr(v);
 
 	return lambda->type == LAMBDA_TYPE_BUILTIN;
 }
@@ -58,7 +58,7 @@ lambda_apply(struct env *env, val_t v, val_t args)
 	assert(is_lambda(v));
 	assert(is_list(args));
 
-	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+	struct lambda *lambda = get_boxed_lambda_ptr(v);
 
 	size_t argc = list_count(args);
 	if (argc != lambda->arity)
@@ -77,7 +77,7 @@ lambda_free(val_t v)
 {
 	assert(is_lambda(v));
 
-	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+	struct lambda *lambda = get_boxed_lambda_ptr(v);
 	switch (lambda->type) {
 	case LAMBDA_TYPE_BUILTIN:
 		return;
@@ -90,7 +90,7 @@ lambda_free_builtin(val_t v)
 {
 	assert(is_lambda_builtin(v));
 
-	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+	struct lambda *lambda = get_boxed_lambda_ptr(v);
 	free(lambda);
 }
 
@@ -99,7 +99,7 @@ lambda_type_str(val_t v)
 {
 	assert(is_lambda(v));
 
-	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+	struct lambda *lambda = get_boxed_lambda_ptr(v);
 	switch (lambda->type) {
 	case LAMBDA_TYPE_BUILTIN:	return "LAMBDA_TYPE_BUILTIN";
 	default:			return "LAMBDA_TYPE_<INVALID>";

@@ -9,16 +9,16 @@ struct blist {
 };
 
 val_t
-_elist(void)
+list(void)
 {
 	val_t v = err_undef();
-	_set_immed_elist(&v);
+	set_immedempty_list(&v);
 
 	return v;
 }
 
 val_t
-_blist(val_t hd, val_t tl)
+nonempty_list(val_t hd, val_t tl)
 {
 	assert(is_list(tl));
 
@@ -29,47 +29,29 @@ _blist(val_t hd, val_t tl)
 	bl->tl = tl;
 
 	val_t v = err_undef();
-	_set_boxed_list(&v, bl);
+	set_boxed_list(&v, bl);
 
 	return v;
-}
-
-val_t
-list(void)
-{
-	return _elist();
-}
-
-int
-_is_elist(val_t v)
-{
-	return _get_storage(v) == VAL_STORAGE_IMMED
-	    && _get_immed_type(v) == VAL_IMMED_TYPE_ELIST;
-}
-
-int
-_is_blist(val_t v)
-{
-	return _get_storage(v) == VAL_STORAGE_BOXED
-	    && _get_boxed_type(v) == VAL_BOXED_TYPE_LIST;
-}
-
-int
-is_list(val_t v)
-{
-	return _is_blist(v) || _is_elist(v);
 }
 
 int
 is_empty_list(val_t v)
 {
-	return _is_elist(v);
+	return get_storage(v) == VAL_STORAGE_IMMED
+	    && get_immed_type(v) == VAL_IMMED_TYPE_ELIST;
 }
 
 int
 is_nonempty_list(val_t v)
 {
-	return _is_blist(v);
+	return get_storage(v) == VAL_STORAGE_BOXED
+	    && get_boxed_type(v) == VAL_BOXED_TYPE_LIST;
+}
+
+int
+is_list(val_t v)
+{
+	return is_nonempty_list(v) || is_empty_list(v);
 }
 
 int
@@ -94,13 +76,13 @@ cons(val_t v, val_t l)
 {
 	assert(is_list(l));
 
-	return _blist(v, l);
+	return nonempty_list(v, l);
 }
 
 val_t
 car(val_t l)
 {
-	struct blist *bl = _get_boxed_list_ptr(l);
+	struct blist *bl = get_boxed_list_ptr(l);
 
 	return bl->hd;
 }
@@ -108,7 +90,7 @@ car(val_t l)
 val_t
 cdr(val_t l)
 {
-	struct blist *bl = _get_boxed_list_ptr(l);
+	struct blist *bl = get_boxed_list_ptr(l);
 
 	assert(is_list(bl->tl));
 	return bl->tl;
@@ -121,7 +103,7 @@ list_count(val_t l)
 
 	size_t count = 0;
 	val_t node = l;
-	while (_is_blist(node)) {
+	while (is_nonempty_list(node)) {
 		count++;
 		node = cdr(node);
 	}
@@ -136,11 +118,11 @@ blist_reverse_inplace(val_t l)
 	val_t q = list();
 	val_t r;
 
-	while (!_is_elist(p)) {
+	while (!is_empty_list(p)) {
 		r = q;
 		q = p;
 		p = cdr(p);
-		struct blist *bl_q = _get_boxed_list_ptr(q);
+		struct blist *bl_q = get_boxed_list_ptr(q);
 		bl_q->tl = r;
 	}
 
@@ -152,26 +134,26 @@ list_reverse_inplace(val_t l)
 {
 	assert(is_list(l));
 
-	if (_is_elist(l))
+	if (is_empty_list(l))
 		return l;
 
 	return blist_reverse_inplace(l);
 }
 
 int
-_blist_eq(val_t l0, val_t l1)
+nonempty_list_eq(val_t l0, val_t l1)
 {
-	assert(_is_blist(l0));
-	assert(_is_blist(l1));
+	assert(is_nonempty_list(l0));
+	assert(is_nonempty_list(l1));
 
 	val_t node0 = l0;
 	val_t node1 = l1;
 
 	while (1) {
-		if (_is_elist(node0) && _is_elist(node1))
+		if (is_empty_list(node0) && is_empty_list(node1))
 			return 1;
 
-		if (!_is_blist(node0) || !_is_blist(node1))
+		if (!is_nonempty_list(node0) || !is_nonempty_list(node1))
 			return 0;
 
 		val_t hd0 = car(node0);
@@ -185,15 +167,15 @@ _blist_eq(val_t l0, val_t l1)
 }
 
 void
-_blist_free(val_t l)
+nonempty_list_free(val_t l)
 {
-	assert(_is_blist(l));
+	assert(is_nonempty_list(l));
 
 	val_t node = l;
-	while (!_is_elist(node)) {
+	while (!is_empty_list(node)) {
 		val_t tmp = cdr(node);
 		val_free(car(node));
-		free(_get_boxed_list_ptr(node));
+		free(get_boxed_list_ptr(node));
 		node = tmp;
 	}
 }
