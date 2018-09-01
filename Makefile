@@ -30,6 +30,7 @@ CORE_SRC=	builtin.c \
 		sds.c
 
 TEST_SRC=	test/main.c \
+		test/fixture.c \
 		test/test_env.c \
 		test/test_eval.c \
 		test/test_lambda.c \
