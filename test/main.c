@@ -13,25 +13,25 @@ extern MunitTest sval_list_tests[];
 
 static MunitSuite suites[] = {
 	{
-		.prefix		= "/val",
+		.prefix		= "/sval",
 		.tests		= sval_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
-		.prefix		= "/val/sym",
+		.prefix		= "/sval/sym",
 		.tests		= sval_sym_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
-		.prefix		= "/val/list",
+		.prefix		= "/sval/list",
 		.tests		= sval_list_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
-		.prefix		= "/val/lambda",
+		.prefix		= "/sval/lambda",
 		.tests		= lambda_tests,
 		.suites		= NULL,
 		.iterations	= 1,
