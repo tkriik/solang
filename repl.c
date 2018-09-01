@@ -13,6 +13,8 @@
 #include "token.h"
 #include "val.h"
 
+struct env env;
+
 enum cmd_type {
 	CMD_CONFIG,
 	CMD_DEBUG_TOKENS,
@@ -130,10 +132,10 @@ help_handler()
 static void
 quit_handler()
 {
+	env_destroy(&env);
+
 	exit(0);
 }
-
-struct env env;
 
 static void
 handle_command(sds input)

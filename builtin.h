@@ -4,14 +4,22 @@
 #include "val.h"
 
 struct builtin_entry {
-	val_t		sym;
-	builtin_fn	fn;
+	val_t sym;
+	val_t lambda;
 };
 
 struct {
-	struct builtin_entry quote;
-} BUILTIN;
+	struct {
+		val_t def;
+		val_t quote;
+	} sym;
+
+	struct {
+		val_t quote;
+	} lambda;
+} builtin;
 
 void builtin_init(void);
+void builtin_free(void);
 
 #endif

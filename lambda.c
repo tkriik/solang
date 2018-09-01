@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include "env.h"
 #include "val.h"
 
 enum lambda_type {
@@ -8,7 +9,7 @@ enum lambda_type {
 };
 
 struct lambda {
-	int	arity;
+	size_t	arity;
 	enum	lambda_type type;
 	union {
 		builtin_fn builtin_fn;
@@ -16,7 +17,7 @@ struct lambda {
 };
 
 val_t
-lambda_builtin(unsigned long arity, builtin_fn fn)
+lambda_builtin(builtin_fn fn, size_t arity)
 {
 	assert(fn != NULL);
 
@@ -51,10 +52,43 @@ is_lambda_builtin(val_t v)
 	return lambda->type == LAMBDA_TYPE_BUILTIN;
 }
 
+val_t
+lambda_apply(struct env *env, val_t v, val_t args)
+{
+	assert(is_lambda(v));
+	assert(is_list(args));
+
+	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+
+	size_t argc = list_count(args);
+	if (argc != lambda->arity)
+		return err_undef(); /* TODO: err_arity */
+
+	switch (lambda->type) {
+	case LAMBDA_TYPE_BUILTIN:
+		return lambda->u.builtin_fn(env, args);
+	}
+
+	assert(0 && "NOTREACHED");
+}
+
 void
 lambda_free(val_t v)
 {
 	assert(is_lambda(v));
+
+	struct lambda *lambda = _get_boxed_lambda_ptr(v);
+	switch (lambda->type) {
+	case LAMBDA_TYPE_BUILTIN:
+		return;
+	/* TODO: free user-lambda */
+	}
+}
+
+void
+lambda_free_builtin(val_t v)
+{
+	assert(is_lambda_builtin(v));
 
 	struct lambda *lambda = _get_boxed_lambda_ptr(v);
 	free(lambda);

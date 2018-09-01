@@ -29,6 +29,7 @@ CORE_SRC=	builtin.c \
 
 TEST_SRC=	test/tal_test.c \
 		test/test_env.c \
+		test/test_eval.c \
 		test/test_lambda.c \
 		test/test_parse.c \
 		test/test_token.c \

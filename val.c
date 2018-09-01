@@ -21,7 +21,7 @@ is_boxed(val_t v)
 val_t
 quote(val_t v)
 {
-	return _blist(BUILTIN.quote.sym, _blist(v, _elist()));
+	return _blist(builtin.sym.quote, _blist(v, _elist()));
 }
 
 val_t
@@ -35,7 +35,7 @@ unquote(val_t v)
 int
 is_quoted(val_t v)
 {
-	return _is_blist(v) && is_eq(BUILTIN.quote.sym, car(v));
+	return _is_blist(v) && is_eq(builtin.sym.quote, car(v));
 }
 
 int
@@ -77,7 +77,8 @@ is_eq(val_t v, val_t w)
 		case VAL_BOXED_TYPE_SYM:
 			v_sym_name = sym_name(v);
 			w_sym_name = sym_name(w);
-			return strcmp(v_sym_name, w_sym_name) == 0;
+			return v.u == w.u
+			    && strcmp(v_sym_name, w_sym_name) == 0;
 
 		case VAL_BOXED_TYPE_LIST:
 			return _blist_eq(v, w);

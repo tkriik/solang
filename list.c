@@ -60,6 +60,35 @@ is_list(val_t v)
 	return _is_blist(v) || _is_elist(v);
 }
 
+int
+is_empty_list(val_t v)
+{
+	return _is_elist(v);
+}
+
+int
+is_nonempty_list(val_t v)
+{
+	return _is_blist(v);
+}
+
+int
+is_pair(val_t v)
+{
+	return is_nonempty_list(v)
+	    && is_nonempty_list(cdr(v))
+	    && is_empty_list(cdr(cdr(v)));
+}
+
+int
+is_triple(val_t v)
+{
+	return is_nonempty_list(v)
+	    && is_nonempty_list(cdr(v))
+	    && is_nonempty_list(cdr(cdr(v)))
+	    && is_empty_list(cdr(cdr(cdr(v))));
+}
+
 val_t
 cons(val_t v, val_t l)
 {
