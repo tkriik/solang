@@ -7,4 +7,4 @@ install:
 
 script:
   - make test
-  - ./tal_test
+  - ./solang_test
