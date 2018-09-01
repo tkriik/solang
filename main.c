@@ -45,7 +45,7 @@ main(int argc, char **argv)
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0)
+	if (argc == 0 || interactive)
 		repl_enter();
 
 	printf("eval %s\n", argv[0]);

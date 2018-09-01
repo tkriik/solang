@@ -31,8 +31,8 @@ env_destroy(struct env *env)
 
 	struct env_entry *entry, *tmp;
 	HASH_ITER(hh, env->entries, entry, tmp) {
-		HASH_DEL(env->entries, entry);
 		sval_free(entry->v);
+		HASH_DEL(env->entries, entry);
 		free(entry);
 	}
 
