@@ -1,8 +1,8 @@
 #ifndef PARSE_H
 #define PARSE_H
 
-#include "val.h"
+#include "sval.h"
 
-val_t parse(const char *);
+sval_t parse(const char *);
 
 #endif

@@ -1,31 +1,34 @@
-CC=		gcc
-CFLAGS=		-std=c99 -Wall -Wextra -O0 -g -Wno-unused-parameter
+CC=		clang
+
+CFLAGS=		-std=c99 \
+		-Wall \
+		-Wpedantic \
+		-pedantic-errors \
+		-Wall \
+		-Wextra \
+		-O0 \
+		-g \
+		-Wno-unused-parameter
+
 LDFLAGS=	-lreadline
 
 SRC=		main.c \
-		repl.c \
-		repl.h
+		repl.c
 
 CORE_SRC=	builtin.c \
-		builtin.h \
-		conf.h \
 		env.c \
-		env.h \
 		err.c \
 		eval.c \
 		lambda.c \
 		list.c \
 		parse.c \
-		parse.h \
-		solang.h \
 		sym.c \
 		token.c \
-		token.h \
 		token_debug.c \
-		val.c \
-		val.h \
-		val_debug.c \
-		val_util.c
+		sval.c \
+		sval_debug.c \
+		sval_util.c \
+		sds.c
 
 TEST_SRC=	test/main.c \
 		test/test_env.c \
@@ -33,10 +36,10 @@ TEST_SRC=	test/main.c \
 		test/test_lambda.c \
 		test/test_parse.c \
 		test/test_token.c \
-		test/test_val.c \
-		test/test_val_list.c \
-		test/test_val_sym.c \
-		test/val_test.h
+		test/test_sval.c \
+		test/test_sval_list.c \
+		test/test_sval_sym.c \
+		test/munit.c
 
 DEPS_LINKS=	test/munit.c \
 		test/munit.h \
@@ -54,10 +57,10 @@ TEST_BIN=	solang_test
 all: $(BIN)
 
 $(BIN): $(SRC) $(CORE_SRC)
-	$(CC) -o $(BIN) $(CFLAGS) $(SRC) $(CORE_SRC) $(DEPS_LINKS) $(LDFLAGS)
+	$(CC) -o $(BIN) $(CFLAGS) $(SRC) $(CORE_SRC) $(LDFLAGS)
 
 $(TEST_BIN): $(TEST_SRC) $(CORE_SRC)
-	$(CC) -I ./ -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC) $(DEPS_LINKS)
+	$(CC) -I ./ -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC)
 
 deps_links:
 	ln -sf ../deps/munit/munit.c test/munit.c

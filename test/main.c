@@ -7,26 +7,26 @@ extern MunitTest eval_tests[];
 extern MunitTest lambda_tests[];
 extern MunitTest parse_tests[];
 extern MunitTest token_tests[];
-extern MunitTest val_tests[];
-extern MunitTest val_sym_tests[];
-extern MunitTest val_list_tests[];
+extern MunitTest sval_tests[];
+extern MunitTest sval_sym_tests[];
+extern MunitTest sval_list_tests[];
 
 static MunitSuite suites[] = {
 	{
 		.prefix		= "/val",
-		.tests		= val_tests,
+		.tests		= sval_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
 		.prefix		= "/val/sym",
-		.tests		= val_sym_tests,
+		.tests		= sval_sym_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
 		.prefix		= "/val/list",
-		.tests		= val_list_tests,
+		.tests		= sval_list_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE

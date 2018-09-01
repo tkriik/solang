@@ -1,15 +1,15 @@
 #include <assert.h>
 
-#include "val.h"
+#include "sval.h"
 
 unsigned long
-get_storage(val_t v)
+get_storage(sval_t v)
 {
 	return (v.u & VAL_STORAGE_MASK) >> VAL_STORAGE_OFFSET;
 }
 
 unsigned long
-get_immed_type(val_t v)
+get_immed_type(sval_t v)
 {
 	assert(is_immed(v));
 
@@ -17,7 +17,7 @@ get_immed_type(val_t v)
 }
 
 unsigned long
-get_immed(val_t v)
+get_immed(sval_t v)
 {
 	assert(is_immed(v));
 
@@ -25,7 +25,7 @@ get_immed(val_t v)
 }
 
 void
-set_immedempty_list(val_t *vp)
+set_immedempty_list(sval_t *vp)
 {
 	assert(is_err_undef(*vp));
 
@@ -34,7 +34,7 @@ set_immedempty_list(val_t *vp)
 }
 
 unsigned long
-get_boxed_type(val_t v)
+get_boxed_type(sval_t v)
 {
 	assert(is_boxed(v));
 
@@ -42,7 +42,7 @@ get_boxed_type(val_t v)
 }
 
 void *
-get_boxed_ptr(val_t v)
+get_boxed_ptr(sval_t v)
 {
 	assert(is_boxed(v));
 
@@ -52,7 +52,7 @@ get_boxed_ptr(val_t v)
 }
 
 void *
-get_boxed_sym_ptr(val_t v)
+get_boxed_sym_ptr(sval_t v)
 {
 	assert(is_sym(v));
 	void *p = get_boxed_ptr(v);
@@ -62,7 +62,7 @@ get_boxed_sym_ptr(val_t v)
 }
 
 void
-set_boxed_sym(val_t *vp, void *p)
+set_boxed_sym(sval_t *vp, void *p)
 {
 	assert(is_err_undef(*vp));
 	assert(p != NULL);
@@ -73,7 +73,7 @@ set_boxed_sym(val_t *vp, void *p)
 }
 
 void *
-get_boxed_list_ptr(val_t v)
+get_boxed_list_ptr(sval_t v)
 {
 	assert(is_boxed(v));
 
@@ -84,7 +84,7 @@ get_boxed_list_ptr(val_t v)
 }
 
 void
-set_boxed_list(val_t *vp, void *p)
+set_boxed_list(sval_t *vp, void *p)
 {
 	assert(is_err_undef(*vp));
 	assert(p != NULL);
@@ -95,7 +95,7 @@ set_boxed_list(val_t *vp, void *p)
 }
 
 void *
-get_boxed_lambda_ptr(val_t v)
+get_boxed_lambda_ptr(sval_t v)
 {
 	assert(is_boxed(v));
 
@@ -106,7 +106,7 @@ get_boxed_lambda_ptr(val_t v)
 }
 
 void
-set_boxed_lambda(val_t *vp, void *p)
+set_boxed_lambda(sval_t *vp, void *p)
 {
 	assert(is_err_undef(*vp));
 	assert(p != NULL);

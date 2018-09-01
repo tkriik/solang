@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "val.h"
+#include "sval.h"
 
 static int indent_width	= 8;
 static int field_width	= 16;
@@ -45,11 +45,11 @@ depth_printf(int depth, const char *field, const char *fmt, ...)
 }
 
 static void
-do_val_debug(val_t v, int depth)
+do_sval_debug(sval_t v, int depth)
 {
 	depth_printf(depth, "decimal", "%lu\n", v.u);
 
-	if (sizeof(val_t) == 8)
+	if (sizeof(sval_t) == 8)
 		depth_printf(depth, "hexadecimal", "0x%016lx\n", v.u);
 	else
 		depth_printf(depth, "hexadecimal", "0x%08lx\n", v.u);
@@ -104,13 +104,13 @@ do_val_debug(val_t v, int depth)
 			printf("list (%lu)\n", boxed_type);
 			depth_printf(depth, "list count", "%zu\n", list_count(v));
 			depth_printf(depth, "list values", "\n");
-			val_t node = v;
+			sval_t node = v;
 			while (1) {
 				if (is_empty_list(node))
 					break;
-				val_t w = car(node);
+				sval_t w = car(node);
 				depth_printf(depth + 1, "--------", "\n");
-				do_val_debug(w, depth + 1);
+				do_sval_debug(w, depth + 1);
 				node = cdr(node);
 			}
 			break;
@@ -133,9 +133,9 @@ do_val_debug(val_t v, int depth)
 }
 
 void
-val_debug(const char *info, val_t v)
+sval_debug(const char *info, sval_t v)
 {
 	printf("-------- %s\n", info);
-	do_val_debug(v, 0);
+	do_sval_debug(v, 0);
 	printf("--------\n");
 }

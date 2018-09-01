@@ -11,7 +11,7 @@
 #include "repl.h"
 #include "solang.h"
 #include "token.h"
-#include "val.h"
+#include "sval.h"
 
 struct env env;
 
@@ -198,26 +198,26 @@ handle_expression(sds input)
 		} while (tres == TOKEN_RES_OK);
 	}
 
-	val_t exps = parse(src);
+	sval_t exps = parse(src);
 	if (config.debug_value)
-		val_debug("expressions", exps);
+		sval_debug("expressions", exps);
 
 	/* TODO: parse error info */
 	if (is_err_undef(exps)) {
 		printf("failed to parse expressions\n");
-		val_free(exps);
+		sval_free(exps);
 		return;
 	}
 
-	val_t exp;
-	val_t l = exps;
+	sval_t exp;
+	sval_t l = exps;
 	LIST_FOREACH(exp, l) {
-		val_t v = eval(&env, exp);
-		val_debug("eval", v);
+		sval_t v = eval(&env, exp);
+		sval_debug("eval", v);
 	};
 
 	/* TODO: free eval result */
-	val_free(exps);
+	sval_free(exps);
 }
 
 static void

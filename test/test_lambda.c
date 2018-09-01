@@ -2,13 +2,13 @@
 #include "munit.h"
 
 #include "env.h"
-#include "val.h"
-#include "val_test.h"
+#include "sval.h"
+#include "sval_test.h"
 
 static int identity_called;
 
-static val_t
-identity(struct env *env, val_t args)
+static sval_t
+identity(struct env *env, sval_t args)
 {
 	identity_called = 1;
 
@@ -17,9 +17,9 @@ identity(struct env *env, val_t args)
 
 static struct state {
 	struct	env env;
-	val_t	identity_sym;
-	val_t	identity_lambda;
-	val_t	args1;
+	sval_t	identity_sym;
+	sval_t	identity_lambda;
+	sval_t	args1;
 } st;
 
 static void *
@@ -42,7 +42,7 @@ tear_down(void *fixture)
 
 	env_destroy(&st->env);
 	lambda_free_builtin(st->identity_lambda);
-	val_free(st->args1);
+	sval_free(st->args1);
 }
 
 static MunitResult
@@ -60,9 +60,9 @@ test_apply(const MunitParameter params[], void *fixture)
 {
 	struct state *st = fixture;
 
-	val_t res = lambda_apply(&st->env, st->identity_lambda, st->args1);
+	sval_t res = lambda_apply(&st->env, st->identity_lambda, st->args1);
 	assert_int(identity_called, ==, 1);
-	assert_val_eq(res, sym("val0"));
+	assert_sval_eq(res, sym("val0"));
 
 	return MUNIT_OK;
 }

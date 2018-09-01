@@ -4,28 +4,28 @@
 #include <string.h>
 
 #include "builtin.h"
-#include "val.h"
+#include "sval.h"
 
 int
-is_immed(val_t v)
+is_immed(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_IMMED;
 }
 
 int
-is_boxed(val_t v)
+is_boxed(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_BOXED;
 }
 
-val_t
-quote(val_t v)
+sval_t
+quote(sval_t v)
 {
 	return nonempty_list(builtin.sym.quote, nonempty_list(v, list()));
 }
 
-val_t
-unquote(val_t v)
+sval_t
+unquote(sval_t v)
 {
 	assert(is_quoted(v));
 
@@ -33,13 +33,13 @@ unquote(val_t v)
 }
 
 int
-is_quoted(val_t v)
+is_quoted(sval_t v)
 {
 	return is_nonempty_list(v) && is_eq(builtin.sym.quote, car(v));
 }
 
 int
-is_eq(val_t v, val_t w)
+is_eq(sval_t v, sval_t w)
 {
 	unsigned long v_storage = get_storage(v);
 
@@ -97,7 +97,7 @@ is_eq(val_t v, val_t w)
 }
 
 void
-val_free(val_t v)
+sval_free(sval_t v)
 {
 	switch (get_storage(v)) {
 	case VAL_STORAGE_IMMED:

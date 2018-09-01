@@ -1,11 +1,11 @@
 #include <assert.h>
 
-#include "val.h"
+#include "sval.h"
 
-val_t
+sval_t
 err_undef(void)
 {
-	val_t v;
+	sval_t v;
 
 	v.u = 0;
 	v.u |= VAL_STORAGE_IMMED << VAL_STORAGE_OFFSET;
@@ -16,14 +16,14 @@ err_undef(void)
 }
 
 int
-is_err_undef(val_t v)
+is_err_undef(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_IMMED
 	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR;
 }
 
 int
-is_err(val_t v)
+is_err(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_IMMED
 	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR
@@ -31,7 +31,7 @@ is_err(val_t v)
 }
 
 const char *
-err_str(val_t v)
+err_str(sval_t v)
 {
 	assert(is_err(v));
 

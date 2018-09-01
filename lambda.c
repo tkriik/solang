@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "env.h"
-#include "val.h"
+#include "sval.h"
 
 enum lambda_type {
 	LAMBDA_TYPE_BUILTIN = 1
@@ -16,7 +16,7 @@ struct lambda {
 	} u;
 };
 
-val_t
+sval_t
 lambda_builtin(builtin_fn fn, size_t arity)
 {
 	assert(fn != NULL);
@@ -28,21 +28,21 @@ lambda_builtin(builtin_fn fn, size_t arity)
 	lambda->type = LAMBDA_TYPE_BUILTIN;
 	lambda->u.builtin_fn = fn;
 
-	val_t v = err_undef();
+	sval_t v = err_undef();
 	set_boxed_lambda(&v, lambda);
 
 	return v;
 }
 
 int
-is_lambda(val_t v)
+is_lambda(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_BOXED
 	    && get_boxed_type(v) == VAL_BOXED_TYPE_LAMBDA;
 }
 
 int
-is_lambda_builtin(val_t v)
+is_lambda_builtin(sval_t v)
 {
 	if (!is_lambda(v))
 		return 0;
@@ -52,8 +52,8 @@ is_lambda_builtin(val_t v)
 	return lambda->type == LAMBDA_TYPE_BUILTIN;
 }
 
-val_t
-lambda_apply(struct env *env, val_t v, val_t args)
+sval_t
+lambda_apply(struct env *env, sval_t v, sval_t args)
 {
 	assert(is_lambda(v));
 	assert(is_list(args));
@@ -73,7 +73,7 @@ lambda_apply(struct env *env, val_t v, val_t args)
 }
 
 void
-lambda_free(val_t v)
+lambda_free(sval_t v)
 {
 	assert(is_lambda(v));
 
@@ -86,7 +86,7 @@ lambda_free(val_t v)
 }
 
 void
-lambda_free_builtin(val_t v)
+lambda_free_builtin(sval_t v)
 {
 	assert(is_lambda_builtin(v));
 
@@ -95,7 +95,7 @@ lambda_free_builtin(val_t v)
 }
 
 const char *
-lambda_type_str(val_t v)
+lambda_type_str(sval_t v)
 {
 	assert(is_lambda(v));
 

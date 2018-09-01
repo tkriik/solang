@@ -2,11 +2,11 @@
 
 #include "builtin.h"
 #include "env.h"
-#include "val.h"
+#include "sval.h"
 
 struct env_entry {
 	unsigned long	sym_u;
-	val_t		v;
+	sval_t		v;
 
 	UT_hash_handle	hh;
 };
@@ -20,7 +20,7 @@ env_init(struct env *env)
 
 	env->entries = NULL;
 
-	val_t res = env_define(env, builtin.sym.quote, builtin.lambda.quote);
+	sval_t res = env_define(env, builtin.sym.quote, builtin.lambda.quote);
 	assert(is_sym(res));
 }
 
@@ -32,7 +32,7 @@ env_destroy(struct env *env)
 	struct env_entry *entry, *tmp;
 	HASH_ITER(hh, env->entries, entry, tmp) {
 		HASH_DEL(env->entries, entry);
-		val_free(entry->v);
+		sval_free(entry->v);
 		free(entry);
 	}
 
@@ -41,8 +41,8 @@ env_destroy(struct env *env)
 	builtin_free();
 }
 
-val_t
-env_define(struct env *env, val_t sym, val_t v)
+sval_t
+env_define(struct env *env, sval_t sym, sval_t v)
 {
 	assert(env != NULL);
 	assert(is_sym(sym));
@@ -63,8 +63,8 @@ env_define(struct env *env, val_t sym, val_t v)
 	return sym;
 }
 
-val_t
-env_lookup(struct env *env, val_t sym)
+sval_t
+env_lookup(struct env *env, sval_t sym)
 {
 	assert(env != NULL);
 	assert(is_sym(sym));
