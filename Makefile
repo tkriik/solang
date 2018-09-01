@@ -83,6 +83,8 @@ test: $(TEST_BIN)
 clean:
 	rm -f $(BIN) $(TEST_BIN)
 
-clean_deps:
+clean_deps: clean_deps_links
 	rm -rf deps/
+
+clean_deps_links:
 	rm -f $(DEPS_LINKS)

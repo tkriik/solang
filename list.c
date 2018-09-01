@@ -9,7 +9,7 @@ struct blist {
 };
 
 val_t
-empty_list(void)
+list(void)
 {
 	val_t v = err_undef();
 	set_immedempty_list(&v);
@@ -32,12 +32,6 @@ nonempty_list(val_t hd, val_t tl)
 	set_boxed_list(&v, bl);
 
 	return v;
-}
-
-val_t
-list(void)
-{
-	return empty_list();
 }
 
 int

@@ -165,9 +165,8 @@ int		 is_sym(val_t);
 /*
  * list.c
  */
-val_t		 empty_list(void);
-val_t		 nonempty_list(val_t, val_t);
 val_t		 list(void);
+val_t		 nonempty_list(val_t, val_t);
 
 int		 is_empty_list(val_t);
 int		 is_nonempty_list(val_t);
@@ -201,18 +200,18 @@ struct env;
 
 typedef val_t (*builtin_fn)(struct env *env, val_t);
 
-val_t		  lambda_builtin(builtin_fn, size_t);
-val_t		  lambda_apply(struct env *, val_t, val_t);
+val_t		 lambda_builtin(builtin_fn, size_t);
+val_t		 lambda_apply(struct env *, val_t, val_t);
 
-int		  is_lambda_builtin(val_t);
+int		 is_lambda_builtin(val_t);
 
-const char	 *lambda_type_str(val_t);
-void		  lambda_free(val_t);
-void		  lambda_free_builtin(val_t);
+const char	*lambda_type_str(val_t);
+void		 lambda_free(val_t);
+void		 lambda_free_builtin(val_t);
 
 /*
  * val_debug.c
  */
-void		  val_debug(const char *, val_t);
+void		 val_debug(const char *, val_t);
 
 #endif

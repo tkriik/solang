@@ -21,7 +21,7 @@ is_boxed(val_t v)
 val_t
 quote(val_t v)
 {
-	return nonempty_list(builtin.sym.quote, nonempty_list(v, empty_list()));
+	return nonempty_list(builtin.sym.quote, nonempty_list(v, list()));
 }
 
 val_t
