@@ -27,7 +27,6 @@ CORE_SRC=	builtin.c \
 		token_debug.c \
 		sval.c \
 		sval_debug.c \
-		sval_util.c \
 		sds.c
 
 TEST_SRC=	test/main.c \
@@ -60,7 +59,8 @@ $(BIN): $(SRC) $(CORE_SRC)
 	$(CC) -o $(BIN) $(CFLAGS) $(SRC) $(CORE_SRC) $(LDFLAGS)
 
 $(TEST_BIN): $(TEST_SRC) $(CORE_SRC)
-	$(CC) -I ./ -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC)
+	$(CC) -I ./ -o $(TEST_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC) \
+		-Wno-missing-field-initializers
 
 deps_links:
 	ln -sf ../deps/munit/munit.c test/munit.c

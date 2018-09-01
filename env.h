@@ -1,5 +1,5 @@
-#ifndef ENV_H
-#define ENV_H
+#ifndef SOLANG_ENV_H
+#define SOLANG_ENV_H
 
 #include "uthash.h"
 

@@ -1,5 +1,5 @@
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef SOLANG_TOKEN_H
+#define SOLANG_TOKEN_H
 
 #include <stddef.h>
 

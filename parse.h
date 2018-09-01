@@ -1,5 +1,5 @@
-#ifndef PARSE_H
-#define PARSE_H
+#ifndef SOLANG_PARSE_H
+#define SOLANG_PARSE_H
 
 #include "sval.h"
 

@@ -1,5 +1,5 @@
-#ifndef BUILTIN_H
-#define BUILTIN_H
+#ifndef SOLANG_BUILTIN_H
+#define SOLANG_BUILTIN_H
 
 #include "sval.h"
 
