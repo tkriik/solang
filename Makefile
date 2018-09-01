@@ -30,14 +30,15 @@ CORE_SRC=	builtin.c \
 		sds.c
 
 TEST_SRC=	test/main.c \
+		test/fixture.c \
 		test/test_env.c \
 		test/test_eval.c \
 		test/test_lambda.c \
+		test/test_list.c \
 		test/test_parse.c \
 		test/test_token.c \
 		test/test_sval.c \
-		test/test_sval_list.c \
-		test/test_sval_sym.c \
+		test/test_sym.c \
 		test/munit.c
 
 DEPS_LINKS=	test/munit.c \
