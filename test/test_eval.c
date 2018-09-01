@@ -4,14 +4,14 @@
 #include "builtin.h"
 #include "env.h"
 #include "eval.h"
-#include "val.h"
-#include "val_test.h"
+#include "sval.h"
+#include "sval_test.h"
 
 struct state {
 	struct	env env;
-	val_t	sym0;
-	val_t	v0;
-	val_t	v1;
+	sval_t	sym0;
+	sval_t	v0;
+	sval_t	v1;
 } st;
 
 static void *
@@ -30,9 +30,9 @@ tear_down(void *fixture)
 {
 	struct state *st = fixture;
 	env_destroy(&st->env);
-	val_free(st->sym0);
-	val_free(st->v0);
-	val_free(st->v1);
+	sval_free(st->sym0);
+	sval_free(st->v0);
+	sval_free(st->v1);
 }
 
 static MunitResult
@@ -40,12 +40,12 @@ test_quoted(const MunitParameter params[], void *fixture)
 {
 	struct state *st = fixture;
 
-	val_t quoted = quote(st->v0);
-	val_t unquoted = eval(&st->env, quoted);
+	sval_t quoted = quote(st->v0);
+	sval_t unquoted = eval(&st->env, quoted);
 
-	assert_val_eq(unquoted, st->v0);
+	assert_sval_eq(unquoted, st->v0);
 
-	val_free(quoted);
+	sval_free(quoted);
 
 	return MUNIT_OK;
 }
@@ -55,25 +55,25 @@ test_def(const MunitParameter params[], void *fixture)
 {
 	struct state *st = fixture;
 
-	val_t res = eval(&st->env, st->sym0);
-	assert_val_eq(err_undef(), res);
+	sval_t res = eval(&st->env, st->sym0);
+	assert_sval_eq(err_undef(), res);
 
-	val_t exp0 = cons(builtin.sym.def, cons(st->sym0, cons(quote(st->v0), list())));
+	sval_t exp0 = cons(builtin.sym.def, cons(st->sym0, cons(quote(st->v0), list())));
 	res = eval(&st->env, exp0);
-	assert_val_eq(st->sym0, res);
+	assert_sval_eq(st->sym0, res);
 
 	res = eval(&st->env, st->sym0);
-	assert_val_eq(st->v0, res);
+	assert_sval_eq(st->v0, res);
 
-	val_t exp1 = cons(builtin.sym.def, cons(st->sym0, cons(quote(st->v1), list())));
+	sval_t exp1 = cons(builtin.sym.def, cons(st->sym0, cons(quote(st->v1), list())));
 	res = eval(&st->env, exp1);
-	assert_val_eq(err_undef(), res);
+	assert_sval_eq(err_undef(), res);
 
 	res = eval(&st->env, st->sym0);
-	assert_val_eq(st->v0, res);
+	assert_sval_eq(st->v0, res);
 
-	val_free(exp0);
-	val_free(exp1);
+	sval_free(exp0);
+	sval_free(exp1);
 
 	return MUNIT_OK;
 }

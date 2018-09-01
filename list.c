@@ -1,24 +1,24 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "val.h"
+#include "sval.h"
 
 struct blist {
-	val_t hd;
-	val_t tl;
+	sval_t hd;
+	sval_t tl;
 };
 
-val_t
+sval_t
 list(void)
 {
-	val_t v = err_undef();
+	sval_t v = err_undef();
 	set_immedempty_list(&v);
 
 	return v;
 }
 
-val_t
-nonempty_list(val_t hd, val_t tl)
+sval_t
+nonempty_list(sval_t hd, sval_t tl)
 {
 	assert(is_list(tl));
 
@@ -28,34 +28,34 @@ nonempty_list(val_t hd, val_t tl)
 	bl->hd = hd;
 	bl->tl = tl;
 
-	val_t v = err_undef();
+	sval_t v = err_undef();
 	set_boxed_list(&v, bl);
 
 	return v;
 }
 
 int
-is_empty_list(val_t v)
+is_empty_list(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_IMMED
 	    && get_immed_type(v) == VAL_IMMED_TYPE_ELIST;
 }
 
 int
-is_nonempty_list(val_t v)
+is_nonempty_list(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_BOXED
 	    && get_boxed_type(v) == VAL_BOXED_TYPE_LIST;
 }
 
 int
-is_list(val_t v)
+is_list(sval_t v)
 {
 	return is_nonempty_list(v) || is_empty_list(v);
 }
 
 int
-is_pair(val_t v)
+is_pair(sval_t v)
 {
 	return is_nonempty_list(v)
 	    && is_nonempty_list(cdr(v))
@@ -63,7 +63,7 @@ is_pair(val_t v)
 }
 
 int
-is_triple(val_t v)
+is_triple(sval_t v)
 {
 	return is_nonempty_list(v)
 	    && is_nonempty_list(cdr(v))
@@ -71,24 +71,24 @@ is_triple(val_t v)
 	    && is_empty_list(cdr(cdr(cdr(v))));
 }
 
-val_t
-cons(val_t v, val_t l)
+sval_t
+cons(sval_t v, sval_t l)
 {
 	assert(is_list(l));
 
 	return nonempty_list(v, l);
 }
 
-val_t
-car(val_t l)
+sval_t
+car(sval_t l)
 {
 	struct blist *bl = get_boxed_list_ptr(l);
 
 	return bl->hd;
 }
 
-val_t
-cdr(val_t l)
+sval_t
+cdr(sval_t l)
 {
 	struct blist *bl = get_boxed_list_ptr(l);
 
@@ -97,12 +97,12 @@ cdr(val_t l)
 }
 
 size_t
-list_count(val_t l)
+list_count(sval_t l)
 {
 	assert(is_list(l));
 
 	size_t count = 0;
-	val_t node = l;
+	sval_t node = l;
 	while (is_nonempty_list(node)) {
 		count++;
 		node = cdr(node);
@@ -111,12 +111,12 @@ list_count(val_t l)
 	return count;
 }
 
-static val_t
-blist_reverse_inplace(val_t l)
+static sval_t
+blist_reverse_inplace(sval_t l)
 {
-	val_t p = l;
-	val_t q = list();
-	val_t r;
+	sval_t p = l;
+	sval_t q = list();
+	sval_t r;
 
 	while (!is_empty_list(p)) {
 		r = q;
@@ -129,8 +129,8 @@ blist_reverse_inplace(val_t l)
 	return q;
 }
 
-val_t
-list_reverse_inplace(val_t l)
+sval_t
+list_reverse_inplace(sval_t l)
 {
 	assert(is_list(l));
 
@@ -141,13 +141,13 @@ list_reverse_inplace(val_t l)
 }
 
 int
-nonempty_list_eq(val_t l0, val_t l1)
+nonempty_list_eq(sval_t l0, sval_t l1)
 {
 	assert(is_nonempty_list(l0));
 	assert(is_nonempty_list(l1));
 
-	val_t node0 = l0;
-	val_t node1 = l1;
+	sval_t node0 = l0;
+	sval_t node1 = l1;
 
 	while (1) {
 		if (is_empty_list(node0) && is_empty_list(node1))
@@ -156,8 +156,8 @@ nonempty_list_eq(val_t l0, val_t l1)
 		if (!is_nonempty_list(node0) || !is_nonempty_list(node1))
 			return 0;
 
-		val_t hd0 = car(node0);
-		val_t hd1 = car(node1);
+		sval_t hd0 = car(node0);
+		sval_t hd1 = car(node1);
 		if (!is_eq(hd0, hd1))
 			return 0;
 
@@ -167,14 +167,14 @@ nonempty_list_eq(val_t l0, val_t l1)
 }
 
 void
-nonempty_list_free(val_t l)
+nonempty_list_free(sval_t l)
 {
 	assert(is_nonempty_list(l));
 
-	val_t node = l;
+	sval_t node = l;
 	while (!is_empty_list(node)) {
-		val_t tmp = cdr(node);
-		val_free(car(node));
+		sval_t tmp = cdr(node);
+		sval_free(car(node));
 		free(get_boxed_list_ptr(node));
 		node = tmp;
 	}

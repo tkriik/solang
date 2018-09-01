@@ -83,28 +83,33 @@ C99-compliant code with [OpenBSD style](https://man.openbsd.org/style)
 
 ### Tools
 
+  - Clang
   - [AFL](http://lcamtuf.coredump.cx/afl/)
   - [Valgrind](http://valgrind.org/)
 
-#### Memory leak checking
+### Static analysis with Clang
 
-##### In shell
+    $ make clean && scan-build make
+
+### Memory leak checking with Valgrind
+
+#### In shell
 
     $ valgrind --leak-check=full ./solang
 
 Note: SDS strings are are detected as *possibly* lost by Valgrind.
 
-##### In tests
+#### In tests
 
     $ valgrind --leak-check=full ./solang_test --no-fork
 
-#### Fuzzing
+### Fuzzing with AFL
 
-##### Build instrumented binary
+#### Build instrumented binary
 
     $ make clean && make CC=afl-gcc
 
-##### Run fuzzer
+#### Run fuzzer
 
     $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang
 

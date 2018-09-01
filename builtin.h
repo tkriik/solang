@@ -1,21 +1,21 @@
 #ifndef BUILTIN_H
 #define BUILTIN_H
 
-#include "val.h"
+#include "sval.h"
 
 struct builtin_entry {
-	val_t sym;
-	val_t lambda;
+	sval_t sym;
+	sval_t lambda;
 };
 
 struct {
 	struct {
-		val_t def;
-		val_t quote;
+		sval_t def;
+		sval_t quote;
 	} sym;
 
 	struct {
-		val_t quote;
+		sval_t quote;
 	} lambda;
 } builtin;
 

@@ -1,19 +1,19 @@
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit.h"
 
-#include "val.h"
-#include "val_test.h"
+#include "sval.h"
+#include "sval_test.h"
 
 static MunitResult
 test_eq_sym(const MunitParameter params[], void *fixture)
 {
-	val_t v = sym("foobar");
-	val_t w = sym("foobar");
+	sval_t v = sym("foobar");
+	sval_t w = sym("foobar");
 
-	assert_val_eq(v, w);
+	assert_sval_eq(v, w);
 
-	val_free(v);
-	val_free(w);
+	sval_free(v);
+	sval_free(w);
 
 	return MUNIT_OK;
 }
@@ -21,13 +21,13 @@ test_eq_sym(const MunitParameter params[], void *fixture)
 static MunitResult
 test_neq_sym(const MunitParameter params[], void *fixture)
 {
-	val_t v = sym("foo");
-	val_t w = sym("bar");
+	sval_t v = sym("foo");
+	sval_t w = sym("bar");
 
-	assert_val_neq(v, w);
+	assert_sval_neq(v, w);
 
-	val_free(v);
-	val_free(w);
+	sval_free(v);
+	sval_free(w);
 
 	return MUNIT_OK;
 }
@@ -35,26 +35,26 @@ test_neq_sym(const MunitParameter params[], void *fixture)
 static MunitResult
 test_quote(const MunitParameter params[], void *fixture)
 {
-	val_t v0 = sym("foo");
+	sval_t v0 = sym("foo");
 
-	val_t qv0 = quote(v0);
-	assert_val_neq(v0, qv0);
+	sval_t qv0 = quote(v0);
+	assert_sval_neq(v0, qv0);
 
-	val_t qqv = quote(qv0);
-	assert_val_neq(qv0, qqv);
+	sval_t qqv = quote(qv0);
+	assert_sval_neq(qv0, qqv);
 
-	val_t qv1 = unquote(qqv);
-	assert_val_eq(qv0, qv1);
+	sval_t qv1 = unquote(qqv);
+	assert_sval_eq(qv0, qv1);
 
-	val_t v1 = unquote(qv1);
-	assert_val_eq(v0, v1);
+	sval_t v1 = unquote(qv1);
+	assert_sval_eq(v0, v1);
 
-	val_free(qqv);
+	sval_free(qqv);
 
 	return MUNIT_OK;
 }
 
-MunitTest val_tests[] = {
+MunitTest sval_tests[] = {
 	{
 		.name		= "/eq-sym",
 		.test		= test_eq_sym,

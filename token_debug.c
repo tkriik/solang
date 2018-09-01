@@ -36,7 +36,7 @@ token_debug(const char *info, struct token_info *token)
 	    "\t\t.src  = %p \"%s\"\n",
 	    token_type_str(token->type),
 	    token->len,
-	    token->src, src_data);
+	    (void *)token->src, src_data);
 
 	free(src_data);
 

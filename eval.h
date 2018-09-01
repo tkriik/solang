@@ -1,4 +1,4 @@
 #include "env.h"
-#include "val.h"
+#include "sval.h"
 
-val_t eval(struct env *, val_t);
+sval_t eval(struct env *, sval_t);

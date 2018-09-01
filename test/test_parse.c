@@ -3,28 +3,28 @@
 
 #include "parse.h"
 #include "token.h"
-#include "val.h"
-#include "val_test.h"
+#include "sval.h"
+#include "sval_test.h"
 
 static void
-test_parse(const char *src, val_t exp_v)
+test_parse(const char *src, sval_t exp_v)
 {
-	val_t v = parse(src);
-	assert_val_eq(v, exp_v);
-	val_free(v);
+	sval_t v = parse(src);
+	assert_sval_eq(v, exp_v);
+	sval_free(v);
 }
 
 static void
 test_parse_err(const char *src)
 {
-	val_t v = parse(src);
-	assert_val_eq(v, err_undef());
-	val_free(v);
+	sval_t v = parse(src);
+	assert_sval_eq(v, err_undef());
+	sval_free(v);
 }
 
 struct parse_fixture {
 	const char	*src;
-	val_t		 exp_v;
+	sval_t		 exp_v;
 };
 
 static void
@@ -32,7 +32,7 @@ test_parse_fixtures(struct parse_fixture *pfs)
 {
 	for (struct parse_fixture *pf = pfs; pf->src != NULL; pf++) {
 		test_parse(pf->src, pf->exp_v);
-		val_free(pf->exp_v);
+		sval_free(pf->exp_v);
 	}
 }
 

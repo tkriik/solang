@@ -3,17 +3,17 @@
 #include "builtin.h"
 #include "env.h"
 #include "eval.h"
-#include "val.h"
+#include "sval.h"
 
 static int
-is_self_eval(val_t exp)
+is_self_eval(sval_t exp)
 {
 	// TODO
 	return 0;
 }
 
 static int
-is_def(val_t exp)
+is_def(sval_t exp)
 {
 	return is_triple(exp)
 	    && is_eq(car(exp), builtin.sym.def)
@@ -21,19 +21,19 @@ is_def(val_t exp)
 }
 
 static int
-is_application(val_t exp)
+is_application(sval_t exp)
 {
 	return is_nonempty_list(exp) && is_sym(car(exp));
 }
 
-static val_t
-do_def(struct env *env, val_t exp)
+static sval_t
+do_def(struct env *env, sval_t exp)
 {
 	assert(env != NULL);
 	assert(is_def(exp));
 
-	val_t sym = car(cdr(exp));
-	val_t v = eval(env, car(cdr(cdr(exp))));
+	sval_t sym = car(cdr(exp));
+	sval_t v = eval(env, car(cdr(cdr(exp))));
 
 	if (is_eq(sym, v))
 		return v;
@@ -41,24 +41,24 @@ do_def(struct env *env, val_t exp)
 	return env_define(env, sym, v);
 }
 
-static val_t
-do_apply(struct env *env, val_t exp)
+static sval_t
+do_apply(struct env *env, sval_t exp)
 {
 	assert(env != NULL);
 	assert(is_application(exp));
 
-	val_t sym = car(exp);
-	val_t lambda = env_lookup(env, sym);
+	sval_t sym = car(exp);
+	sval_t lambda = env_lookup(env, sym);
 	if (is_err_undef(lambda))
 		return err_undef(); /* TODO: err_no_sym */
 
-	val_t args = cdr(exp);
+	sval_t args = cdr(exp);
 
 	return lambda_apply(env, lambda, args);
 }
 
-val_t
-eval(struct env *env, val_t exp)
+sval_t
+eval(struct env *env, sval_t exp)
 {
 	assert(env != NULL);
 

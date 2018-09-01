@@ -2,12 +2,12 @@
 
 #include "builtin.h"
 #include "eval.h"
-#include "val.h"
+#include "sval.h"
 
 static unsigned long builtin_init_calls = 0;
 
-static val_t
-builtin_quote(struct env *env, val_t args)
+static sval_t
+builtin_quote(struct env *env, sval_t args)
 {
 	assert(env != NULL);
 
