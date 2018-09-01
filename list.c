@@ -12,7 +12,7 @@ sval_t
 list(void)
 {
 	sval_t v = err_undef();
-	set_immedempty_list(&v);
+	set_immed_empty_list(&v);
 
 	return v;
 }

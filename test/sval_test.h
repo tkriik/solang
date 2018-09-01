@@ -1,5 +1,5 @@
-#ifndef VAL_TEST_H
-#define VAL_TEST_H
+#ifndef SOLANG_VAL_TEST_H
+#define SOLANG_VAL_TEST_H
 
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit.h"
