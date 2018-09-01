@@ -33,7 +33,7 @@ symn(const char *name, size_t len)
 	struct sym_entry *entry;
 	HASH_FIND(hh, sym_entries, name, len, entry);
 	if (entry != NULL) {
-		_set_boxed_sym(&sym, entry);
+		set_boxed_sym(&sym, entry);
 		return sym;
 	}
 
@@ -42,7 +42,7 @@ symn(const char *name, size_t len)
 	memcpy(entry->name, name, len);
 
 	HASH_ADD_STR(sym_entries, name, entry);
-	_set_boxed_sym(&sym, entry);
+	set_boxed_sym(&sym, entry);
 
 	return sym;
 }
@@ -50,8 +50,8 @@ symn(const char *name, size_t len)
 int
 is_sym(val_t v)
 {
-	return _get_storage(v) == VAL_STORAGE_BOXED
-	    && _get_boxed_type(v) == VAL_BOXED_TYPE_SYM;
+	return get_storage(v) == VAL_STORAGE_BOXED
+	    && get_boxed_type(v) == VAL_BOXED_TYPE_SYM;
 }
 
 const char *
@@ -59,7 +59,7 @@ sym_name(val_t v)
 {
 	assert(is_sym(v));
 
-	struct sym_entry *entry = _get_boxed_sym_ptr(v);
+	struct sym_entry *entry = get_boxed_sym_ptr(v);
 
 	return entry->name;
 }

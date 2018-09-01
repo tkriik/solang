@@ -114,86 +114,84 @@ enum val_immed_err_type {
 /*
  * val_util.c
  */
-unsigned long	 _get_storage(val_t);
+unsigned long	 get_storage(val_t);
 
-unsigned long	 _get_immed_type(val_t);
-unsigned long	 _get_immed(val_t);
-void		 _set_immed_elist(val_t *);
+unsigned long	 get_immed_type(val_t);
+unsigned long	 get_immed(val_t);
+void		 set_immedempty_list(val_t *);
 
-unsigned long	 _get_boxed_type(val_t);
-void		*_get_boxed_ptr(val_t);
+unsigned long	 get_boxed_type(val_t);
+void		*get_boxed_ptr(val_t);
 
-void		*_get_boxed_sym_ptr(val_t);
-void		 _set_boxed_sym(val_t *, void *);
+void		*get_boxed_sym_ptr(val_t);
+void		 set_boxed_sym(val_t *, void *);
 
-void		*_get_boxed_list_ptr(val_t);
-void		 _set_boxed_list(val_t *, void *);
+void		*get_boxed_list_ptr(val_t);
+void		 set_boxed_list(val_t *, void *);
 
-void		*_get_boxed_lambda_ptr(val_t);
-void		 _set_boxed_lambda(val_t *, void *);
+void		*get_boxed_lambda_ptr(val_t);
+void		 set_boxed_lambda(val_t *, void *);
 
 /*
  * val.c
  */
-int		  is_immed(val_t);
-int		  is_boxed(val_t);
-int		  is_eq(val_t, val_t);
+int		 is_immed(val_t);
+int		 is_boxed(val_t);
+int		 is_eq(val_t, val_t);
 
-val_t		  quote(val_t);
-val_t		  unquote(val_t);
-int		  is_quoted(val_t);
+val_t		 quote(val_t);
+val_t		 unquote(val_t);
+int		 is_quoted(val_t);
 
-void		  val_free(val_t);
+void		 val_free(val_t);
 
 /*
  * err.c
  */
-val_t		  err_undef(void);
-int		  is_err(val_t);
-int		  is_err_undef(val_t);
-const char	 *err_str(val_t);
+val_t		 err_undef(void);
+int		 is_err(val_t);
+int		 is_err_undef(val_t);
+const char	*err_str(val_t);
 
 /*
  * sym.c
  */
-val_t		  sym(const char *);
-val_t		  symn(const char *, size_t);
-const char	 *sym_name(val_t);
+val_t		 sym(const char *);
+val_t		 symn(const char *, size_t);
+const char	*sym_name(val_t);
 
-int		  is_sym(val_t);
+int		 is_sym(val_t);
 
 /*
  * list.c
  */
-val_t		 _elist(void);
-val_t		 _blist(val_t, val_t);
-val_t		  list(void);
+val_t		 empty_list(void);
+val_t		 nonempty_list(val_t, val_t);
+val_t		 list(void);
 
-int		 _is_elist(val_t);
-int		 _is_blist(val_t);
-int		  is_list(val_t);
+int		 is_empty_list(val_t);
+int		 is_nonempty_list(val_t);
+int		 is_list(val_t);
 
-int		  is_empty_list(val_t);
-int		  is_nonempty_list(val_t);
-int		  is_pair(val_t);
-int		  is_triple(val_t);
+int		 is_pair(val_t);
+int		 is_triple(val_t);
 
-val_t		  cons(val_t, val_t);
-val_t		  car(val_t);
-val_t		  cdr(val_t);
+val_t		 cons(val_t, val_t);
+val_t		 car(val_t);
+val_t		 cdr(val_t);
 
-size_t		  list_count(val_t);
-val_t		  list_reverse_inplace(val_t);
+size_t		 list_count(val_t);
+val_t		 list_reverse_inplace(val_t);
 
-int		 _blist_eq(val_t, val_t);
-void		 _blist_free(val_t);
+int		 nonempty_list_eq(val_t, val_t);
+void		 nonempty_list_free(val_t);
 
 /*
  * Cannot properly assign both v and l in the same update statement,
  * so do away with this hack.
  */
 #define LIST_FOREACH(v, l)						\
-	for (int _once = 1; !_is_elist(l); (l) = cdr(l), _once = 1)	\
+	for (int _once = 1; !is_empty_list(l); (l) = cdr(l), _once = 1)	\
 		for ((v) = car(l); _once; _once = 0)
 
 /*

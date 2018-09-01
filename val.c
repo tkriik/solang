@@ -9,19 +9,19 @@
 int
 is_immed(val_t v)
 {
-	return _get_storage(v) == VAL_STORAGE_IMMED;
+	return get_storage(v) == VAL_STORAGE_IMMED;
 }
 
 int
 is_boxed(val_t v)
 {
-	return _get_storage(v) == VAL_STORAGE_BOXED;
+	return get_storage(v) == VAL_STORAGE_BOXED;
 }
 
 val_t
 quote(val_t v)
 {
-	return _blist(builtin.sym.quote, _blist(v, _elist()));
+	return nonempty_list(builtin.sym.quote, nonempty_list(v, empty_list()));
 }
 
 val_t
@@ -35,13 +35,13 @@ unquote(val_t v)
 int
 is_quoted(val_t v)
 {
-	return _is_blist(v) && is_eq(builtin.sym.quote, car(v));
+	return is_nonempty_list(v) && is_eq(builtin.sym.quote, car(v));
 }
 
 int
 is_eq(val_t v, val_t w)
 {
-	unsigned long v_storage = _get_storage(v);
+	unsigned long v_storage = get_storage(v);
 
 	unsigned long v_immed_type;
 	unsigned long w_immed_type;
@@ -57,8 +57,8 @@ is_eq(val_t v, val_t w)
 		if (!is_immed(w))
 			return 0;
 
-		v_immed_type = _get_immed_type(v);
-		w_immed_type = _get_immed_type(w);
+		v_immed_type = get_immed_type(v);
+		w_immed_type = get_immed_type(w);
 		if (v_immed_type != w_immed_type)
 			return 0;
 
@@ -68,8 +68,8 @@ is_eq(val_t v, val_t w)
 		if (!is_boxed(w))
 			return 0;
 
-		v_boxed_type = _get_boxed_type(v);
-		w_boxed_type = _get_boxed_type(w);
+		v_boxed_type = get_boxed_type(v);
+		w_boxed_type = get_boxed_type(w);
 		if (v_boxed_type != w_boxed_type)
 			return 0;
 
@@ -81,7 +81,7 @@ is_eq(val_t v, val_t w)
 			    && strcmp(v_sym_name, w_sym_name) == 0;
 
 		case VAL_BOXED_TYPE_LIST:
-			return _blist_eq(v, w);
+			return nonempty_list_eq(v, w);
 
 		default:
 			break;
@@ -99,17 +99,17 @@ is_eq(val_t v, val_t w)
 void
 val_free(val_t v)
 {
-	switch (_get_storage(v)) {
+	switch (get_storage(v)) {
 	case VAL_STORAGE_IMMED:
 		return;
 
 	case VAL_STORAGE_BOXED:
-		switch (_get_boxed_type(v)) {
+		switch (get_boxed_type(v)) {
 		case VAL_BOXED_TYPE_SYM:
 			return;
 
 		case VAL_BOXED_TYPE_LIST:
-			_blist_free(v);
+			nonempty_list_free(v);
 			return;
 
 		case VAL_BOXED_TYPE_LAMBDA:

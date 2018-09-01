@@ -18,16 +18,16 @@ err_undef(void)
 int
 is_err_undef(val_t v)
 {
-	return _get_storage(v) == VAL_STORAGE_IMMED
-	    && _get_immed_type(v) == VAL_IMMED_TYPE_ERR;
+	return get_storage(v) == VAL_STORAGE_IMMED
+	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR;
 }
 
 int
 is_err(val_t v)
 {
-	return _get_storage(v) == VAL_STORAGE_IMMED
-	    && _get_immed_type(v) == VAL_IMMED_TYPE_ERR
-	    && _get_immed(v) == VAL_IMMED_ERR_UNDEF;
+	return get_storage(v) == VAL_STORAGE_IMMED
+	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR
+	    && get_immed(v) == VAL_IMMED_ERR_UNDEF;
 }
 
 const char *
@@ -35,7 +35,7 @@ err_str(val_t v)
 {
 	assert(is_err(v));
 
-	switch (_get_immed(v)) {
+	switch (get_immed(v)) {
 	case VAL_IMMED_ERR_UNDEF:	return "undefined";
 	case VAL_IMMED_ERR_NOMEM:	return "out-of-memory";
 	}

@@ -64,13 +64,13 @@ do_val_debug(val_t v, int depth)
 	printf("\n");
 
 	depth_printf(depth, "storage", "");
-	unsigned long storage = _get_storage(v);
+	unsigned long storage = get_storage(v);
 	switch (storage) {
 	case VAL_STORAGE_IMMED:
 		printf("immediate (%lu)\n", storage);
 		depth_printf(depth, "immediate type", "");
 
-		unsigned long immed_type = _get_immed_type(v);
+		unsigned long immed_type = get_immed_type(v);
 		switch (immed_type) {
 		case VAL_IMMED_TYPE_ERR:
 			printf("error (%lu)\n", immed_type);
@@ -90,10 +90,10 @@ do_val_debug(val_t v, int depth)
 
 	case VAL_STORAGE_BOXED:
 		printf("boxed (%lu)\n", storage);
-		depth_printf(depth, "pointer", "%p\n", _get_boxed_ptr(v));
+		depth_printf(depth, "pointer", "%p\n", get_boxed_ptr(v));
 		depth_printf(depth, "boxed type", "");
 
-		unsigned long boxed_type = _get_boxed_type(v);
+		unsigned long boxed_type = get_boxed_type(v);
 		switch (boxed_type) {
 		case VAL_BOXED_TYPE_SYM:
 			printf("symbol (%lu)\n", boxed_type);
@@ -106,7 +106,7 @@ do_val_debug(val_t v, int depth)
 			depth_printf(depth, "list values", "\n");
 			val_t node = v;
 			while (1) {
-				if (_is_elist(node))
+				if (is_empty_list(node))
 					break;
 				val_t w = car(node);
 				depth_printf(depth + 1, "--------", "\n");
