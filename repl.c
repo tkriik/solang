@@ -9,7 +9,7 @@
 #include "eval.h"
 #include "parse.h"
 #include "repl.h"
-#include "tal.h"
+#include "solang.h"
 #include "token.h"
 #include "val.h"
 
@@ -254,8 +254,8 @@ loop(void)
 void
 repl_enter(void)
 {
-	printf("tal (Tanel's Language) version %d.%d.%d\n",
-	    VSN_MAJOR, VSN_MINOR, VSN_PATCH);
+	printf("Solang (Solid Language) version %d.%d.%d\n",
+	    SOLANG_VSN_MAJOR, SOLANG_VSN_MINOR, SOLANG_VSN_PATCH);
 
 	help_handler();
 

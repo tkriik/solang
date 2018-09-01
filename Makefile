@@ -2,8 +2,7 @@ CC=		gcc
 CFLAGS=		-std=c99 -Wall -Wextra -O0 -g -Wno-unused-parameter
 LDFLAGS=	-lreadline
 
-SRC=		tal.c \
-		tal.h \
+SRC=		main.c \
 		repl.c \
 		repl.h
 
@@ -18,6 +17,7 @@ CORE_SRC=	builtin.c \
 		list.c \
 		parse.c \
 		parse.h \
+		solang.h \
 		sym.c \
 		token.c \
 		token.h \
@@ -27,7 +27,7 @@ CORE_SRC=	builtin.c \
 		val_debug.c \
 		val_util.c
 
-TEST_SRC=	test/tal_test.c \
+TEST_SRC=	test/main.c \
 		test/test_env.c \
 		test/test_eval.c \
 		test/test_lambda.c \
@@ -45,9 +45,9 @@ DEPS_LINKS=	test/munit.c \
 		sdsalloc.h \
 		uthash.h
 
-BIN=		tal
+BIN=		solang
 
-TEST_BIN=	tal_test
+TEST_BIN=	solang_test
 
 .PHONY: all clean clean_deps deps_links
 

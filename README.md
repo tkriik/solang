@@ -1,6 +1,6 @@
-# Tanel's Language
+# Solang (Solid Language)
 
-[![Build Status](https://travis-ci.com/tkriik/tal.svg?branch=master)](https://travis-ci.com/tkriik/tal)
+[![Build Status](https://travis-ci.com/tkriik/solang.svg?branch=master)](https://travis-ci.com/tkriik/solang)
 
 LISP attempt, do not use in production.
 
@@ -59,15 +59,15 @@ Work in progress
 
 ### Run shell
 
-    $ ./tal
+    $ ./solang
 
 ### Run tests
 
-    $ ./tal_test
+    $ ./solang_test
 
 ### Print test options
 
-    $ ./tal_test --help
+    $ ./solang_test --help
 
 ### Clean project
 
@@ -90,13 +90,13 @@ C99-compliant code with [OpenBSD style](https://man.openbsd.org/style)
 
 ##### In shell
 
-    $ valgrind --leak-check=full ./tal
+    $ valgrind --leak-check=full ./solang
 
 Note: SDS strings are are detected as *possibly* lost by Valgrind.
 
 ##### In tests
 
-    $ valgrind --leak-check=full ./tal_test --no-fork
+    $ valgrind --leak-check=full ./solang_test --no-fork
 
 #### Fuzzing
 
@@ -106,6 +106,6 @@ Note: SDS strings are are detected as *possibly* lost by Valgrind.
 
 ##### Run fuzzer
 
-    $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./tal
+    $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang
 
 --------------------------------------------------------------------------------

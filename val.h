@@ -2,7 +2,7 @@
 #define VAL_H
 
 /*
- * A tal value is a 64-bit or 32-bit word (depending on the architecture),
+ * A Solang value is a 64-bit or 32-bit word (depending on the architecture),
  * which either contains an immediate value (stored in the word) or a pointer
  * to the heap (in which case the value is boxed).
  *
