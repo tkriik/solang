@@ -173,6 +173,11 @@ int		 _is_elist(val_t);
 int		 _is_blist(val_t);
 int		  is_list(val_t);
 
+int		  is_empty_list(val_t);
+int		  is_nonempty_list(val_t);
+int		  is_pair(val_t);
+int		  is_triple(val_t);
+
 val_t		  cons(val_t, val_t);
 val_t		  car(val_t);
 val_t		  cdr(val_t);
@@ -194,16 +199,18 @@ void		 _blist_free(val_t);
 /*
  * lambda.c
  */
-
 struct env;
 
 typedef val_t (*builtin_fn)(struct env *env, val_t);
 
-val_t		  lambda_builtin(unsigned long, builtin_fn);
+val_t		  lambda_builtin(builtin_fn, size_t);
+val_t		  lambda_apply(struct env *, val_t, val_t);
+
 int		  is_lambda_builtin(val_t);
-void		  lambda_free(val_t);
 
 const char	 *lambda_type_str(val_t);
+void		  lambda_free(val_t);
+void		  lambda_free_builtin(val_t);
 
 /*
  * val_debug.c

@@ -6,6 +6,22 @@
 #include "val.h"
 #include "val_test.h"
 
+struct state {
+	val_t v0;
+	val_t v1;
+	val_t v2;
+} st;
+
+static void *
+setup(const MunitParameter params[], void *user_data)
+{
+	st.v0 = sym("val0");
+	st.v1 = sym("val1");
+	st.v2 = sym("val2");
+
+	return &st;
+}
+
 static MunitResult
 test_is_list(const MunitParameter params[], void *fixture)
 {
@@ -14,6 +30,28 @@ test_is_list(const MunitParameter params[], void *fixture)
 	assert_true(is_list(v));
 
 	val_free(v);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_is_pair(const MunitParameter params[], void *fixture)
+{
+	struct state *st = fixture;
+
+	val_t l = list();
+	assert_false(is_pair(l));
+
+	l = cons(st->v0, l);
+	assert_false(is_pair(l));
+
+	l = cons(st->v1, l);
+	assert_true(is_pair(l));
+
+	l = cons(st->v2, l);
+	assert_false(is_pair(l));
+
+	val_free(l);
 
 	return MUNIT_OK;
 }
@@ -154,6 +192,13 @@ MunitTest val_list_tests[] = {
 		.name		= "/is-list",
 		.test		= test_is_list,
 		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/is-pair",
+		.test		= test_is_pair,
+		.setup		= setup,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL

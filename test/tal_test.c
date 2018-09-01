@@ -2,9 +2,8 @@
 
 #include "munit.h"
 
-#include "builtin.h"
-
 extern MunitTest env_tests[];
+extern MunitTest eval_tests[];
 extern MunitTest lambda_tests[];
 extern MunitTest parse_tests[];
 extern MunitTest token_tests[];
@@ -32,14 +31,14 @@ static MunitSuite suites[] = {
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
-		.prefix		= "/env",
-		.tests		= env_tests,
+		.prefix		= "/val/lambda",
+		.tests		= lambda_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
 	}, {
-		.prefix		= "/lambda",
-		.tests		= lambda_tests,
+		.prefix		= "/env",
+		.tests		= env_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
@@ -55,8 +54,15 @@ static MunitSuite suites[] = {
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE
-	},
-	{ NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE }
+	}, {
+		.prefix		= "/eval",
+		.tests		= eval_tests,
+		.suites		= NULL,
+		.iterations	= 1,
+		.options	= MUNIT_SUITE_OPTION_NONE
+	}, {
+		NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE
+	}
 };
 
 static const MunitSuite suite = {
@@ -70,7 +76,5 @@ static const MunitSuite suite = {
 int
 main(int argc, char *argv[])
 {
-	builtin_init();
-
 	return munit_suite_main(&suite, NULL, argc, argv);
 }

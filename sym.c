@@ -30,19 +30,19 @@ symn(const char *name, size_t len)
 
 	val_t sym = err_undef();
 
-	struct sym_entry *old_entry;
-	HASH_FIND_STR(sym_entries, name, old_entry);
-	if (old_entry != NULL) {
-		_set_boxed_sym(&sym, old_entry);
+	struct sym_entry *entry;
+	HASH_FIND(hh, sym_entries, name, len, entry);
+	if (entry != NULL) {
+		_set_boxed_sym(&sym, entry);
 		return sym;
 	}
 
-	struct sym_entry *new_entry = malloc(sizeof(*new_entry));
-	memset(new_entry->name, 0, sizeof(new_entry->name));
-	memcpy(new_entry->name, name, len);
+	entry = malloc(sizeof(*entry));
+	memset(entry->name, '\0', sizeof(entry->name));
+	memcpy(entry->name, name, len);
 
-	HASH_ADD_STR(sym_entries, name, new_entry);
-	_set_boxed_sym(&sym, new_entry);
+	HASH_ADD_STR(sym_entries, name, entry);
+	_set_boxed_sym(&sym, entry);
 
 	return sym;
 }

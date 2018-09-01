@@ -12,12 +12,13 @@ test_define_multi(const MunitParameter params[], void *fixture)
 	env_init(&env);
 
 	val_t s = sym("foo");
-	val_t v = sym("fooval");
+	val_t v0 = sym("val0");
+	val_t v1 = sym("val1");
 
-	val_t res = env_define(&env, s, v);
+	val_t res = env_define(&env, s, v0);
 	assert_val_eq(res, s);
 
-	res = env_define(&env, s, v);
+	res = env_define(&env, s, v1);
 	assert_val_eq(res, err_undef());
 
 	env_destroy(&env);
@@ -67,6 +68,11 @@ test_define_lookup(const MunitParameter params[], void *fixture)
 	assert_val_eq(res0, v0);
 	assert_val_eq(res1, v1);
 	assert_val_eq(res2, v2);
+
+	val_t res_redef = env_define(&env, sym0, v2);
+	val_t v_redef = env_lookup(&env, sym0);
+	assert_val_eq(res_redef, err_undef());
+	assert_val_eq(v_redef, v0);
 
 	env_destroy(&env);
 

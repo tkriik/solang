@@ -1,5 +1,6 @@
 #include <assert.h>
 
+#include "builtin.h"
 #include "env.h"
 #include "val.h"
 
@@ -15,9 +16,12 @@ env_init(struct env *env)
 {
 	assert(env != NULL);
 
+	builtin_init();
+
 	env->entries = NULL;
 
-	/* TODO: define builtins */
+	val_t res = env_define(env, builtin.sym.quote, builtin.lambda.quote);
+	assert(is_sym(res));
 }
 
 void
@@ -29,9 +33,12 @@ env_destroy(struct env *env)
 	HASH_ITER(hh, env->entries, entry, tmp) {
 		HASH_DEL(env->entries, entry);
 		val_free(entry->v);
+		free(entry);
 	}
 
 	HASH_CLEAR(hh, env->entries);
+
+	builtin_free();
 }
 
 val_t
@@ -39,7 +46,7 @@ env_define(struct env *env, val_t sym, val_t v)
 {
 	assert(env != NULL);
 	assert(is_sym(sym));
-	assert(!is_err_undef(v));
+	assert(!is_err_undef(v)); /* TODO: err_nodef */
 
 	struct env_entry *entry;
 	HASH_FIND(hh, env->entries, &sym.u, sizeof(sym.u), entry);
