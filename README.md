@@ -113,4 +113,8 @@ Note: SDS strings are are detected as *possibly* lost by Valgrind.
 
     $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang
 
+#### Check crashes one by one by pressing enter
+
+    $ for f in $(find fuzz/findings/crashes/id* -type f); do cat $f | ./solang; echo $f; read; done
+
 --------------------------------------------------------------------------------
