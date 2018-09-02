@@ -41,6 +41,13 @@ is_lambda(sval_t v)
 	    && get_boxed_type(v) == VAL_BOXED_TYPE_LAMBDA;
 }
 
+size_t
+lambda_arity(sval_t v)
+{
+	struct lambda *lambda = get_boxed_lambda_ptr(v);
+	return lambda->arity;
+}
+
 int
 is_lambda_builtin(sval_t v)
 {

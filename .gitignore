@@ -13,3 +13,6 @@ sds.c
 sds.h
 sdsalloc.h
 uthash.h
+
+# misc
+.test_input

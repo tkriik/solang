@@ -11,6 +11,7 @@ sval_t		 lambda_builtin(builtin_fn, size_t);
 sval_t		 lambda_apply(struct env *, sval_t, sval_t);
 
 int		 is_lambda_builtin(sval_t);
+size_t		 lambda_arity(sval_t);
 
 const char	*lambda_type_str(sval_t);
 void		 lambda_free(sval_t);

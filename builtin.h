@@ -8,16 +8,22 @@ struct builtin_entry {
 	sval_t lambda;
 };
 
-struct {
+struct builtin_info {
 	struct {
 		sval_t def;
+		sval_t head;
 		sval_t quote;
+		sval_t tail;
 	} sym;
 
 	struct {
+		sval_t head;
 		sval_t quote;
+		sval_t tail;
 	} lambda;
-} builtin;
+};
+
+extern struct builtin_info builtin;
 
 void builtin_init(void);
 void builtin_free(void);

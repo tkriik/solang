@@ -107,7 +107,7 @@ Note: SDS strings are are detected as *possibly* lost by Valgrind.
 
 #### Build instrumented binary
 
-    $ make clean && make CC=afl-gcc
+    $ make clean && make CC=afl-clang
 
 #### Run fuzzer
 

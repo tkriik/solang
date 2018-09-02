@@ -20,7 +20,16 @@ env_init(struct env *env)
 
 	env->entries = NULL;
 
-	sval_t res = env_define(env, builtin.sym.quote, builtin.lambda.quote);
+	/* TODO: refactor builtin hell */
+	sval_t res;
+
+	res = env_define(env, builtin.sym.head, builtin.lambda.head);
+	assert(is_sym(res));
+
+	res = env_define(env, builtin.sym.quote, builtin.lambda.quote);
+	assert(is_sym(res));
+
+	res = env_define(env, builtin.sym.tail, builtin.lambda.tail);
 	assert(is_sym(res));
 }
 
