@@ -213,7 +213,7 @@ handle_expression(sds input)
 	sval_t l = exps;
 	LIST_FOREACH(exp, l) {
 		sval_t v = eval(&env, exp);
-		sval_debug("eval", v);
+		sval_debug_out("eval", v);
 	};
 
 	/* TODO: free eval result */
@@ -261,4 +261,5 @@ repl_enter(void)
 
 	env_init(&env);
 	loop();
+	env_destroy(&env);
 }

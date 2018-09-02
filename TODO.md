@@ -2,22 +2,21 @@
 
 ## Short-term
 
-  1. builtin function type
-  1. builtin symbols
-  1. `apply`
-  1. remove `val_` test prefixes
-  1. deep val asserts with checking
-  1. use unit test fixtures
-  1. replace malloc asserts with `ERR_NOMEM`
-  1. fix `test_env` memory leak
+  * specific errors
+  * deep val asserts with checking
+  * parse error reporting
+  * builtin refactoring
+  * quote token
+  * replace malloc asserts with `ERR_NOMEM`
+  * GC/refcounting (which?)
 
 ## Medium-term
  
-  1. refcounting
-  1. integer types
-  1. string types
+  * bool type
+  * integer type
+  * string type
 
 ## Long-term
 
-  1. processes
-  1. OOM-killer
+  * processes
+  * OOM-killer

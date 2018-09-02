@@ -118,6 +118,7 @@ do_sval_debug(sval_t v, int depth)
 		case VAL_BOXED_TYPE_LAMBDA:
 			printf("lambda (%lu)\n", boxed_type);
 			depth_printf(depth, "type", "%s\n", lambda_type_str(v));
+			depth_printf(depth, "arity", "%zu\n", lambda_arity(v));
 			break;
 
 		default:
@@ -132,6 +133,49 @@ do_sval_debug(sval_t v, int depth)
 	}
 }
 
+static void
+do_sval_debug_out(sval_t v)
+{
+	if (is_err_undef(v)) {
+		printf("#err<undef>");
+		return;
+	}
+
+	if (is_sym(v)) {
+		printf("%s", sym_name(v));
+		return;
+	}
+
+	if (is_quoted(v)) {
+		printf("'");
+		do_sval_debug_out(unquote(v));
+		return;
+	}
+
+	if (is_list(v)) {
+		printf("(");
+		sval_t w;
+		sval_t l = v;
+		LIST_FOREACH(w, l) {
+			printf(" ");
+			do_sval_debug_out(w);
+			printf(" ");
+		}
+		printf(")");
+		return;
+	}
+
+	if (is_lambda_builtin(v)) {
+		void *p = get_boxed_lambda_ptr(v);
+		printf("#fn<builtin@%p>", p);
+		return;
+	}
+
+	sval_debug("NOTREACHED", v);
+
+	assert(0 && "NOTREACHED");
+}
+
 void
 sval_debug(const char *info, sval_t v)
 {
@@ -139,3 +183,12 @@ sval_debug(const char *info, sval_t v)
 	do_sval_debug(v, 0);
 	printf("--------\n");
 }
+
+void
+sval_debug_out(const char *info, sval_t v)
+{
+	printf("-------- %s\n", info);
+	do_sval_debug_out(v);
+	printf("\n--------\n");
+}
+

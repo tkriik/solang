@@ -132,6 +132,7 @@ int		 is_quoted(sval_t);
 void		 sval_free(sval_t);
 
 void		 sval_debug(const char *, sval_t);
+void		 sval_debug_out(const char *, sval_t);
 
 /*
  * Value-specific function declarations.

@@ -42,19 +42,36 @@ do_def(struct env *env, sval_t exp)
 }
 
 static sval_t
-do_apply(struct env *env, sval_t exp)
+do_apply(struct env *env, sval_t sym, sval_t args)
 {
 	assert(env != NULL);
-	assert(is_application(exp));
+	assert(is_sym(sym));
+	assert(is_list(args));
 
-	sval_t sym = car(exp);
 	sval_t lambda = env_lookup(env, sym);
-	if (is_err_undef(lambda))
+	if (is_err(lambda))
 		return err_undef(); /* TODO: err_no_sym */
 
-	sval_t args = cdr(exp);
-
 	return lambda_apply(env, lambda, args);
+}
+
+sval_t
+eval_args(struct env *env, sval_t args)
+{
+	sval_t v;
+	sval_t l = args;
+	sval_t res = list();
+	LIST_FOREACH(v, l) {
+		sval_t subres = eval(env, v);
+		if (is_err(subres)) {
+			sval_free(res);
+			return subres;
+		}
+
+		res = cons(subres, res);
+	}
+
+	return list_reverse_inplace(res);
 }
 
 sval_t
@@ -74,8 +91,14 @@ eval(struct env *env, sval_t exp)
 	if (is_def(exp))
 		return do_def(env, exp);
 
-	if (is_application(exp))
-		return do_apply(env, exp);
+	if (is_application(exp)) {
+		sval_t sym = car(exp);
+		sval_t args = eval_args(env, cdr(exp));
+		if (is_err(args))
+			return args;
+
+		return do_apply(env, sym, args);
+	}
 
 	return err_undef();
 }
