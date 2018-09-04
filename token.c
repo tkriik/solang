@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <string.h>
 
+#include "conf.h"
 #include "token.h"
 
 static int
@@ -141,6 +142,8 @@ token_next(const char **srcp, struct token_info *token)
 			 */
 			if (is_sym_char(c)) {
 				token->len++;
+				if (SYM_MAX_LEN < token->len)
+					token->type = TOKEN_TYPE_ERR;
 				cur++;
 				continue;
 			}

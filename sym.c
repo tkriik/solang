@@ -5,6 +5,7 @@
 
 #include "uthash.h"
 
+#include "conf.h"
 #include "sval.h"
 
 struct sym_entry {
@@ -37,6 +38,7 @@ symn(const char *name, size_t len)
 	}
 
 	entry = malloc(sizeof(*entry));
+	assert(entry != NULL);
 	memset(entry->name, '\0', sizeof(entry->name));
 	memcpy(entry->name, name, len);
 

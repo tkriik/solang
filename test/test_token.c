@@ -3,6 +3,7 @@
 #define MUNIT_ENABLE_ASSERT_ALIASES
 #include "munit.h"
 
+#include "conf.h"
 #include "token.h"
 
 static void
@@ -52,13 +53,27 @@ test_empty(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
-test_sym(const MunitParameter params[], void *fixture)
+test_sym_short(const MunitParameter params[], void *fixture)
 {
 	const char *src = "foo";
 
 	const char *cur = src;
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM, 3, src + 3);
 	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_sym_limit(const MunitParameter params[], void *fixture)
+{
+	char src[SYM_MAX_LEN + 1 + 1] = {0};
+	memset(src, 'a', SYM_MAX_LEN + 1);
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, SYM_MAX_LEN + 1,
+	    src + SYM_MAX_LEN + 1);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + SYM_MAX_LEN + 1);
 
 	return MUNIT_OK;
 }
@@ -134,8 +149,15 @@ MunitTest token_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/sym",
-		.test		= test_sym,
+		.name		= "/sym-short",
+		.test		= test_sym_short,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/sym-limit",
+		.test		= test_sym_limit,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

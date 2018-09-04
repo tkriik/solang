@@ -213,6 +213,7 @@ handle_expression(sds input)
 	sval_t l = exps;
 	LIST_FOREACH(exp, l) {
 		sval_t v = eval(&env, exp);
+		sval_debug("debug", v);
 		sval_debug_out("eval", v);
 	};
 
