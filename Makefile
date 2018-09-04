@@ -34,6 +34,7 @@ DEBUG_SRC=		token_debug.c \
 TEST_SRC=		test/main.c \
 			test/fixture.c \
 			test/test_env.c \
+			test/test_err.c \
 			test/test_eval.c \
 			test/test_lambda.c \
 			test/test_list.c \

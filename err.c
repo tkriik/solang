@@ -36,8 +36,8 @@ err_str(sval_t v)
 	assert(is_err(v));
 
 	switch (get_immed(v)) {
-	case VAL_IMMED_ERR_UNDEF:	return "undefined";
-	case VAL_IMMED_ERR_NOMEM:	return "out-of-memory";
+	case VAL_IMMED_ERR_UNDEF:	return "#error<undefined>";
+	case VAL_IMMED_ERR_NOMEM:	return "#error<out-of-memory>";
 	}
 
 	assert(0 && "NOTREACHED");
