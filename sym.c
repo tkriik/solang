@@ -26,7 +26,7 @@ symn(const char *name, size_t len)
 {
 	assert(0 < len);
 	assert(len <= SYM_MAX_LEN);
-	assert(HASH_COUNT(sym_entries) <= SYM_MAX_CNT);
+	assert(HASH_COUNT(sym_entries) <= SYM_MAX_CNT); /* TODO: err_max_syms */
 
 	sval_t sym = err_undef();
 
