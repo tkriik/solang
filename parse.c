@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 
 #include "parse.h"
 #include "token.h"
@@ -19,6 +20,7 @@ do_parse(struct state *st)
 	sval_t l = list();
 
 	long cur_level = st->level;
+	unsigned long quotes = 0;
 
 	struct token_info token;
 	for (enum token_res tres = token_next(&st->src, &token);
@@ -51,12 +53,22 @@ do_parse(struct state *st)
 			sval_free(l);
 			return err_undef();
 
+		case TOKEN_TYPE_QUOTE:
+			assert(quotes < ULONG_MAX);
+			quotes++;
+			continue;
+
 		case TOKEN_TYPE_ERR:
 			sval_free(l);
 			return err_undef();
 
 		default:
 			assert(0 && "NOTREACHED");
+		}
+
+		for (size_t i = quotes; 0 < i; i--) {
+			v = quote(v);
+			quotes--;
 		}
 
 		l = cons(v, l);

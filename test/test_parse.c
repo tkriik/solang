@@ -136,6 +136,94 @@ test_list_err(const MunitParameter params[], void *fixture)
 	return MUNIT_OK;
 }
 
+static MunitResult
+test_single_quoted_sym(const MunitParameter params[], void *fixture)
+{
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "'foo",
+			.exp_v	= cons(quote(sym("foo")), list())
+		}, {
+			.src	= NULL
+		}
+	};
+
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_single_quoted_list(const MunitParameter params[], void *fixture)
+{
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "'()",
+			.exp_v	= cons(quote(list()), list())
+		}, {
+			.src	= NULL
+		}
+	};
+
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_multi_quoted_sym(const MunitParameter params[], void *fixture)
+{
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "''foo",
+			.exp_v	= cons(quote(quote(sym("foo"))), list())
+		}, {
+			.src	= NULL
+		}
+	};
+
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_multi_quoted_list(const MunitParameter params[], void *fixture)
+{
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "''()",
+			.exp_v	= cons(quote(quote(list())), list())
+		}, {
+			.src	= NULL
+		}
+	};
+
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_nested_quoted_list(const MunitParameter params[], void *fixture)
+{
+	struct parse_fixture pfs[] = {
+		{
+			.src	= "'('foo 'bar)",
+			.exp_v	= cons(quote(cons(quote(sym("foo")),
+				                  cons(quote(sym("bar")),
+						       list()))),
+				       list())
+		}, {
+			.src	= NULL
+		}
+	};
+
+	test_parse_fixtures(pfs);
+
+	return MUNIT_OK;
+}
+
 MunitTest parse_tests[] = {
 	{
 		.name		= "/sym",
@@ -161,6 +249,41 @@ MunitTest parse_tests[] = {
 	}, {
 		.name		= "/list-err",
 		.test		= test_list_err,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/single-quoted-sym",
+		.test		= test_single_quoted_sym,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/single-quoted-list",
+		.test		= test_single_quoted_list,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/multi-quoted-sym",
+		.test		= test_multi_quoted_sym,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/multi-quoted-list",
+		.test		= test_multi_quoted_list,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/nested-quoted-list",
+		.test		= test_nested_quoted_list,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

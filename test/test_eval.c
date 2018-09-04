@@ -10,21 +10,6 @@
 #include "sval_test.h"
 
 static MunitResult
-test_quoted(const MunitParameter params[], void *fixture)
-{
-	struct generic_state *st = fixture;
-
-	sval_t quoted = quote(st->v0);
-	sval_t unquoted = eval(&st->env, quoted);
-
-	assert_sval_eq(unquoted, st->v0);
-
-	sval_free(quoted);
-
-	return MUNIT_OK;
-}
-
-static MunitResult
 test_def(const MunitParameter params[], void *fixture)
 {
 	struct generic_state *st = fixture;
@@ -52,8 +37,46 @@ test_def(const MunitParameter params[], void *fixture)
 	return MUNIT_OK;
 }
 
+static MunitResult
+test_quoted(const MunitParameter params[], void *fixture)
+{
+	struct generic_state *st = fixture;
+
+	sval_t quoted = quote(st->v0);
+	sval_t unquoted = eval(&st->env, quoted);
+
+	assert_sval_eq(unquoted, st->v0);
+
+	sval_free(quoted);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_multi_quoted(const MunitParameter params[], void *fixture)
+{
+	struct generic_state *st = fixture;
+
+	sval_t quoted0 = quote(st->v0);
+	sval_t quoted1 = quote(quoted0);
+	sval_t unquoted = eval(&st->env, quoted1);
+
+	assert_sval_eq(unquoted, quoted0);
+
+	sval_free(quoted1);
+
+	return MUNIT_OK;
+}
+
 MunitTest eval_tests[] = {
 	{
+		.name		= "/def",
+		.test		= test_def,
+		.setup		= generic_setup,
+		.tear_down	= generic_tear_down,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
 		.name		= "/quoted",
 		.test		= test_quoted,
 		.setup		= generic_setup,
@@ -61,8 +84,8 @@ MunitTest eval_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
-		.name		= "/def",
-		.test		= test_def,
+		.name		= "/multi-quoted",
+		.test		= test_multi_quoted,
 		.setup		= generic_setup,
 		.tear_down	= generic_tear_down,
 		.options	= MUNIT_TEST_OPTION_NONE,

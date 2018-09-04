@@ -2,6 +2,7 @@
 
 ## Short-term
 
+  * test coverage
   * specific errors
   * deep val asserts with checking
   * parse error reporting

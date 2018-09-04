@@ -15,6 +15,13 @@ baz
 (foo (bar (baz)))
 (((foo) bar) bar)
 
+(quote foo)
+(quote (quote baz))
+
+''foo
+'(foo bar baz)
+'('foo ''bar '''baz)
+
 (
 ((
 )
