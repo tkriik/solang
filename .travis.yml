@@ -12,3 +12,6 @@ script:
   - make test
   - echo "\q" | ./solang
   - ./solang_test
+
+branches:
+  - master
