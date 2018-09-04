@@ -15,19 +15,40 @@ err_undef(void)
 	return v;
 }
 
-int
-is_err_undef(sval_t v)
+sval_t
+err_nomem(void)
 {
-	return get_storage(v) == VAL_STORAGE_IMMED
-	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR;
+	sval_t v;
+
+	v.u = 0;
+	v.u |= VAL_STORAGE_IMMED << VAL_STORAGE_OFFSET;
+	v.u |= VAL_IMMED_TYPE_ERR << VAL_IMMED_TYPE_OFFSET;
+	v.u |= VAL_IMMED_ERR_NOMEM << VAL_IMMED_OFFSET;
+
+	return v;
 }
 
 int
 is_err(sval_t v)
 {
 	return get_storage(v) == VAL_STORAGE_IMMED
+	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR;
+}
+
+int
+is_err_undef(sval_t v)
+{
+	return get_storage(v) == VAL_STORAGE_IMMED
 	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR
 	    && get_immed(v) == VAL_IMMED_ERR_UNDEF;
+}
+
+int
+is_err_nomem(sval_t v)
+{
+	return get_storage(v) == VAL_STORAGE_IMMED
+	    && get_immed_type(v) == VAL_IMMED_TYPE_ERR
+	    && get_immed(v) == VAL_IMMED_ERR_NOMEM;
 }
 
 const char *
