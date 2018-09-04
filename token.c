@@ -233,3 +233,16 @@ token_next(const char **srcp, struct token_info *token)
 	assert(0 && "NOTREACHED");
 	return TOKEN_RES_NONE;
 }
+
+const char *
+token_type_str(enum token_type type)
+{
+	switch (type) {
+	case TOKEN_TYPE_SYM:		return "TOKEN_TYPE_SYM";
+	case TOKEN_TYPE_ERR:		return "TOKEN_TYPE_ERR";
+	case TOKEN_TYPE_LIST_START:	return "TOKEN_TYPE_LIST_START";
+	case TOKEN_TYPE_LIST_END:	return "TOKEN_TYPE_LIST_END";
+	case TOKEN_TYPE_QUOTE:		return "TOKEN_TYPE_QUOTE";
+	default:			return "TOKEN_TYPE_<INVALID>";
+	}
+}
