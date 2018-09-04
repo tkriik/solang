@@ -34,9 +34,6 @@ do_def(struct env *env, sval_t exp)
 	sval_t sym = car(cdr(exp));
 	sval_t v = eval(env, car(cdr(cdr(exp))));
 
-	if (is_eq(sym, v))
-		return v;
-
 	return env_define(env, sym, v);
 }
 
