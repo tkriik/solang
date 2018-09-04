@@ -1,5 +1,6 @@
 solang
 solang_test
+solang_test_coverage*
 
 *.o
 *.gch

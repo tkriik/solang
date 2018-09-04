@@ -1,4 +1,6 @@
+--------------------------------------------------------------------------------
 # Solang (Solid Language)
+--------------------------------------------------------------------------------
 
 [![Build Status](https://travis-ci.com/tkriik/solang.svg?branch=master)](https://travis-ci.com/tkriik/solang)
 
@@ -11,6 +13,8 @@ Work in progress
 ### Features
 
   - Shell
+  - Symbols
+  - Lists
 
 ### Missing features
 
@@ -22,7 +26,7 @@ Work in progress
 
 ### System dependencies
 
-  - GCC/Clang
+  - Clang/GCC
   - GNU Readline
 
 ### Local dependencies
@@ -33,41 +37,35 @@ Work in progress
 
 --------------------------------------------------------------------------------
 
-## Development
+## Building
 
 ### Install system dependencies
 
 #### APT
 
-    $ apt-get install -y clang gcc libreadline-dev
+    $ apt-get install -y llvm-4.0 libreadline-dev
 
 ### Install local dependencies
 
     $ make deps
 
-### Build (with GCC)
+### Compile
+
+#### with Clang 4.0
 
     $ make
 
-### Build (with Clang)
+#### with custom Clang version (eg. 6.0)
 
-    $ make CC=clang
+    $ make CLANG_VERSION=6.0
 
-### Build tests
+#### with GCC
 
-    $ make test
+    $ make CC=gcc
 
 ### Run shell
 
     $ ./solang
-
-### Run tests
-
-    $ ./solang_test
-
-### Print test options
-
-    $ ./solang_test --help
 
 ### Clean project
 
@@ -77,44 +75,98 @@ Work in progress
 
     $ make clean_deps
 
+--------------------------------------------------------------------------------
+
+# Development
+
+--------------------------------------------------------------------------------
+
+## General
+
+### Philosophy
+
+  1. Make it simple
+  1. Make it correct
+  1. Make it fast
+
+### Rules
+
+  1. Write dumb code
+  1. Use asserts for assumptions at all stages
+  1. Use unit tests for known paths
+  1. Check those memory leaks
+  1. Use static analysis and fuzzing to catch unknown unknowns
+
 ### Code style
 
-C99-compliant code with [OpenBSD style](https://man.openbsd.org/style)
+C99-compliant code with [OpenBSD style](https://man.openbsd.org/style).
 
-### Tools
+--------------------------------------------------------------------------------
 
-  - Clang
-  - [AFL](http://lcamtuf.coredump.cx/afl/)
-  - [Valgrind](http://valgrind.org/)
+## Testing
 
-### Static analysis with Clang
+### Build tests
+
+    $ make test
+
+### Run tests
+
+    $ ./solang_test
+
+### Print test options
+
+    $ ./solang_test --help
+
+--------------------------------------------------------------------------------
+
+## Static analysis
 
     $ make clean && scan-build make
 
-### Memory leak checking with Valgrind
+--------------------------------------------------------------------------------
 
-#### In shell
+## Check memory leaks
+
+Install [Valgrind](http://valgrind.org/)
+
+### in main executable
 
     $ valgrind --leak-check=full ./solang
 
-Note: SDS strings are are detected as *possibly* lost by Valgrind.
-
-#### In tests
+### in tests
 
     $ valgrind --leak-check=full ./solang_test --no-fork
 
-### Fuzzing with AFL
+**Note**: SDS strings are are detected as *possibly* lost by Valgrind.
 
-#### Build instrumented binary
+--------------------------------------------------------------------------------
+
+## Fuzzing
+
+Install [AFL](http://lcamtuf.coredump.cx/afl/)
+
+### 1. Build instrumented binary
 
     $ make clean && make CC=afl-clang
 
-#### Run fuzzer
+### 2. Run fuzzer
 
     $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang
 
-#### Check crashes one by one by pressing enter
+### 3. Later on, check crashes one by one by pressing enter
 
     $ for f in $(find fuzz/findings/crashes/id* -type f); do cat $f | ./solang; echo $f; read; done
 
 --------------------------------------------------------------------------------
+
+## Code coverage (for core source files)
+
+Clang/LLVM version 4.0 or greater is required for this.
+
+### Generate and open report in browser
+
+    $ make coverage_report
+
+### Print a summary
+
+    $ make coverage_summary
