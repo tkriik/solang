@@ -14,4 +14,5 @@ script:
   - ./solang_test
 
 branches:
+  only:
   - master
