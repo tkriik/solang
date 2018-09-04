@@ -8,8 +8,7 @@
 static int
 is_self_eval(sval_t exp)
 {
-	// TODO
-	return 0;
+	return is_empty_list(exp);
 }
 
 static int

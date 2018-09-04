@@ -37,9 +37,27 @@ enum list_char {
 };
 
 static int
+is_list_start_char(char c)
+{
+	return c == LIST_CHAR_START;
+}
+
+static int
+is_list_end_char(char c)
+{
+	return c == LIST_CHAR_END;
+}
+
+static int
 is_list_char(char c)
 {
-	return c == LIST_CHAR_START || c == LIST_CHAR_END;
+	return is_list_start_char(c) || is_list_end_char(c);
+}
+
+static int
+is_quote_char(char c)
+{
+	return c == '\'';
 }
 
 enum token_type
@@ -64,25 +82,32 @@ token_next(const char **srcp, struct token_info *token)
 	/*
 	 * State transitions, from current state to most likely next state:
 	 *
-	 *   NEXT_TOKEN -> NEXT_TOKEN
-	 *               | AT_LIST
-	 *               | AT_SYM
-	 *               | <return>
-	 *               | AT_ERR
+	 *   NEXT_TOKEN   -> NEXT_TOKEN
+	 *                 | AT_LIST
+	 *                 | AT_SYM
+	 *                 | AT_QUOTE
+	 *                 | <return>
+	 *                 | AT_ERR
 	 *
-	 *   AT_LIST    -> <return>
+	 *   AT_LIST      -> <return>
 	 *
-	 *   AT_SYM     -> AT_SYM
-	 *               | <return>
-	 *               | AT_ERR
+	 *   AT_SYM       -> AT_SYM
+	 *                 | <return>
+	 *                 | AT_ERR
 	 *
-	 *   AT_ERR     -> AT_ERR
-	 *               | <return>
+	 *   AT_QUOTE     -> AT_SYM
+	 *                 | AT_LIST
+	 *                 | AT_QUOTE
+	 *                 | AT_ERR
+	 *
+	 *   AT_ERR       -> AT_ERR
+	 *                 | <return>
 	 */
 	enum {
 		NEXT_TOKEN,
 		AT_LIST,
 		AT_SYM,
+		AT_QUOTE,
 		AT_ERR
 	} state = NEXT_TOKEN;
 
@@ -114,6 +139,16 @@ token_next(const char **srcp, struct token_info *token)
 				continue;
 			}
 
+			/* NEXT_TOKEN -> AT_QUOTE */
+			if (is_quote_char(c)) {
+				token->type = TOKEN_TYPE_QUOTE;
+				token->len = 1;
+				token->src = cur;
+				state = AT_QUOTE;
+				cur++;
+				continue;
+			}
+
 			/* NEXT_TOKEN -> <return> */
 			if (is_end(c)) {
 				*srcp = cur;
@@ -139,6 +174,7 @@ token_next(const char **srcp, struct token_info *token)
 		case AT_SYM:
 			/*
 			 * AT_SYM -> AT_SYM
+			 *         | AT_ERR
 			 */
 			if (is_sym_char(c)) {
 				token->len++;
@@ -158,6 +194,24 @@ token_next(const char **srcp, struct token_info *token)
 			token->type = TOKEN_TYPE_ERR;
 			token->len++;
 			state = AT_ERR;
+			cur++;
+			continue;
+
+		case AT_QUOTE:
+			/*
+			 * AT_QUOTE -> AT_SYMBOL
+			 *           | AT_LIST
+			 *           | AT_QUOTE
+			 */
+			if (is_list_start_char(c)
+			 || is_sym_start(c)
+			 || is_quote_char(c)) {
+				*srcp = cur;
+				return TOKEN_RES_OK;
+			}
+
+			/* AT_QUOTE -> AT_ERR */
+			token->len++;
 			cur++;
 			continue;
 

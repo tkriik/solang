@@ -199,9 +199,6 @@ handle_expression(sds input)
 	}
 
 	sval_t exps = parse(src);
-	if (config.debug_value)
-		sval_debug("expressions", exps);
-
 	/* TODO: parse error info */
 	if (is_err_undef(exps)) {
 		printf("failed to parse expressions\n");
@@ -213,7 +210,8 @@ handle_expression(sds input)
 	sval_t l = exps;
 	LIST_FOREACH(exp, l) {
 		sval_t v = eval(&env, exp);
-		sval_debug("debug", v);
+		if (config.debug_value)
+			sval_debug("eval debug", v);
 		sval_debug_out("eval", v);
 	};
 
