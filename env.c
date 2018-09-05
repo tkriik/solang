@@ -26,9 +26,6 @@ env_init(struct env *env)
 	res = env_define(env, builtin.sym.head, builtin.lambda.head);
 	assert(is_sym(res));
 
-	res = env_define(env, builtin.sym.quote, builtin.lambda.quote);
-	assert(is_sym(res));
-
 	res = env_define(env, builtin.sym.tail, builtin.lambda.tail);
 	assert(is_sym(res));
 }

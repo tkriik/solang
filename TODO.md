@@ -2,7 +2,7 @@
 
 ## Short-term
 
-  * test coverage
+  * proper eval tests
   * specific errors
   * deep val asserts with checking
   * parse error reporting

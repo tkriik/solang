@@ -74,7 +74,7 @@ $(TEST_BIN): $(TEST_SRC) $(CORE_SRC)
 		-Wno-missing-field-initializers
 
 $(COV_BIN): $(TEST_SRC) $(CORE_SRC)
-	$(COV_CC) -I ./ -o $(COV_BIN) $(CFLAGS) $(CORE_SRC) $(TEST_SRC) \
+	$(COV_CC) -I ./ -o $(COV_BIN) $(CFLAGS) $(CORE_SRC) $(DEBUG_SRC) $(TEST_SRC) \
 		-Wno-missing-field-initializers \
 		-fprofile-instr-generate \
 		-fcoverage-mapping
