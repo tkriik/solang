@@ -1,35 +1,74 @@
---------------------------------------------------------------------------------
 # Solang (Solid Language)
---------------------------------------------------------------------------------
 
 [![Build Status](https://travis-ci.com/tkriik/solang.svg?branch=master)](https://travis-ci.com/tkriik/solang)
 
 LISP attempt, do not use in production.
 
-## Status
+## Table of Contents
+
+* [Status](#status)
+   * [Features](#features)
+   * [Missing features](#missing-features)
+* [Dependencies](#dependencies)
+   * [System dependencies](#system-dependencies)
+   * [Local dependencies](#local-dependencies)
+* [Building](#building)
+   * [Install system dependencies](#install-system-dependencies)
+      * [APT](#apt)
+   * [Install local dependencies](#install-local-dependencies)
+   * [Compile](#compile)
+      * [with Clang](#with-clang)
+      * [with GCC](#with-gcc)
+   * [Run shell](#run-shell)
+   * [Clean project](#clean-project)
+   * [Clean local dependencies](#clean-local-dependencies)
+* [Development](#development)
+   * [General](#general)
+      * [Philosophy](#philosophy)
+      * [Rules](#rules)
+      * [Code style](#code-style)
+   * [Testing](#testing)
+      * [Build tests](#build-tests)
+      * [Run tests](#run-tests)
+      * [Print test options](#print-test-options)
+   * [Static analysis](#static-analysis)
+   * [Check memory leaks](#check-memory-leaks)
+      * [in main executable](#in-main-executable)
+      * [in tests](#in-tests)
+   * [Fuzzing](#fuzzing)
+      * [1. Build instrumented binary](#1-build-instrumented-binary)
+      * [2. Run fuzzer](#2-run-fuzzer)
+      * [3. Later on, check crashes one by one by pressing enter](#3-later-on-check-crashes-one-by-one-by-pressing-enter)
+   * [Code coverage (for core source files)](#code-coverage-for-core-source-files)
+      * [Generate and open report in browser](#generate-and-open-report-in-browser)
+      * [Print a summary](#print-a-summary)
+
+--------------------------------------------------------------------------------
+
+# Status
 
 Work in progress
 
-### Features
+## Features
 
   - Shell
   - Symbols
   - Lists
 
-### Missing features
+## Missing features
 
   - Everything else
 
 --------------------------------------------------------------------------------
 
-## Dependencies
+# Dependencies
 
-### System dependencies
+## System dependencies
 
   - Clang/GCC
   - GNU Readline
 
-### Local dependencies
+## Local dependencies
 
   - [µnit](https://github.com/nemequ/munit)
   - [SDS](https://github.com/antirez/sds)
@@ -37,45 +76,43 @@ Work in progress
 
 --------------------------------------------------------------------------------
 
-## Building
+# Building
 
-### Install system dependencies
+## Install system dependencies
 
-#### APT
+### APT
 
     $ apt-get install -y llvm-4.0 libreadline-dev
 
-### Install local dependencies
+## Install local dependencies
 
     $ make deps
 
-### Compile
+## Compile
 
-#### with Clang
+### with Clang
 
     $ make
 
-#### with GCC
+### with GCC
 
     $ make CC=gcc
 
-### Run shell
+## Run shell
 
     $ ./solang
 
-### Clean project
+## Clean project
 
     $ make clean
 
-### Clean local dependencies
+## Clean local dependencies
 
     $ make clean_deps
 
 --------------------------------------------------------------------------------
 
 # Development
-
---------------------------------------------------------------------------------
 
 ## General
 
