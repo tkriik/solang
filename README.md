@@ -190,6 +190,13 @@ Install [AFL](http://lcamtuf.coredump.cx/afl/)
 
     $ for f in $(find fuzz/findings/crashes/id* -type f); do ./solang $f; echo $f; read; done
 
+### Archive fuzz results
+
+The following command stores current fuzz findings under directories
+`fuzz/archive/crashes_$COMMIT_HASH` and `fuzz/archive/hangs_$COMMIT_HASH`.
+
+   $ make fuzz_archive
+
 --------------------------------------------------------------------------------
 
 ## Code coverage (for core source files)

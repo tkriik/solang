@@ -123,6 +123,12 @@ coverage_summary: $(COV_BIN) $(COV_PROFDATA)
 		-instr-profile=$(COV_PROFDATA) \
 		$(CORE_SRC)
 
+fuzz_archive:
+	mkdir -p fuzz/archive/crashes_$$(git rev-parse HEAD)
+	mkdir -p fuzz/archive/hangs_$$(git rev-parse HEAD)
+	cp -r fuzz/findings/crashes/id* fuzz/archive/crashes_$$(git rev-parse HEAD)
+	cp -r fuzz/findings/hangs/id* fuzz/archive/hangs_$$(git rev-parse HEAD)
+
 clean:
 	rm -f $(BIN) $(TEST_BIN) $(COV_BIN)
 
