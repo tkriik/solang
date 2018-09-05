@@ -3,6 +3,7 @@
 #include "builtin.h"
 #include "env.h"
 #include "eval.h"
+#include "parse.h"
 #include "sval.h"
 
 static int
@@ -33,6 +34,8 @@ do_def(struct env *env, sval_t exp)
 
 	sval_t sym = car(cdr(exp));
 	sval_t v = eval(env, car(cdr(cdr(exp))));
+	if (is_err_undef(v))
+		return v;
 
 	return env_define(env, sym, v);
 }
@@ -45,8 +48,8 @@ do_apply(struct env *env, sval_t sym, sval_t args)
 	assert(is_list(args));
 
 	sval_t lambda = env_lookup(env, sym);
-	if (is_err(lambda))
-		return err_undef(); /* TODO: err_no_sym */
+	if (!is_lambda(lambda))
+		return err_undef(); /* TODO: err_bad_fn */
 
 	return lambda_apply(env, lambda, args);
 }
@@ -97,4 +100,26 @@ eval(struct env *env, sval_t exp)
 	}
 
 	return err_undef();
+}
+
+/* TODO: free, or just do refcounts finally */
+sval_t
+eval_src(struct env *env, const char *src)
+{
+	sval_t exps = parse(src);
+	if (is_err(exps))
+		return exps;
+
+	sval_t exp;
+	sval_t l = exps;
+	sval_t res = list();
+	sval_t res_tail = res;
+	LIST_FOREACH(exp, l) {
+		sval_t v = eval(env, exp);
+		res_tail = snoc_tail(res_tail, v);
+		if (is_empty_list(res))
+			res = res_tail;
+	}
+
+	return res;
 }

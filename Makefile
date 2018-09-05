@@ -12,6 +12,8 @@ CFLAGS=			-std=c99 \
 
 LDFLAGS=		-lreadline
 
+ARCH=			linux
+
 SRC=			main.c \
 			repl.c
 
@@ -23,6 +25,7 @@ CORE_SRC=		builtin.c \
 			list.c \
 			parse.c \
 			sym.c \
+			sys_$(ARCH).c \
 			token.c \
 			sval.c \
 

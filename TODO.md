@@ -2,13 +2,14 @@
 
 ## Short-term
 
+  * GC/refcounting (which?)
+  * parallel fuzzing
   * proper eval tests
   * specific errors
   * deep val asserts with checking
   * parse error reporting
   * builtin refactoring
   * replace malloc asserts with `ERR_NOMEM`
-  * GC/refcounting (which?)
 
 ## Medium-term
  

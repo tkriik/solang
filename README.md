@@ -184,11 +184,11 @@ Install [AFL](http://lcamtuf.coredump.cx/afl/)
 
 ### 2. Run fuzzer
 
-    $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang
+    $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang @@
 
 ### 3. Later on, check crashes one by one by pressing enter
 
-    $ for f in $(find fuzz/findings/crashes/id* -type f); do cat $f | ./solang; echo $f; read; done
+    $ for f in $(find fuzz/findings/crashes/id* -type f); do ./solang $f; echo $f; read; done
 
 --------------------------------------------------------------------------------
 
