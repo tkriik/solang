@@ -15,6 +15,8 @@ sval_t	cons(sval_t, sval_t);
 sval_t	car(sval_t);
 sval_t	cdr(sval_t);
 
+sval_t  snoc_tail(sval_t, sval_t);
+
 size_t	list_count(sval_t);
 sval_t	list_reverse_inplace(sval_t);
 

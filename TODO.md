@@ -7,7 +7,6 @@
   * deep val asserts with checking
   * parse error reporting
   * builtin refactoring
-  * quote token
   * replace malloc asserts with `ERR_NOMEM`
   * GC/refcounting (which?)
 
