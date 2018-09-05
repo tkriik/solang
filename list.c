@@ -96,6 +96,22 @@ cdr(sval_t l)
 	return bl->tl;
 }
 
+sval_t
+snoc_tail(sval_t l, sval_t v)
+{
+	assert(is_list(l));
+
+	if (is_empty_list(l))
+		return cons(v, list());
+
+	assert(is_empty_list(cdr(l)));
+
+	struct blist *bl = get_boxed_list_ptr(l);
+	bl->tl = cons(v, list());
+
+	return bl->tl;
+}
+
 size_t
 list_count(sval_t l)
 {

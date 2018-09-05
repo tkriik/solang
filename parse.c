@@ -18,6 +18,7 @@ do_parse(struct state *st)
 	assert(st->src != NULL);
 
 	sval_t l = list();
+	sval_t l_tail = l;
 
 	long cur_level = st->level;
 	unsigned long quotes = 0;
@@ -46,7 +47,6 @@ do_parse(struct state *st)
 		case TOKEN_TYPE_LIST_END:
 			if (0 < st->level) {
 				st->level--;
-				l = list_reverse_inplace(l);
 				return l;
 			}
 
@@ -71,15 +71,15 @@ do_parse(struct state *st)
 			quotes--;
 		}
 
-		l = cons(v, l);
+		l_tail = snoc_tail(l_tail, v);
+		if (is_empty_list(l))
+			l = l_tail;
 	}
 
 	if (cur_level != st->level) {
 		sval_free(l);
 		return err_undef();
 	}
-
-	l = list_reverse_inplace(l);
 
 	return l;
 }
