@@ -65,6 +65,8 @@ COV_PROFRAW=		$(COV_BIN).profraw
 COV_PROFDATA=		$(COV_BIN).profdata
 COV_REPORT=		$(COV_BIN)_report.html
 
+FUZZ_CC=		afl-clang
+
 .PHONY: all clean clean_deps deps_links
 
 all: $(BIN)
@@ -123,6 +125,14 @@ coverage_summary: $(COV_BIN) $(COV_PROFDATA)
 		-instr-profile=$(COV_PROFDATA) \
 		$(CORE_SRC)
 
+fuzz: CC = afl-clang
+fuzz: $(BIN)
+	afl-fuzz -i fuzz/testcases -o fuzz/findings ./$(BIN) @@
+
+fuzz_continue: CC = afl-clang
+fuzz_continue: $(BIN)
+	afl-fuzz -i - -o fuzz/findings ./$(BIN) @@
+
 fuzz_archive:
 	mkdir -p fuzz/archive/crashes_$$(git rev-parse HEAD)
 	mkdir -p fuzz/archive/hangs_$$(git rev-parse HEAD)
@@ -134,6 +144,9 @@ clean:
 
 clean_coverage:
 	rm -f $(COV_PROFRAW) $(COV_PROFDATA) $(COV_REPORT)
+
+clean_fuzz:
+	rm -rf fuzz/findings/*
 
 clean_deps: clean_deps_links
 	rm -rf deps/

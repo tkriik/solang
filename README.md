@@ -31,17 +31,19 @@ LISP attempt, do not use in production.
       * [Build tests](#build-tests)
       * [Run tests](#run-tests)
       * [Print test options](#print-test-options)
-   * [Static analysis](#static-analysis)
-   * [Check memory leaks](#check-memory-leaks)
-      * [in main executable](#in-main-executable)
-      * [in tests](#in-tests)
-   * [Fuzzing](#fuzzing)
-      * [1. Build instrumented binary](#1-build-instrumented-binary)
-      * [2. Run fuzzer](#2-run-fuzzer)
-      * [3. Later on, check crashes one by one by pressing enter](#3-later-on-check-crashes-one-by-one-by-pressing-enter)
    * [Code coverage (for core source files)](#code-coverage-for-core-source-files)
       * [Generate and open report in browser](#generate-and-open-report-in-browser)
       * [Print a summary](#print-a-summary)
+   * [Check memory leaks](#check-memory-leaks)
+      * [in main executable](#in-main-executable)
+      * [in tests](#in-tests)
+   * [Static analysis](#static-analysis)
+   * [Fuzzing](#fuzzing)
+      * [Build and run fuzzer](#build-and-run-fuzzer)
+      * [Continue fuzzing](#continue-fuzzing)
+      * [Check crashes one by one](#check-crashes-one-by-one)
+      * [Archive fuzz results](#archive-fuzz-results)
+      * [Clean fuzz results](#clean-fuzz-results)
 
 --------------------------------------------------------------------------------
 
@@ -152,9 +154,17 @@ C99-compliant code with [OpenBSD style](https://man.openbsd.org/style).
 
 --------------------------------------------------------------------------------
 
-## Static analysis
+## Code coverage (for core source files)
 
-    $ make clean && scan-build make
+Clang/LLVM version 4.0 or greater is required for this.
+
+### Generate and open report in browser
+
+    $ make coverage_report
+
+### Print a summary
+
+    $ make coverage_summary
 
 --------------------------------------------------------------------------------
 
@@ -174,39 +184,47 @@ Install [Valgrind](http://valgrind.org/)
 
 --------------------------------------------------------------------------------
 
+## Static analysis
+
+    $ make clean && scan-build make
+
+--------------------------------------------------------------------------------
+
 ## Fuzzing
 
-Install [AFL](http://lcamtuf.coredump.cx/afl/)
+Install [AFL](http://lcamtuf.coredump.cx/afl/).
 
-### 1. Build instrumented binary
+Initial fuzzing testcases are located under `fuzz/testcases/`,
+while the results are stored under `fuzz/findings/`.
 
-    $ make clean && make CC=afl-clang
+### Build and run fuzzer
 
-### 2. Run fuzzer
+    $ make fuzz
 
-    $ afl-fuzz -i fuzz/testcases/ -o fuzz/findings ./solang @@
+**Note**: Starting the fuzzer may require system-specific tuning, which
+requires superuser rights. If the process doesn't start, follow the
+instructions given by the `afl-fuzz` command.
 
-### 3. Later on, check crashes one by one by pressing enter
+### Continue fuzzing
+
+If you have previous fuzz results that you want to keep, you can continue
+fuzzing with this:
+
+    $ make fuzz_continue
+
+### Check crashes one by one
+
+With this you can press enter to proceed through each crash file:
 
     $ for f in $(find fuzz/findings/crashes/id* -type f); do ./solang $f; echo $f; read; done
 
 ### Archive fuzz results
 
 The following command stores current fuzz findings under directories
-`fuzz/archive/crashes_$COMMIT_HASH` and `fuzz/archive/hangs_$COMMIT_HASH`.
+`fuzz/archive/crashes_$COMMIT_HASH` and `fuzz/archive/hangs_$COMMIT_HASH`:
 
-   $ make fuzz_archive
+    $ make fuzz_archive
 
---------------------------------------------------------------------------------
+### Clean fuzz results
 
-## Code coverage (for core source files)
-
-Clang/LLVM version 4.0 or greater is required for this.
-
-### Generate and open report in browser
-
-    $ make coverage_report
-
-### Print a summary
-
-    $ make coverage_summary
+    $ make clean_fuzz
