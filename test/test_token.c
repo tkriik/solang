@@ -131,6 +131,18 @@ test_quoted(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
+test_quote_err(const MunitParameter params[], void *fixture)
+{
+	const char *src = "',,";
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, 3, src + 3);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
 test_err(const MunitParameter params[], void *fixture)
 {
 	const char *src = "$$$";
@@ -214,6 +226,13 @@ MunitTest token_tests[] = {
 	}, {
 		.name		= "/quoted",
 		.test		= test_quoted,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/quote_err",
+		.test		= test_quote_err,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
