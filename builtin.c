@@ -21,14 +21,6 @@ builtin_head(struct env *env, sval_t args)
 }
 
 static sval_t
-builtin_quote(struct env *env, sval_t args)
-{
-	assert(env != NULL);
-
-	return quote(args);
-}
-
-static sval_t
 builtin_tail(struct env *env, sval_t args)
 {
 	assert(env != NULL);
@@ -49,7 +41,6 @@ builtin_init(void)
 	builtin.lambda.head	= lambda_builtin(builtin_head, 1);
 
 	builtin.sym.quote	= sym("quote");
-	builtin.lambda.quote	= lambda_builtin(builtin_quote, 1);
 
 	builtin.sym.tail	= sym("tail");
 	builtin.lambda.tail	= lambda_builtin(builtin_tail, 1);
@@ -64,6 +55,5 @@ builtin_free(void)
 		builtin_init_calls--;
 
 	lambda_free_builtin(builtin.lambda.head);
-	lambda_free_builtin(builtin.lambda.quote);
 	lambda_free_builtin(builtin.lambda.tail);
 }

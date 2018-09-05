@@ -4,9 +4,11 @@
 #include "sval.h"
 
 sval_t		 err_undef(void);
+sval_t		 err_nomem(void);
 
 int		 is_err(sval_t);
 int		 is_err_undef(sval_t);
+int		 is_err_nomem(sval_t);
 
 const char	*err_str(sval_t);
 

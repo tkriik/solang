@@ -33,6 +33,34 @@ test_neq_sym(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
+test_neq_immed_immed(const MunitParameter params[], void *fixture)
+{
+	sval_t v = err_undef();
+	sval_t w = list();
+
+	assert_sval_neq(v, w);
+
+	sval_free(v);
+	sval_free(w);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_neq_immed_boxed(const MunitParameter params[], void *fixture)
+{
+	sval_t v = sym("foo");
+	sval_t w = list();
+
+	assert_sval_neq(v, w);
+
+	sval_free(v);
+	sval_free(w);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
 test_quote(const MunitParameter params[], void *fixture)
 {
 	sval_t v0 = sym("foo");
@@ -65,6 +93,20 @@ MunitTest sval_tests[] = {
 	}, {
 		.name		= "/neq-sym",
 		.test		= test_neq_sym,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/neq-immed-immed",
+		.test		= test_neq_immed_immed,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/neq-immed-boxed",
+		.test		= test_neq_immed_boxed,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

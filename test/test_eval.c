@@ -10,6 +10,17 @@
 #include "sval_test.h"
 
 static MunitResult
+test_empty_list(const MunitParameter params[], void *fixture)
+{
+	struct generic_state *st = fixture;
+
+	sval_t res = eval(&st->env, list());
+	assert_sval_eq(list(), res);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
 test_def(const MunitParameter params[], void *fixture)
 {
 	struct generic_state *st = fixture;
@@ -70,6 +81,13 @@ test_multi_quoted(const MunitParameter params[], void *fixture)
 
 MunitTest eval_tests[] = {
 	{
+		.name		= "/empty-list",
+		.test		= test_empty_list,
+		.setup		= generic_setup,
+		.tear_down	= generic_tear_down,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
 		.name		= "/def",
 		.test		= test_def,
 		.setup		= generic_setup,

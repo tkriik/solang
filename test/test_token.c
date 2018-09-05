@@ -79,6 +79,19 @@ test_sym_limit(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
+test_sym_err(const MunitParameter params[], void *fixture)
+{
+	const char *src = "foo,,";
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, 5, src + 5);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 5);
+
+	return MUNIT_OK;
+}
+
+
+static MunitResult
 test_list_start(const MunitParameter params[], void *fixture)
 {
 	const char *src = "(";
@@ -113,6 +126,18 @@ test_quoted(const MunitParameter params[], void *fixture)
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_SYM,        3, src + 5);
 	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_LIST_END,   1, src + 6);
 	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 6);
+
+	return MUNIT_OK;
+}
+
+static MunitResult
+test_quote_err(const MunitParameter params[], void *fixture)
+{
+	const char *src = "',,";
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, 3, src + 3);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 3);
 
 	return MUNIT_OK;
 }
@@ -178,6 +203,13 @@ MunitTest token_tests[] = {
 		.options	= MUNIT_TEST_OPTION_NONE,
 		.parameters	= NULL
 	}, {
+		.name		= "/sym-err",
+		.test		= test_sym_err,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
 		.name		= "/list-start",
 		.test		= test_list_start,
 		.setup		= NULL,
@@ -194,6 +226,13 @@ MunitTest token_tests[] = {
 	}, {
 		.name		= "/quoted",
 		.test		= test_quoted,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/quote_err",
+		.test		= test_quote_err,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,

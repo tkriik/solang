@@ -84,8 +84,8 @@ test_neq(const MunitParameter params[], void *fixture)
 	sval_t l1 = list();
 
 	l0 = cons(sym("foo"), l0);
-	l1 = cons(sym("bar"), l1);
-	assert_sval_neq(l0, l1);
+	l1 = cons(sym("foo"), l1);
+	assert_sval_eq(l0, l1);
 
 	l0 = cons(sym("foo"), l0);
 	assert_sval_neq(l0, l1);

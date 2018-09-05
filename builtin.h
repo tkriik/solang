@@ -18,7 +18,6 @@ struct builtin_info {
 
 	struct {
 		sval_t head;
-		sval_t quote;
 		sval_t tail;
 	} lambda;
 };

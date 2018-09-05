@@ -10,6 +10,7 @@ extern MunitTest token_tests[];
 extern MunitTest sval_tests[];
 extern MunitTest sval_sym_tests[];
 extern MunitTest sval_list_tests[];
+extern MunitTest err_tests[];
 
 static MunitSuite suites[] = {
 	{
@@ -33,6 +34,12 @@ static MunitSuite suites[] = {
 	}, {
 		.prefix		= "/sval/lambda",
 		.tests		= lambda_tests,
+		.suites		= NULL,
+		.iterations	= 1,
+		.options	= MUNIT_SUITE_OPTION_NONE
+	}, {
+		.prefix		= "/sval/err",
+		.tests		= err_tests,
 		.suites		= NULL,
 		.iterations	= 1,
 		.options	= MUNIT_SUITE_OPTION_NONE

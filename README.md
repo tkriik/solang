@@ -51,13 +51,9 @@ Work in progress
 
 ### Compile
 
-#### with Clang 4.0
+#### with Clang
 
     $ make
-
-#### with custom Clang version (eg. 6.0)
-
-    $ make CLANG_VERSION=6.0
 
 #### with GCC
 
@@ -93,7 +89,7 @@ Work in progress
 
   1. Write dumb code
   1. Use asserts for assumptions at all stages
-  1. Use unit tests for known paths
+  1. Use unit tests and coverage for known paths
   1. Check those memory leaks
   1. Use static analysis and fuzzing to catch unknown unknowns
 

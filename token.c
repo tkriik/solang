@@ -211,7 +211,9 @@ token_next(const char **srcp, struct token_info *token)
 			}
 
 			/* AT_QUOTE -> AT_ERR */
+			token->type = TOKEN_TYPE_ERR;
 			token->len++;
+			state = AT_ERR;
 			cur++;
 			continue;
 
