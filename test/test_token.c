@@ -79,6 +79,19 @@ test_sym_limit(const MunitParameter params[], void *fixture)
 }
 
 static MunitResult
+test_sym_err(const MunitParameter params[], void *fixture)
+{
+	const char *src = "foo,,";
+
+	const char *cur = src;
+	test_token_next(&cur, TOKEN_RES_OK, TOKEN_TYPE_ERR, 5, src + 5);
+	test_token_next(&cur, TOKEN_RES_NONE, 0, 0, src + 5);
+
+	return MUNIT_OK;
+}
+
+
+static MunitResult
 test_list_start(const MunitParameter params[], void *fixture)
 {
 	const char *src = "(";
@@ -173,6 +186,13 @@ MunitTest token_tests[] = {
 	}, {
 		.name		= "/sym-limit",
 		.test		= test_sym_limit,
+		.setup		= NULL,
+		.tear_down	= NULL,
+		.options	= MUNIT_TEST_OPTION_NONE,
+		.parameters	= NULL
+	}, {
+		.name		= "/sym-err",
+		.test		= test_sym_err,
 		.setup		= NULL,
 		.tear_down	= NULL,
 		.options	= MUNIT_TEST_OPTION_NONE,
