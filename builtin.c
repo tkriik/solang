@@ -14,7 +14,11 @@ builtin_head(struct env *env, sval_t args)
 	assert(env != NULL);
 
 	sval_t l = car(args);
-	if (!is_nonempty_list(l))
+
+	if (!is_list(l))
+		return err_undef(); /* TODO: err_inval */
+
+	if (is_empty_list(l))
 		return err_undef(); /* TODO: err_empty_list */
 
 	return car(l);
@@ -25,8 +29,12 @@ builtin_tail(struct env *env, sval_t args)
 {
 	assert(env != NULL);
 
-	sval_t l = eval(env, car(args));
-	if (!is_nonempty_list(l))
+	sval_t l = car(args);
+
+	if (!is_list(l))
+		return err_undef(); /* TODO: err_inval */
+
+	if (is_empty_list(l))
 		return err_undef(); /* TODO: err_empty_list */
 
 	return cdr(l);

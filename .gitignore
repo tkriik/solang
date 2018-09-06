@@ -1,6 +1,8 @@
 solang
 solang_test
 solang_test_coverage*
+*.profraw
+*.profdata
 
 *.o
 *.gch
