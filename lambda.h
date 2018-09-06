@@ -10,6 +10,7 @@ typedef sval_t (*builtin_fn)(struct env *env, sval_t);
 sval_t		 lambda_builtin(builtin_fn, size_t);
 sval_t		 lambda_apply(struct env *, sval_t, sval_t);
 
+int		 is_lambda(sval_t);
 int		 is_lambda_builtin(sval_t);
 size_t		 lambda_arity(sval_t);
 

@@ -35,6 +35,7 @@ env_destroy(struct env *env)
 {
 	assert(env != NULL);
 
+	/* TODO: prevent builtin double free */
 	struct env_entry *entry, *tmp;
 	HASH_ITER(hh, env->entries, entry, tmp) {
 		sval_free(entry->v);

@@ -1,0 +1,4 @@
+(def foo 'a)
+foo
+(def foo 'b)
+foo
