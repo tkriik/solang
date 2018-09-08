@@ -1,15 +1,21 @@
 extern crate clap;
 extern crate rustyline;
+extern crate unicode_segmentation;
 
 use clap::{Arg, App};
 
-mod parse;
+#[cfg(test)]
+#[macro_use] extern crate pretty_assertions;
+
+mod read;
 mod repl;
+mod sexp;
+mod token;
 
 fn main() {
     let version = env!("CARGO_PKG_VERSION");
 
-    let matches = App::new("Solang (Solid Language)")
+    let matches = App::new("Solang (Soft Language)")
         .version(version)
         .author("Tanel Kriik <tanel.kriik@gmail.com>")
         .about("LISP attempt")
@@ -23,13 +29,13 @@ fn main() {
 
     match interactive {
         true => {
-            println!("solang (Solid Language) {}", version);
+            println!("solang (Soft Language) {}", version);
             repl::enter();
         }
 
         false => {
             // TODO: scripts
-            println!("solang (Solid Language) {}", version);
+            println!("solang (Soft Language) {}", version);
             repl::enter();
         }
     }
