@@ -1,7 +1,0 @@
-(def foo (head '(a b c)))
-foo
-foo
-
-(def bar (tail '(a b c)))
-bar
-bar
