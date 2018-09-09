@@ -13,6 +13,18 @@ pub fn sexps(source: &str) -> Sexp {
                 sexps.push(Sexp::Nil);
             }
 
+            Kind::Integer => {
+                match token.data.parse::<i64>() {
+                    Ok(i) => {
+                        sexps.push(Sexp::Int(i));
+                    }
+
+                    Err(_) => {
+                        read_errors.push(ReadError::IntegerLimit(token.data));
+                    }
+                }
+            }
+
             Kind::Symbol => {
                 sexps.push(Sexp::Symbol(token.data));
             }
@@ -79,6 +91,28 @@ mod tests {
         ]);
 
         test_sexps("nil", exp_sexps);
+    }
+
+    #[test]
+    fn test_int() {
+        let exp_sexps = Sexp::List(vec![
+            Sexp::Int(0),
+            Sexp::Int(1),
+            Sexp::Int(12345678)
+        ]);
+
+        test_sexps("0 1 12345678", exp_sexps);
+    }
+
+    #[test]
+    fn test_negative_int() {
+        let exp_sexps = Sexp::List(vec![
+            Sexp::Int(-0),
+            Sexp::Int(-1),
+            Sexp::Int(-12345678)
+        ]);
+
+        test_sexps("-0 -1 -12345678", exp_sexps);
     }
 
     #[test]
@@ -195,6 +229,18 @@ mod tests {
         );
 
         test_sexps("foo bar,,, baz", exp_sexps);
+    }
+
+    #[test]
+    fn test_int_overflow() {
+        let exp_sexps = Sexp::Error(
+            Error::ReadError(vec![
+                ReadError::IntegerLimit("100200300400500600700800"),
+                ReadError::IntegerLimit("-100200300400500600700800")
+            ])
+        );
+
+        test_sexps("100200300400500600700800 -100200300400500600700800", exp_sexps);
     }
 
     #[test]

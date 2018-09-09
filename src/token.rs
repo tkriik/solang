@@ -3,6 +3,7 @@ use unicode_segmentation::UnicodeSegmentation;
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Kind {
     Nil,
+    Integer,
     Symbol,
     String,
     ListStart,
@@ -49,12 +50,18 @@ pub fn tokenize(source: &str) -> Vec<Token> {
         size: 0
     };
 
+    // TODO: 2 states per iteration to reduce duplication
     for (_, (offset, s)) in source.grapheme_indices(true).enumerate() {
         let c = s.chars().next().unwrap();
         match state {
             State::Seek => {
                 match c {
                     _ if c.is_whitespace() => (),
+
+                    _ if c.is_ascii_digit() => {
+                        token.init(Kind::Integer, source, offset, c);
+                        state = State::At(Kind::Integer);
+                    }
 
                     _ if is_symbol_start(c) => {
                         token.init(Kind::Symbol, source, offset, c);
@@ -129,8 +136,56 @@ pub fn tokenize(source: &str) -> Vec<Token> {
                 }
             }
 
+            State::At(Kind::Integer) => {
+                match c {
+                    _ if c.is_ascii_digit() => {
+                        token.update(c);
+                    }
+
+                    _ if c.is_whitespace() => {
+                        token.finalize();
+                        tokens.push(token);
+                        state = State::Seek;
+                    }
+
+                    '"' => {
+                        token.finalize();
+                        tokens.push(token);
+                        state = State::Start(Kind::String);
+                    }
+
+                    '(' | ')' => {
+                        token.finalize();
+                        tokens.push(token);
+
+                        let kind = if c == '(' {
+                            Kind::ListStart
+                        } else {
+                            Kind::ListEnd
+                        };
+
+                        token.init(kind, source, offset, c);
+                        token.finalize();
+                        tokens.push(token);
+                        state = State::Seek;
+                    }
+
+                    _ => {
+                        token.kind = Kind::Invalid;
+                        token.update(c);
+                        state = State::At(Kind::Invalid);
+                    }
+                }
+            }
+
             State::At(Kind::Symbol) => {
                 match c {
+                    _ if c.is_ascii_digit() && token.data.starts_with("-") => {
+                        token.kind = Kind::Integer;
+                        token.update(c);
+                        state = State::At(Kind::Integer);
+                    }
+
                     'l' if token.size == 2 && token.data.starts_with("ni") => {
                         token.kind = Kind::Nil;
                         token.update(c);
@@ -297,6 +352,41 @@ mod tests {
     }
 
     #[test]
+    fn test_integer() {
+        let exp_tokens = vec![
+            Token { kind: Kind::Integer, size: 1, data: "0"         },
+            Token { kind: Kind::Integer, size: 2, data: "-1"        },
+            Token { kind: Kind::Integer, size: 8, data: "12345678"  },
+            Token { kind: Kind::Integer, size: 9, data: "-12345678" }
+        ];
+
+        test_tokenize("0 -1 12345678 -12345678", &exp_tokens);
+        test_tokenize("\n0 \t-1  12345678\n-12345678 ", &exp_tokens);
+    }
+
+    #[test]
+    fn test_integer_to_list() {
+        let exp_tokens = vec![
+            Token { kind: Kind::Integer,   size: 2, data: "-1"       },
+            Token { kind: Kind::ListEnd,   size: 1, data: ")"        },
+            Token { kind: Kind::Integer,   size: 8, data: "12345678" },
+            Token { kind: Kind::ListStart, size: 1, data: "("        }
+        ];
+
+        test_tokenize("-1)12345678(", &exp_tokens);
+    }
+
+    #[test]
+    fn test_integer_invalid() {
+        let exp_tokens = vec![
+            Token { kind: Kind::Invalid,   size: 5, data: "-123," },
+            Token { kind: Kind::Invalid,   size: 2, data: "0$"    }
+        ];
+
+        test_tokenize("-123, 0$", &exp_tokens);
+    }
+
+    #[test]
     fn test_symbol() {
         let exp_tokens = vec![
             Token { kind: Kind::Symbol, size: 3, data: "foo"  },
@@ -325,11 +415,11 @@ mod tests {
         let exp_tokens = vec![
             Token { kind: Kind::Invalid, size: 5, data: "foo,," },
             Token { kind: Kind::Invalid, size: 6, data: "äöå"   },
-            Token { kind: Kind::Invalid, size: 3, data: "123"   }
+            Token { kind: Kind::Invalid, size: 4, data: "_123"  }
         ];
 
-        test_tokenize("foo,, äöå 123", &exp_tokens);
-        test_tokenize("\n foo,,\täöå\n\t123\t", &exp_tokens);
+        test_tokenize("foo,, äöå _123", &exp_tokens);
+        test_tokenize("\n foo,,\täöå\n\t_123\t", &exp_tokens);
     }
 
     #[test]
