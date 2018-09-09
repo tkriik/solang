@@ -1,4 +1,4 @@
-# Solang (Solid Language)
+# Solang (Soft Language)
 
 [![Build Status](https://travis-ci.com/tkriik/solang.svg?branch=riir)](https://travis-ci.com/tkriik/solang)
 

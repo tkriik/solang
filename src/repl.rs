@@ -5,7 +5,7 @@ use std::error::Error;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 
-use ::parse;
+use ::read;
 
 pub fn enter() {
     let history_path = ".solang_history";
@@ -17,8 +17,8 @@ pub fn enter() {
         let readline  = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                let n: usize = parse::sexps(&line);
-                println!("n {}", n);
+                let sexps = read::sexps(&line);
+                println!("got sexps:\n{:#?}", sexps);
 
                 rl.add_history_entry(line.as_ref());
             },
