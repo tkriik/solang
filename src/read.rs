@@ -1,4 +1,6 @@
-use ::sexp::{Sexp, Error, ReadError};
+use std::rc::Rc;
+
+use ::sexp::{Sexp, SexpError, SexpReadError};
 use ::token::{tokenize, Kind};
 
 pub fn sexps(source: &str) -> Sexp {
@@ -14,23 +16,21 @@ pub fn sexps(source: &str) -> Sexp {
             },
 
             Kind::Integer => {
-                match token.data.parse::<i64>() {
-                    Ok(i) => {
-                        sexps.push(Sexp::Int(i));
-                    }
+                match Sexp::int_from_str(token.data) {
+                    Ok(x) => sexps.push(x),
 
-                    Err(_) => {
-                        read_errors.push(ReadError::IntegerLimit(token.data));
-                    }
+                    Err(read_error) => read_errors.push(read_error)
                 }
             },
 
             Kind::Symbol => {
-                sexps.push(Sexp::Symbol(token.data));
+                let x = Sexp::symbol_from_str(token.data).expect("invalid symbol");
+                sexps.push(x);
             },
 
             Kind::String => {
-                sexps.push(Sexp::String(token.data));
+                let x = Sexp::string_from_str(token.data).expect("invalid string");
+                sexps.push(x);
             },
 
             Kind::ListStart => {
@@ -41,22 +41,22 @@ pub fn sexps(source: &str) -> Sexp {
             Kind::ListEnd => {
                 match stack.pop() {
                     Some(mut x) => {
-                        x.push(Sexp::List(sexps));
+                        x.push(Sexp::List(Rc::new(sexps)));
                         sexps = x;
                     }
 
                     None => {
-                        read_errors.push(ReadError::TrailingDelimiter(token.data))
+                        read_errors.push(SexpReadError::TrailingDelimiter(token.data.to_string()));
                     }
                 }
             },
 
             Kind::StringPartial => {
-                read_errors.push(ReadError::PartialString(token.data));
+                read_errors.push(SexpReadError::PartialString(token.data.to_string()));
             },
 
             Kind::Invalid => {
-                read_errors.push(ReadError::InvalidToken(token.data));
+                read_errors.push(SexpReadError::InvalidToken(token.data.to_string()));
             },
 
             _ => {
@@ -66,16 +66,18 @@ pub fn sexps(source: &str) -> Sexp {
     }
 
     if !stack.is_empty() {
-        read_errors.push(ReadError::UnmatchedDelimiter);
+        read_errors.push(SexpReadError::UnmatchedDelimiter);
     }
 
     if !read_errors.is_empty() {
         return Sexp::Error(
-            Error::ReadError(read_errors)
+            Rc::new(
+                SexpError::ReadError(read_errors)
+            )
         );
     }
 
-    return Sexp::List(sexps);
+    return Sexp::List(Rc::new(sexps));
 }
 
 #[cfg(test)]
@@ -89,141 +91,141 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        test_sexps("", Sexp::List(Vec::new()));
+        test_sexps("", Sexp::List(Rc::new(Vec::new())));
     }
 
     #[test]
     fn test_nil() {
-        let exp_sexps = Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
             Sexp::Nil
-        ]);
+        ]));
 
         test_sexps("nil", exp_sexps);
     }
 
     #[test]
     fn test_int() {
-        let exp_sexps = Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
             Sexp::Int(0),
             Sexp::Int(1),
             Sexp::Int(12345678)
-        ]);
+        ]));
 
         test_sexps("0 1 12345678", exp_sexps);
     }
 
     #[test]
     fn test_negative_int() {
-        let exp_sexps = Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
             Sexp::Int(-0),
             Sexp::Int(-1),
             Sexp::Int(-12345678)
-        ]);
+        ]));
 
         test_sexps("-0 -1 -12345678", exp_sexps);
     }
 
     #[test]
     fn test_symbol() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::Symbol("foo")
-        ]);
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::Symbol(Rc::new("foo".to_string()))
+        ]));
 
         test_sexps("foo", exp_sexps);
     }
 
     #[test]
     fn test_string() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::String("北京市")
-        ]);
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::String(Rc::new("北京市".to_string()))
+        ]));
 
         test_sexps("\"北京市\"", exp_sexps);
     }
 
     #[test]
     fn test_list_empty() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::List(vec![])
-        ]);
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::List(Rc::new(vec![]))
+        ]));
 
         test_sexps("()", exp_sexps);
     }
 
     #[test]
     fn test_list_nonempty() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::List(Rc::new(vec![
                 Sexp::Nil,
-                Sexp::Symbol("foo"),
-                Sexp::String("北京市")
-            ])
-        ]);
+                Sexp::Symbol(Rc::new("foo".to_string())),
+                Sexp::String(Rc::new("北京市".to_string()))
+            ]))
+        ]));
 
         test_sexps("(nil foo \"北京市\")", exp_sexps);
     }
 
     #[test]
     fn test_list_nested_front() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::List(vec![
-                Sexp::List(vec![
-                    Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::List(Rc::new(vec![
+                Sexp::List(Rc::new(vec![
+                    Sexp::List(Rc::new(vec![
                         Sexp::Nil,
-                    ]),
-                    Sexp::Symbol("foo"),
-                ]),
-                Sexp::String("北京市")
-            ])
-        ]);
+                    ])),
+                    Sexp::Symbol(Rc::new("foo".to_string())),
+                ])),
+                Sexp::String(Rc::new("北京市".to_string()))
+            ]))
+        ]));
 
         test_sexps("(((nil) foo) \"北京市\")", exp_sexps);
     }
 
     #[test]
     fn test_list_nested_back() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::List(Rc::new(vec![
                 Sexp::Nil,
-                Sexp::List(vec![
-                    Sexp::Symbol("foo"),
-                    Sexp::List(vec![
-                        Sexp::String("北京市")
-                    ])
-                ])
-            ])
-        ]);
+                Sexp::List(Rc::new(vec![
+                    Sexp::Symbol(Rc::new("foo".to_string())),
+                    Sexp::List(Rc::new(vec![
+                        Sexp::String(Rc::new("北京市".to_string())),
+                    ]))
+                ]))
+            ]))
+        ]));
 
         test_sexps("(nil (foo (\"北京市\")))", exp_sexps);
     }
 
     #[test]
     fn test_list_nested_middle() {
-        let exp_sexps = Sexp::List(vec![
-            Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
+            Sexp::List(Rc::new(vec![
                 Sexp::Nil,
-                Sexp::List(vec![
-                    Sexp::Symbol("foo"),
-                ]),
-                Sexp::String("北京市")
-            ])
-        ]);
+                Sexp::List(Rc::new(vec![
+                    Sexp::Symbol(Rc::new("foo".to_string())),
+                ])),
+                Sexp::String(Rc::new("北京市".to_string()))
+            ]))
+        ]));
 
         test_sexps("(nil (foo) \"北京市\")", exp_sexps);
     }
 
     #[test]
     fn test_multi() {
-        let exp_sexps = Sexp::List(vec![
+        let exp_sexps = Sexp::List(Rc::new(vec![
             Sexp::Nil,
-            Sexp::List(vec![]),
-            Sexp::List(vec![
-                Sexp::Symbol("bar"),
+            Sexp::List(Rc::new(vec![])),
+            Sexp::List(Rc::new(vec![
+                Sexp::Symbol(Rc::new("bar".to_string())),
                 Sexp::Nil
-            ]),
-            Sexp::Symbol("foo"),
-            Sexp::String("北京市")
-        ]);
+            ])),
+            Sexp::Symbol(Rc::new("foo".to_string())),
+            Sexp::String(Rc::new("北京市".to_string()))
+        ]));
 
         test_sexps("nil () (bar nil) foo \"北京市\"", exp_sexps);
     }
@@ -231,9 +233,9 @@ mod tests {
     #[test]
     fn test_invalid_tokens() {
         let exp_sexps = Sexp::Error(
-            Error::ReadError(vec![
-                ReadError::InvalidToken("bar,,,")
-            ])
+            Rc::new(SexpError::ReadError(vec![
+                SexpReadError::InvalidToken("bar,,,".to_string())
+            ]))
         );
 
         test_sexps("foo bar,,, baz", exp_sexps);
@@ -242,10 +244,10 @@ mod tests {
     #[test]
     fn test_int_overflow() {
         let exp_sexps = Sexp::Error(
-            Error::ReadError(vec![
-                ReadError::IntegerLimit("100200300400500600700800"),
-                ReadError::IntegerLimit("-100200300400500600700800")
-            ])
+            Rc::new(SexpError::ReadError(vec![
+                SexpReadError::IntegerLimit("100200300400500600700800".to_string()),
+                SexpReadError::IntegerLimit("-100200300400500600700800".to_string())
+            ]))
         );
 
         test_sexps("100200300400500600700800 -100200300400500600700800", exp_sexps);
@@ -254,9 +256,9 @@ mod tests {
     #[test]
     fn test_partial_string() {
         let exp_sexps = Sexp::Error(
-            Error::ReadError(vec![
-                ReadError::PartialString("  ")
-            ])
+            Rc::new(SexpError::ReadError(vec![
+                SexpReadError::PartialString("  ".to_string())
+            ]))
         );
 
         test_sexps("\"  ", exp_sexps);
@@ -265,9 +267,9 @@ mod tests {
     #[test]
     fn test_unmatched_delimiter_list() {
         let exp_sexps = Sexp::Error(
-            Error::ReadError(vec![
-                ReadError::UnmatchedDelimiter
-            ])
+            Rc::new(SexpError::ReadError(vec![
+                SexpReadError::UnmatchedDelimiter
+            ]))
         );
 
         test_sexps("(foo bar baz", exp_sexps);
@@ -276,9 +278,9 @@ mod tests {
     #[test]
     fn test_trailing_delimiter_list() {
         let exp_sexps = Sexp::Error(
-            Error::ReadError(vec![
-                ReadError::TrailingDelimiter(")")
-            ])
+            Rc::new(SexpError::ReadError(vec![
+                SexpReadError::TrailingDelimiter(")".to_string())
+            ]))
         );
 
         test_sexps("(foo bar baz))", exp_sexps);

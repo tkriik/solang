@@ -5,6 +5,7 @@ use std::error::Error;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
 
+use ::eval::{eval};
 use ::read;
 
 pub fn enter() {
@@ -18,7 +19,8 @@ pub fn enter() {
         match readline {
             Ok(line) => {
                 let sexps = read::sexps(&line);
-                println!("got sexps:\n{:#?}", sexps);
+                let result = eval(sexps);
+                println!("{:#?}", result);
 
                 rl.add_history_entry(line.as_ref());
             },
