@@ -11,7 +11,7 @@ pub fn sexps(source: &str) -> Sexp {
         match token.kind {
             Kind::Nil => {
                 sexps.push(Sexp::Nil);
-            }
+            },
 
             Kind::Integer => {
                 match token.data.parse::<i64>() {
@@ -23,20 +23,20 @@ pub fn sexps(source: &str) -> Sexp {
                         read_errors.push(ReadError::IntegerLimit(token.data));
                     }
                 }
-            }
+            },
 
             Kind::Symbol => {
                 sexps.push(Sexp::Symbol(token.data));
-            }
+            },
 
             Kind::String => {
                 sexps.push(Sexp::String(token.data));
-            }
+            },
 
             Kind::ListStart => {
                 stack.push(sexps);
                 sexps = Vec::new();
-            }
+            },
 
             Kind::ListEnd => {
                 match stack.pop() {
@@ -49,10 +49,18 @@ pub fn sexps(source: &str) -> Sexp {
                         read_errors.push(ReadError::TrailingDelimiter(token.data))
                     }
                 }
-            }
+            },
+
+            Kind::StringPartial => {
+                read_errors.push(ReadError::PartialString(token.data));
+            },
 
             Kind::Invalid => {
                 read_errors.push(ReadError::InvalidToken(token.data));
+            },
+
+            _ => {
+                assert!(false);
             }
         }
     }
@@ -241,6 +249,17 @@ mod tests {
         );
 
         test_sexps("100200300400500600700800 -100200300400500600700800", exp_sexps);
+    }
+
+    #[test]
+    fn test_partial_string() {
+        let exp_sexps = Sexp::Error(
+            Error::ReadError(vec![
+                ReadError::PartialString("  ")
+            ])
+        );
+
+        test_sexps("\"  ", exp_sexps);
     }
 
     #[test]

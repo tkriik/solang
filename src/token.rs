@@ -2,12 +2,18 @@ use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Kind {
+    Empty,
+
     Nil,
     Integer,
     Symbol,
+
+    StringPartial,
     String,
+
     ListStart,
     ListEnd,
+
     Invalid
 }
 
@@ -19,10 +25,12 @@ pub struct Token<'a> {
 }
 
 impl <'a> Token<'a> {
-    fn init(&mut self, kind: Kind, source: &'a str, offset: usize, c: char) {
-        self.kind = kind;
-        self.size = c.len_utf8();
-        self.data = &source[offset ..];
+    fn new(kind: Kind, data: &'a str) -> Token<'a> {
+        return Token {
+            kind,
+            size: 0,
+            data
+        }
     }
 
     fn update(&mut self, c: char) {
@@ -34,264 +42,229 @@ impl <'a> Token<'a> {
     }
 }
 
-enum State {
-    Seek,
-    Start(Kind),
-    At(Kind)
+struct TokenReader<'a> {
+    window: &'a str
+}
+
+impl <'a> TokenReader<'a> {
+    fn new(source: &'a str) -> TokenReader<'a> {
+        return TokenReader {
+            window: source
+        }
+    }
+
+    fn next(&mut self) -> Token<'a> {
+        let mut token = Token::new(Kind::Empty, self.window);
+
+        let mut read_size = 0;
+        for (_, (offset, s)) in self.window.grapheme_indices(true).enumerate() {
+            let c = s.chars().next().unwrap();
+
+            // TODO: fix this hack;
+            read_size += c.len_utf8();
+
+            match token.kind {
+                Kind::Empty => {
+                    match c {
+                        // Empty -> Empty
+                        _ if c.is_whitespace() => {
+                            token.update(c);
+                        }
+
+                        // Empty -> Integer
+                        _ if c.is_ascii_digit() => {
+                            token = Token::new(Kind::Integer, &self.window[offset ..]);
+                            token.update(c);
+                        }
+
+                        // Empty -> Symbol
+                        _ if is_symbol_start(c) => {
+                            token = Token::new(Kind::Symbol, &self.window[offset ..]);
+                            token.update(c);
+                        },
+
+                        // Empty -> String
+                        '"' => {
+                            token = Token::new(Kind::StringPartial, &self.window[offset ..]);
+                        }
+
+                        // Empty -> Done (ListStart)
+                        '(' => {
+                            token = Token::new(Kind::ListStart, &self.window[offset ..]);
+                            token.update(c);
+                            break;
+                        }
+
+                        // Empty -> Done (ListEnd)
+                        ')' => {
+                            token = Token::new(Kind::ListEnd, &self.window[offset ..]);
+                            token.update(c);
+                            break;
+                        }
+
+                        // Empty -> Invalid
+                        _ => {
+                            token = Token::new(Kind::Invalid, &self.window[offset ..]);
+                            token.update(c);
+                        }
+                    }
+                },
+
+                Kind::Integer => {
+                    match c {
+                        // Integer -> Done
+                        _ if c.is_whitespace() => {
+                            break;
+                        }
+
+                        // Integer -> Done
+                        '(' | ')' | '"' => {
+                            read_size -= c.len_utf8();
+                            break;
+                        }
+
+                        // Integer -> Integer
+                        _ if c.is_ascii_digit() => {
+                            token.update(c);
+                        }
+
+                        // Integer -> Invalid
+                        _ => {
+                            token.kind = Kind::Invalid;
+                            token.update(c);
+                        }
+                    }
+                },
+
+                Kind::Symbol => {
+                    match c {
+                        // Symbol -> Done
+                        _ if c.is_whitespace() => {
+                            break;
+                        },
+
+                        // Symbol -> Done
+                        '(' | ')' | '"' => {
+                            read_size -= c.len_utf8();
+                            break;
+                        }
+
+                        // Symbol -> Nil
+                        'l' if token.size == 2 && token.data.starts_with("ni") => {
+                            token.kind = Kind::Nil;
+                            token.update(c);
+                        }
+
+                        // Symbol -> Integer
+                        _ if token.size == 1 && token.data.starts_with("-") => {
+                            token.kind = Kind::Integer;
+                            token.update(c);
+                        }
+
+                        // Symbol -> Symbol
+                        _ if is_symbol(c) => {
+                            token.update(c);
+                        },
+
+                        // Symbol -> Invalid
+                        _ => {
+                            token.kind = Kind::Invalid;
+                            token.update(c);
+                        }
+                    }
+                },
+
+                Kind::StringPartial => {
+                    match c {
+                        // StringPartial -> Done (String)
+                        '"' => {
+                            token.kind = Kind::String;
+                            break;
+                        }
+
+                        // String -> String
+                        _ if token.size == 0 => {
+                            token.data = &self.window[offset ..];
+                            token.update(c);
+                        }
+
+                        // String -> String
+                        _ => {
+                            token.update(c);
+                        }
+                    }
+                },
+
+                Kind::Nil => {
+                    match c {
+                        // Nil -> Done
+                        _ if c.is_whitespace() => {
+                            break;
+                        }
+
+                        // Nil -> Done
+                        '(' | ')' | '"' => {
+                            read_size -= c.len_utf8();
+                            break;
+                        }
+
+                        // Nil -> Symbol
+                        _ if is_symbol(c) => {
+                            token.kind = Kind::Symbol;
+                            token.update(c);
+                        }
+
+                        // Nil -> Invalid
+                        _ => {
+                            token.kind = Kind::Invalid;
+                            token.update(c);
+                        }
+                    }
+                },
+
+                Kind::Invalid => {
+                    match c {
+                        // Invalid -> Done
+                        _ if c.is_whitespace() => {
+                            break;
+                        }
+
+                        // Invalid -> Invalid
+                        _ => {
+                            token.update(c);
+                        }
+                    }
+                },
+
+                _ => {
+                    assert!(false);
+                }
+            }
+        }
+
+        self.window = &self.window[read_size ..];
+        token.finalize();
+
+        return token;
+    }
 }
 
 pub fn tokenize(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    let mut state = State::Seek;
+    let mut reader = TokenReader::new(source);
 
-    let mut token = Token {
-        kind: Kind::Invalid,
-        data: &source,
-        size: 0
-    };
-
-    // TODO: 2 states per iteration to reduce duplication
-    for (_, (offset, s)) in source.grapheme_indices(true).enumerate() {
-        let c = s.chars().next().unwrap();
-        match state {
-            State::Seek => {
-                match c {
-                    _ if c.is_whitespace() => (),
-
-                    _ if c.is_ascii_digit() => {
-                        token.init(Kind::Integer, source, offset, c);
-                        state = State::At(Kind::Integer);
-                    }
-
-                    _ if is_symbol_start(c) => {
-                        token.init(Kind::Symbol, source, offset, c);
-                        state = State::At(Kind::Symbol);
-                    },
-
-                    '"' => {
-                        state = State::Start(Kind::String)
-                    },
-
-                    '(' | ')' => {
-                        let kind = if c == '(' {
-                            Kind::ListStart
-                        } else {
-                            Kind::ListEnd
-                        };
-
-                        token.init(kind, source, offset, c);
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    _ => {
-                        token.init(Kind::Invalid, source, offset, c);
-                        state = State::At(Kind::Invalid);
-                    }
-                }
-            }
-
-            State::At(Kind::Nil) => {
-                match c {
-                    _ if c.is_whitespace() => {
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    _ if is_symbol(c) => {
-                        token.kind = Kind::Symbol;
-                        token.update(c);
-                        state = State::At(Kind::Symbol);
-                    }
-
-                    '"' => {
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Start(Kind::String);
-                    }
-
-                    '(' | ')' => {
-                        token.finalize();
-                        tokens.push(token);
-
-                        let kind = if c == '(' {
-                            Kind::ListStart
-                        } else {
-                            Kind::ListEnd
-                        };
-
-                        token.init(kind, source, offset, c);
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    _ => {
-                        token.kind = Kind::Invalid;
-                        token.update(c);
-                        state = State::At(Kind::Invalid);
-                    }
-                }
-            }
-
-            State::At(Kind::Integer) => {
-                match c {
-                    _ if c.is_ascii_digit() => {
-                        token.update(c);
-                    }
-
-                    _ if c.is_whitespace() => {
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    '"' => {
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Start(Kind::String);
-                    }
-
-                    '(' | ')' => {
-                        token.finalize();
-                        tokens.push(token);
-
-                        let kind = if c == '(' {
-                            Kind::ListStart
-                        } else {
-                            Kind::ListEnd
-                        };
-
-                        token.init(kind, source, offset, c);
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    _ => {
-                        token.kind = Kind::Invalid;
-                        token.update(c);
-                        state = State::At(Kind::Invalid);
-                    }
-                }
-            }
-
-            State::At(Kind::Symbol) => {
-                match c {
-                    _ if c.is_ascii_digit() && token.data.starts_with("-") => {
-                        token.kind = Kind::Integer;
-                        token.update(c);
-                        state = State::At(Kind::Integer);
-                    }
-
-                    'l' if token.size == 2 && token.data.starts_with("ni") => {
-                        token.kind = Kind::Nil;
-                        token.update(c);
-                        state = State::At(Kind::Nil);
-                    }
-
-                    _ if c.is_whitespace() => {
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    '"' => {
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Start(Kind::String);
-                    }
-
-                    '(' | ')' => {
-                        token.finalize();
-                        tokens.push(token);
-
-                        let kind = if c == '(' {
-                            Kind::ListStart
-                        } else {
-                            Kind::ListEnd
-                        };
-
-                        token.init(kind, source, offset, c);
-                        token.finalize();
-                        tokens.push(token);
-                        state = State::Seek;
-                    }
-
-                    _ if !is_symbol(c) => {
-                        token.kind = Kind::Invalid;
-                        token.update(c);
-                        state = State::At(Kind::Invalid);
-                    }
-
-                    _ => {
-                        token.update(c);
-                    }
-                }
-            }
-
-            State::Start(Kind::String) => {
-                if c == '"' {
-                    token.kind = Kind::String;
-                    token.finalize();
-                    tokens.push(token);
-                    state = State::Seek;
-                    continue;
-                }
-
-                token.init(Kind::String, source, offset, c);
-                state = State::At(Kind::String);
-                continue;
-            }
-
-            State::At(Kind::String) => {
-                if c == '"' {
-                    token.finalize();
-                    tokens.push(token);
-                    state = State::Seek;
-                    continue;
-                }
-
-                token.update(c);
-                continue;
-            }
-
-            State::At(Kind::Invalid) => {
-                if c.is_whitespace() {
-                    token.finalize();
-                    tokens.push(token);
-                    state = State::Seek;
-                    continue;
-                }
-
-                token.update(c);
-                continue;
+    loop {
+        let token = reader.next();
+        match token.kind {
+            Kind::Empty => {
+                return tokens;
             }
 
             _ => {
-                assert!(false);
+                tokens.push(token);
             }
         }
     }
-
-    match state {
-        State::At(Kind::String) => {
-            token.kind = Kind::Invalid;
-            token.finalize();
-            tokens.push(token);
-        }
-
-        State::At(_) => {
-            token.finalize();
-            tokens.push(token);
-        }
-
-        _ => ()
-    }
-
-    return tokens;
 }
 
 fn is_symbol_start(c: char) -> bool {
@@ -441,16 +414,16 @@ mod tests {
             Token { kind: Kind::String,    size: 3, data: "abc",   },
             Token { kind: Kind::ListStart, size: 1, data: "(",     },
             Token { kind: Kind::String,    size: 9, data: "北京市" },
-            Token { kind: Kind::ListEnd,   size: 1, data: ")",     }
+            Token { kind: Kind::ListEnd,   size: 1, data: ")"      }
         ];
 
         test_tokenize("\"abc\"(\"北京市\")", &exp_tokens);
     }
 
     #[test]
-    fn test_string_invalid() {
+    fn test_string_partial() {
         let exp_tokens = vec![
-            Token { kind: Kind::Invalid, size: 6, data: "xyz..." }
+            Token { kind: Kind::StringPartial, size: 6, data: "xyz..." }
         ];
 
         test_tokenize("  \"xyz...", &exp_tokens);
@@ -478,7 +451,7 @@ mod tests {
             Token { kind: Kind::Nil,       size: 3, data: "nil"    },
             Token { kind: Kind::String,    size: 3, data: "abc"    },
             Token { kind: Kind::Symbol,    size: 3, data: "bar"    },
-            Token { kind: Kind::String,    size: 9, data: "北京市"  },
+            Token { kind: Kind::String,    size: 9, data: "北京市" },
             Token { kind: Kind::ListEnd,   size: 1, data: ")"      }
         ];
 

@@ -17,6 +17,7 @@ pub enum Error<'a> {
 pub enum ReadError<'a> {
     InvalidToken(&'a str),
     IntegerLimit(&'a str),
+    PartialString(&'a str),
     TrailingDelimiter(&'a str),
     UnmatchedDelimiter
 }
