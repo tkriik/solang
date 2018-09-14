@@ -1,11 +1,13 @@
-use std::rc::Rc;
 use std::string::ToString;
+use std::sync::Arc;
 
-type SxInteger = i64;
-type SxSymbol = Rc<String>;
-type SxString = Rc<String>;
-type SxList = Rc<Vec<Sx>>;
-type SxQuote = Rc<Sx>;
+use rpds::List;
+
+pub type SxInteger  = i64;
+pub type SxString   = Arc<String>;
+pub type SxSymbol   = Arc<String>;
+pub type SxList     = Arc<Vec<Sx>>;
+type SxQuote        = Arc<Sx>;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Sx {
@@ -15,6 +17,31 @@ pub enum Sx {
     String(SxString),
     List(SxList),
     Quote(SxQuote)
+}
+
+#[macro_export]
+macro_rules! sx_nil {
+    () => (Sx::Nil);
+}
+
+#[macro_export]
+macro_rules! sx_int {
+    ($e:expr) => (Sx::Int(e));
+}
+
+#[macro_export]
+macro_rules! sx_symbol {
+    ($e:expr) => (Sx::Symbol(Arc::new($e.to_string())));
+}
+
+#[macro_export]
+macro_rules! sx_string {
+    ($e:expr) => (Sx::String(Arc::new($e.to_string())));
+}
+
+#[macro_export]
+macro_rules! sx_list {
+    [ $( $e:expr ),*] => (Sx::List(Arc::new(vec![$($e),*])));
 }
 
 impl ToString for Sx {

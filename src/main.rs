@@ -1,4 +1,5 @@
 extern crate clap;
+#[macro_use] extern crate rpds;
 extern crate rustyline;
 extern crate unicode_segmentation;
 
@@ -7,11 +8,11 @@ extern crate unicode_segmentation;
 
 use clap::{Arg, App};
 
+#[macro_use] mod sx;
 mod env;
 mod eval;
 mod read;
 mod repl;
-mod sx;
 mod token;
 
 fn main() {

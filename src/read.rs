@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use ::sx::Sx;
 use ::token::{tokenize, Kind};
@@ -23,7 +23,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
     for token in tokens.iter() {
         match token.kind {
             Kind::Nil => {
-                opt_sx = Some(Sx::Nil);
+                opt_sx = Some(sx_nil!());
             },
 
             Kind::Integer => {
@@ -39,11 +39,11 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             },
 
             Kind::Symbol => {
-                opt_sx = Some(Sx::Symbol(Rc::new(token.data.to_string())));
+                opt_sx = Some(sx_symbol!(token.data));
             },
 
             Kind::String => {
-                opt_sx = Some(Sx::String(Rc::new(token.data.to_string())));
+                opt_sx = Some(sx_string!(token.data));
             },
 
             Kind::ListStart => {
@@ -55,7 +55,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             Kind::ListEnd => {
                 match stack.pop() {
                     Some(mut top_sxs) => {
-                        top_sxs.push(Sx::List(Rc::new(sxs)));
+                        top_sxs.push(Sx::List(Arc::new(sxs)));
                         sxs = top_sxs;
                     }
 
@@ -85,7 +85,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
         match opt_sx {
             Some(mut sx) => {
                 for _ in 0 .. num_quotes {
-                    sx = Sx::Quote(Rc::new(sx));
+                    sx = Sx::Quote(Arc::new(sx));
                 }
 
                 sxs.push(sx.clone());
@@ -105,7 +105,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
         return Err(read_errors);
     }
 
-    return Ok(Sx::List(Rc::new(sxs)));
+    return Ok(Sx::List(Arc::new(sxs)));
 }
 
 #[cfg(test)]
@@ -124,159 +124,194 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        test_sxs("", Sx::List(Rc::new(Vec::new())));
+        test_sxs("", sx_list![]);
     }
 
     #[test]
     fn test_nil() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Nil
-        ]));
+        let exp_sxs = sx_list![
+            sx_nil!()
+        ];
 
         test_sxs("nil", exp_sxs);
     }
 
     #[test]
     fn test_int() {
-        let exp_sxs = Sx::List(Rc::new(vec![
+        let exp_sxs = sx_list![
             Sx::Integer(0),
             Sx::Integer(1),
             Sx::Integer(12345678)
-        ]));
+        ];
 
         test_sxs("0 1 12345678", exp_sxs);
     }
 
     #[test]
     fn test_negative_int() {
-        let exp_sxs = Sx::List(Rc::new(vec![
+        let exp_sxs = sx_list![
             Sx::Integer(-0),
             Sx::Integer(-1),
             Sx::Integer(-12345678)
-        ]));
+        ];
 
         test_sxs("-0 -1 -12345678", exp_sxs);
     }
 
     #[test]
     fn test_symbol() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Symbol(Rc::new("foo".to_string()))
-        ]));
+        let exp_sxs = sx_list![
+            sx_symbol!("foo")
+        ];
 
         test_sxs("foo", exp_sxs);
     }
 
     #[test]
     fn test_string() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::String(Rc::new("北京市".to_string()))
-        ]));
+        let exp_sxs = sx_list![
+            sx_string!("北京市")
+        ];
 
         test_sxs("\"北京市\"", exp_sxs);
     }
 
     #[test]
     fn test_list_empty() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::List(Rc::new(vec![]))
-        ]));
+        let exp_sxs = sx_list![
+            sx_list![]
+        ];
 
         test_sxs("()", exp_sxs);
     }
 
     #[test]
+    fn test_list_singleton() {
+        let exp_sxs = sx_list![
+            sx_list![
+                sx_symbol!("foo")
+            ]
+        ];
+
+        test_sxs("(foo)", exp_sxs);
+    }
+
+    #[test]
+    fn test_list_pair() {
+        let exp_sxs = sx_list![
+            sx_list![
+                sx_symbol!("foo"),
+                sx_string!("Åbo")
+            ]
+        ];
+
+        test_sxs("(foo \"Åbo\")", exp_sxs);
+    }
+
+    #[test]
     fn test_list_nonempty() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::List(Rc::new(vec![
-                Sx::Nil,
-                Sx::Symbol(Rc::new("foo".to_string())),
-                Sx::String(Rc::new("北京市".to_string()))
-            ]))
-        ]));
+        let exp_sxs = sx_list![
+            sx_list![
+                sx_nil!(),
+                sx_symbol!("foo"),
+                sx_string!("北京市")
+            ]
+        ];
 
         test_sxs("(nil foo \"北京市\")", exp_sxs);
     }
 
     #[test]
     fn test_list_nested_front() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::List(Rc::new(vec![
-                Sx::List(Rc::new(vec![
-                    Sx::List(Rc::new(vec![
-                        Sx::Nil,
-                    ])),
-                    Sx::Symbol(Rc::new("foo".to_string())),
-                ])),
-                Sx::String(Rc::new("北京市".to_string()))
-            ]))
-        ]));
+        let exp_sxs = sx_list![
+            sx_list![
+                sx_list![
+                    sx_list![
+                        sx_nil!()
+                    ],
+                    sx_symbol!("foo")
+                ],
+                sx_string!("北京市")
+            ]
+        ];
 
         test_sxs("(((nil) foo) \"北京市\")", exp_sxs);
     }
 
     #[test]
     fn test_list_nested_back() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::List(Rc::new(vec![
-                Sx::Nil,
-                Sx::List(Rc::new(vec![
-                    Sx::Symbol(Rc::new("foo".to_string())),
-                    Sx::List(Rc::new(vec![
-                        Sx::String(Rc::new("北京市".to_string())),
-                    ]))
-                ]))
-            ]))
-        ]));
+        let exp_sxs = sx_list![
+            sx_list![
+                sx_nil!(),
+                sx_list![
+                    sx_symbol!("foo"),
+                    sx_list![
+                        sx_string!("北京市")
+                    ]
+                ]
+            ]
+        ];
 
         test_sxs("(nil (foo (\"北京市\")))", exp_sxs);
     }
 
     #[test]
     fn test_list_nested_middle() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::List(Rc::new(vec![
-                Sx::Nil,
-                Sx::List(Rc::new(vec![
-                    Sx::Symbol(Rc::new("foo".to_string())),
-                ])),
-                Sx::String(Rc::new("北京市".to_string()))
-            ]))
-        ]));
+        let exp_sxs = sx_list![
+            sx_list![
+                sx_nil!(),
+                sx_list![
+                    sx_symbol!("foo")
+                ],
+                sx_string!("北京市")
+            ]
+        ];
 
         test_sxs("(nil (foo) \"北京市\")", exp_sxs);
     }
 
     #[test]
-    fn test_multi() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Nil,
-            Sx::List(Rc::new(vec![])),
-            Sx::List(Rc::new(vec![
-                Sx::Symbol(Rc::new("bar".to_string())),
-                Sx::Nil
-            ])),
-            Sx::Symbol(Rc::new("foo".to_string())),
-            Sx::String(Rc::new("北京市".to_string()))
-        ]));
+    fn test_multi_flat() {
+        let exp_sxs = sx_list![
+            sx_nil!(),
+            sx_symbol!("foo"),
+            sx_string!("北京市"),
+            sx_symbol!("bar")
+        ];
+
+        test_sxs("nil foo \"北京市\" bar", exp_sxs);
+    }
+
+    #[test]
+    fn test_multi_nested() {
+        let exp_sxs = sx_list![
+            sx_nil!(),
+            sx_list![],
+            sx_list![
+                sx_symbol!("bar"),
+                sx_nil!()
+            ],
+            sx_symbol!("foo"),
+            sx_string!("北京市")
+        ];
 
         test_sxs("nil () (bar nil) foo \"北京市\"", exp_sxs);
     }
 
     #[test]
     fn test_quoted_sym_1() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Quote(Rc::new(Sx::Symbol(Rc::new("foo".to_string()))))
-        ]));
+        let exp_sxs = sx_list![
+            Sx::Quote(Arc::new(sx_symbol!("foo")))
+        ];
 
         test_sxs("'foo", exp_sxs);
     }
 
     #[test]
     fn test_quoted_sym_2() {
-        let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Quote(Rc::new(Sx::Quote(Rc::new(Sx::Symbol(Rc::new("foo".to_string()))))))
-        ]));
+        let exp_sxs = sx_list![
+            Sx::Quote(Arc::new(Sx::Quote(Arc::new(sx_symbol!("foo")))))
+        ];
 
         test_sxs("''foo", exp_sxs);
     }
