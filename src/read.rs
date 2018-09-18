@@ -1,9 +1,18 @@
 use std::rc::Rc;
 
-use ::sexp::{Sexp, SexpError, SexpReadError};
+use ::sexp::Sexp;
 use ::token::{tokenize, Kind};
 
-pub fn sexps(source: &str) -> Sexp {
+#[derive(Eq, PartialEq, Debug)]
+pub enum ReadError {
+    InvalidToken(String),
+    IntegerLimit(String),
+    PartialString(String),
+    TrailingDelimiter(String),
+    UnmatchedDelimiter
+}
+
+pub fn sexps(source: &str) -> Result<Sexp, Vec<ReadError>> {
     let mut sexps = Vec::new();
     let mut stack = Vec::new();
     let mut read_errors = Vec::new();
@@ -16,21 +25,23 @@ pub fn sexps(source: &str) -> Sexp {
             },
 
             Kind::Integer => {
-                match Sexp::int_from_str(token.data) {
-                    Ok(x) => sexps.push(x),
+                match token.data.parse::<i64>() {
+                    Ok(i) => {
+                        sexps.push(Sexp::Int(i));
+                    },
 
-                    Err(read_error) => read_errors.push(read_error)
+                    Err(_) => {
+                        read_errors.push(ReadError::IntegerLimit(token.data.to_string()));
+                    }
                 }
             },
 
             Kind::Symbol => {
-                let x = Sexp::symbol_from_str(token.data).expect("invalid symbol");
-                sexps.push(x);
+                sexps.push(Sexp::Symbol(Rc::new(token.data.to_string())));
             },
 
             Kind::String => {
-                let x = Sexp::string_from_str(token.data).expect("invalid string");
-                sexps.push(x);
+                sexps.push(Sexp::String(Rc::new(token.data.to_string())));
             },
 
             Kind::ListStart => {
@@ -46,17 +57,17 @@ pub fn sexps(source: &str) -> Sexp {
                     }
 
                     None => {
-                        read_errors.push(SexpReadError::TrailingDelimiter(token.data.to_string()));
+                        read_errors.push(ReadError::TrailingDelimiter(token.data.to_string()));
                     }
                 }
             },
 
             Kind::StringPartial => {
-                read_errors.push(SexpReadError::PartialString(token.data.to_string()));
+                read_errors.push(ReadError::PartialString(token.data.to_string()));
             },
 
             Kind::Invalid => {
-                read_errors.push(SexpReadError::InvalidToken(token.data.to_string()));
+                read_errors.push(ReadError::InvalidToken(token.data.to_string()));
             },
 
             _ => {
@@ -66,18 +77,14 @@ pub fn sexps(source: &str) -> Sexp {
     }
 
     if !stack.is_empty() {
-        read_errors.push(SexpReadError::UnmatchedDelimiter);
+        read_errors.push(ReadError::UnmatchedDelimiter);
     }
 
     if !read_errors.is_empty() {
-        return Sexp::Error(
-            Rc::new(
-                SexpError::ReadError(read_errors)
-            )
-        );
+        return Err(read_errors);
     }
 
-    return Sexp::List(Rc::new(sexps));
+    return Ok(Sexp::List(Rc::new(sexps)));
 }
 
 #[cfg(test)]
@@ -86,7 +93,12 @@ mod tests {
 
     fn test_sexps(source: &str, exp_sexps: Sexp) {
         let act_sexps = sexps(source);
-        assert_eq!(exp_sexps, act_sexps);
+        assert_eq!(Ok(exp_sexps), act_sexps);
+    }
+
+    fn test_errors(source: &str, exp_errs: Vec<ReadError>) {
+        let act_errs = sexps(source);
+        assert_eq!(Err(exp_errs), act_errs);
     }
 
     #[test]
@@ -232,57 +244,47 @@ mod tests {
 
     #[test]
     fn test_invalid_tokens() {
-        let exp_sexps = Sexp::Error(
-            Rc::new(SexpError::ReadError(vec![
-                SexpReadError::InvalidToken("bar,,,".to_string())
-            ]))
-        );
+        let exp_errs = vec![
+            ReadError::InvalidToken("bar,,,".to_string())
+        ];
 
-        test_sexps("foo bar,,, baz", exp_sexps);
+        test_errors("foo bar,,, baz", exp_errs);
     }
 
     #[test]
     fn test_int_overflow() {
-        let exp_sexps = Sexp::Error(
-            Rc::new(SexpError::ReadError(vec![
-                SexpReadError::IntegerLimit("100200300400500600700800".to_string()),
-                SexpReadError::IntegerLimit("-100200300400500600700800".to_string())
-            ]))
-        );
+        let exp_errs = vec![
+                ReadError::IntegerLimit("100200300400500600700800".to_string()),
+                ReadError::IntegerLimit("-100200300400500600700800".to_string())
+        ];
 
-        test_sexps("100200300400500600700800 -100200300400500600700800", exp_sexps);
+        test_errors("100200300400500600700800 -100200300400500600700800", exp_errs);
     }
 
     #[test]
     fn test_partial_string() {
-        let exp_sexps = Sexp::Error(
-            Rc::new(SexpError::ReadError(vec![
-                SexpReadError::PartialString("  ".to_string())
-            ]))
-        );
+        let exp_errs = vec![
+                ReadError::PartialString("  ".to_string())
+        ];
 
-        test_sexps("\"  ", exp_sexps);
+        test_errors("\"  ", exp_errs);
     }
 
     #[test]
     fn test_unmatched_delimiter_list() {
-        let exp_sexps = Sexp::Error(
-            Rc::new(SexpError::ReadError(vec![
-                SexpReadError::UnmatchedDelimiter
-            ]))
-        );
+        let exp_errs = vec![
+                ReadError::UnmatchedDelimiter
+        ];
 
-        test_sexps("(foo bar baz", exp_sexps);
+        test_errors("(foo bar baz", exp_errs);
     }
 
     #[test]
     fn test_trailing_delimiter_list() {
-        let exp_sexps = Sexp::Error(
-            Rc::new(SexpError::ReadError(vec![
-                SexpReadError::TrailingDelimiter(")".to_string())
-            ]))
-        );
+        let exp_errs = vec![
+            ReadError::TrailingDelimiter(")".to_string())
+        ];
 
-        test_sexps("(foo bar baz))", exp_sexps);
+        test_errors("(foo bar baz))", exp_errs);
     }
 }
