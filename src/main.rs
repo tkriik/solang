@@ -7,6 +7,7 @@ extern crate unicode_segmentation;
 
 use clap::{Arg, App};
 
+mod env;
 mod eval;
 mod read;
 mod repl;
