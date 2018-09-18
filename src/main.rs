@@ -10,7 +10,7 @@ use clap::{Arg, App};
 mod eval;
 mod read;
 mod repl;
-mod sexp;
+mod sx;
 mod token;
 
 fn main() {

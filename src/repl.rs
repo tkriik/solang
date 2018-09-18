@@ -6,8 +6,7 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 
 use ::eval::{eval, EvalError};
-use ::read;
-use ::read::ReadError;
+use ::read::{read, ReadError};
 
 pub fn enter() {
     let history_path = ".solang_history";
@@ -19,9 +18,9 @@ pub fn enter() {
         let readline  = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                match read::sexps(&line) {
-                    Ok(sexps) => {
-                        match eval(sexps) {
+                match read(&line) {
+                    Ok(sxs) => {
+                        match eval(sxs) {
                             Ok(result) => {
                                 println!("{:?}", result);
                             },
@@ -95,8 +94,8 @@ fn print_read_error(read_error: &ReadError) {
 
 fn print_eval_error(eval_error: &EvalError ) {
     match eval_error {
-        EvalError::Undefined(sexp) => {
-            println!("eval error: undefined ({:?})", sexp);
+        EvalError::Undefined(sx) => {
+            println!("eval error: undefined ({:?})", sx);
         }
     }
 }

@@ -1,23 +1,23 @@
 use std::rc::Rc;
 
-use ::sexp::Sexp;
+use ::sx::Sx;
 
 #[derive(Debug)]
 pub enum EvalError {
-    Undefined(Sexp)
+    Undefined(Sx)
 }
 
-pub fn eval(sexp: Sexp) -> Result<Sexp, EvalError> {
-    match sexp {
-        Sexp::Nil => Ok(sexp.clone()),
+pub fn eval(sx: Sx) -> Result<Sx, EvalError> {
+    match sx {
+        Sx::Nil => Ok(sx.clone()),
 
-        Sexp::Int(_) => Ok(sexp.clone()),
+        Sx::Int(_) => Ok(sx.clone()),
 
-        Sexp::String(_) => Ok(sexp.clone()),
+        Sx::String(_) => Ok(sx.clone()),
 
-        Sexp::List(sexps) => {
+        Sx::List(sxs) => {
             let mut results = Vec::new();
-            for s in sexps.iter() {
+            for s in sxs.iter() {
                 match eval(s.clone()) {
                     Ok(result) => {
                         results.push(result);
@@ -29,9 +29,9 @@ pub fn eval(sexp: Sexp) -> Result<Sexp, EvalError> {
                 }
             }
 
-            return Ok(Sexp::List(Rc::new(results)));
+            return Ok(Sx::List(Rc::new(results)));
         }
 
-        _ => Err(EvalError::Undefined(sexp))
+        _ => Err(EvalError::Undefined(sx))
     }
 }
