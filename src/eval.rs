@@ -44,7 +44,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
 
 fn is_self_eval(sx: &Sx) -> bool {
     match sx {
-        Sx::Nil | Sx::Int(_) | Sx::String(_) => true,
+        Sx::Nil | Sx::Integer(_) | Sx::String(_) => true,
 
         Sx::List(l) => l.is_empty(),
 

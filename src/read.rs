@@ -29,7 +29,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             Kind::Integer => {
                 match token.data.parse::<i64>() {
                     Ok(i) => {
-                        opt_sx = Some(Sx::Int(i));
+                        opt_sx = Some(Sx::Integer(i));
                     },
 
                     Err(_) => {
@@ -139,9 +139,9 @@ mod tests {
     #[test]
     fn test_int() {
         let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Int(0),
-            Sx::Int(1),
-            Sx::Int(12345678)
+            Sx::Integer(0),
+            Sx::Integer(1),
+            Sx::Integer(12345678)
         ]));
 
         test_sxs("0 1 12345678", exp_sxs);
@@ -150,9 +150,9 @@ mod tests {
     #[test]
     fn test_negative_int() {
         let exp_sxs = Sx::List(Rc::new(vec![
-            Sx::Int(-0),
-            Sx::Int(-1),
-            Sx::Int(-12345678)
+            Sx::Integer(-0),
+            Sx::Integer(-1),
+            Sx::Integer(-12345678)
         ]));
 
         test_sxs("-0 -1 -12345678", exp_sxs);

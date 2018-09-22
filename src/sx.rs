@@ -1,14 +1,20 @@
 use std::rc::Rc;
 use std::string::ToString;
 
+type SxInteger = i64;
+type SxSymbol = Rc<String>;
+type SxString = Rc<String>;
+type SxList = Rc<Vec<Sx>>;
+type SxQuote = Rc<Sx>;
+
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Sx {
     Nil,
-    Int(i64),
-    Symbol(Rc<String>),
-    String(Rc<String>),
-    List(Rc<Vec<Sx>>),
-    Quote(Rc<Sx>)
+    Integer(SxInteger),
+    Symbol(SxSymbol),
+    String(SxString),
+    List(SxList),
+    Quote(SxQuote)
 }
 
 impl ToString for Sx {
@@ -16,7 +22,7 @@ impl ToString for Sx {
         match self {
             Sx::Nil => format!("nil"),
 
-            Sx::Int(i) => format!("{}", i),
+            Sx::Integer(i) => format!("{}", i),
 
             Sx::Symbol(s) => format!("{}", s),
 
