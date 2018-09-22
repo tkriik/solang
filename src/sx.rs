@@ -7,7 +7,8 @@ pub enum Sx {
     Int(i64),
     Symbol(Rc<String>),
     String(Rc<String>),
-    List(Rc<Vec<Sx>>)
+    List(Rc<Vec<Sx>>),
+    Quote(Rc<Sx>)
 }
 
 impl ToString for Sx {
@@ -38,7 +39,9 @@ impl ToString for Sx {
                 s.push(')');
 
                 return s;
-            }
+            },
+
+            Sx::Quote(sx) => format!("'{}", sx.to_string())
         }
     }
 }

@@ -13,6 +13,16 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
         return Ok(sx.clone());
     }
 
+    if is_quoted(sx) {
+        match sx {
+            Sx::Quote(unquoted) => {
+                return Ok(unquoted.as_ref().clone());
+            },
+
+            _ => assert!(false)
+        }
+    }
+
     if is_symbol(sx) {
         match env.lookup(sx) {
             Some(v) => {
@@ -37,6 +47,14 @@ fn is_self_eval(sx: &Sx) -> bool {
         Sx::Nil | Sx::Int(_) | Sx::String(_) => true,
 
         Sx::List(l) => l.is_empty(),
+
+        _ => false
+    }
+}
+
+fn is_quoted(sx: &Sx) -> bool {
+    match sx {
+        Sx::Quote(_) => true,
 
         _ => false
     }

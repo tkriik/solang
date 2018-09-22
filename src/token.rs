@@ -14,6 +14,8 @@ pub enum Kind {
     ListStart,
     ListEnd,
 
+    Quote,
+
     Invalid
 }
 
@@ -102,6 +104,13 @@ impl <'a> TokenReader<'a> {
                             break;
                         }
 
+                        // Empty -> Done (Quote)
+                        '\'' => {
+                            token = Token::new(Kind::Quote, &self.window[offset ..]);
+                            token.update(c);
+                            break;
+                        }
+
                         // Empty -> Invalid
                         _ => {
                             token = Token::new(Kind::Invalid, &self.window[offset ..]);
@@ -118,7 +127,7 @@ impl <'a> TokenReader<'a> {
                         }
 
                         // Integer -> Done
-                        '(' | ')' | '"' => {
+                        '(' | ')' | '"' | '\'' => {
                             read_size -= c.len_utf8();
                             break;
                         }
@@ -144,7 +153,7 @@ impl <'a> TokenReader<'a> {
                         },
 
                         // Symbol -> Done
-                        '(' | ')' | '"' => {
+                        '(' | ')' | '"' | '\'' => {
                             read_size -= c.len_utf8();
                             break;
                         }
@@ -203,7 +212,7 @@ impl <'a> TokenReader<'a> {
                         }
 
                         // Nil -> Done
-                        '(' | ')' | '"' => {
+                        '(' | ')' | '"' | '\'' => {
                             read_size -= c.len_utf8();
                             break;
                         }
@@ -440,6 +449,19 @@ mod tests {
 
         test_tokenize("(())", &exp_tokens);
         test_tokenize("\n(\t (\n  )\n\r\t)\n ", &exp_tokens);
+    }
+
+    #[test]
+    fn test_quote() {
+        let exp_tokens = vec![
+            Token { kind: Kind::Quote,  size: 1, data: "'" },
+            Token { kind: Kind::Symbol, size: 3, data: "foo" },
+            Token { kind: Kind::Quote,  size: 1, data: "'" },
+            Token { kind: Kind::Quote,  size: 1, data: "'" },
+            Token { kind: Kind::Symbol, size: 3, data: "bar" },
+        ];
+
+        test_tokenize("'foo '' bar", &exp_tokens);
     }
 
     #[test]

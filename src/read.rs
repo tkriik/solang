@@ -13,21 +13,23 @@ pub enum ReadError {
 }
 
 pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
+    let mut opt_sx = None;
     let mut sxs = Vec::new();
     let mut stack = Vec::new();
     let mut read_errors = Vec::new();
+    let mut num_quotes = 0;
 
     let tokens = tokenize(source);
     for token in tokens.iter() {
         match token.kind {
             Kind::Nil => {
-                sxs.push(Sx::Nil);
+                opt_sx = Some(Sx::Nil);
             },
 
             Kind::Integer => {
                 match token.data.parse::<i64>() {
                     Ok(i) => {
-                        sxs.push(Sx::Int(i));
+                        opt_sx = Some(Sx::Int(i));
                     },
 
                     Err(_) => {
@@ -37,29 +39,34 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             },
 
             Kind::Symbol => {
-                sxs.push(Sx::Symbol(Rc::new(token.data.to_string())));
+                opt_sx = Some(Sx::Symbol(Rc::new(token.data.to_string())));
             },
 
             Kind::String => {
-                sxs.push(Sx::String(Rc::new(token.data.to_string())));
+                opt_sx = Some(Sx::String(Rc::new(token.data.to_string())));
             },
 
             Kind::ListStart => {
                 stack.push(sxs);
-                sxs = Vec::new();
+                let sub_sxs = Vec::new();
+                sxs = sub_sxs;
             },
 
             Kind::ListEnd => {
                 match stack.pop() {
-                    Some(mut x) => {
-                        x.push(Sx::List(Rc::new(sxs)));
-                        sxs = x;
+                    Some(mut top_sxs) => {
+                        top_sxs.push(Sx::List(Rc::new(sxs)));
+                        sxs = top_sxs;
                     }
 
                     None => {
                         read_errors.push(ReadError::TrailingDelimiter(token.data.to_string()));
                     }
                 }
+            },
+
+            Kind::Quote => {
+                num_quotes += 1;
             },
 
             Kind::StringPartial => {
@@ -74,6 +81,20 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
                 assert!(false);
             }
         }
+
+        match opt_sx {
+            Some(mut sx) => {
+                for _ in 0 .. num_quotes {
+                    sx = Sx::Quote(Rc::new(sx));
+                }
+
+                sxs.push(sx.clone());
+                opt_sx = None;
+            },
+
+            None => ()
+        }
+
     }
 
     if !stack.is_empty() {
@@ -240,6 +261,24 @@ mod tests {
         ]));
 
         test_sxs("nil () (bar nil) foo \"北京市\"", exp_sxs);
+    }
+
+    #[test]
+    fn test_quoted_sym_1() {
+        let exp_sxs = Sx::List(Rc::new(vec![
+            Sx::Quote(Rc::new(Sx::Symbol(Rc::new("foo".to_string()))))
+        ]));
+
+        test_sxs("'foo", exp_sxs);
+    }
+
+    #[test]
+    fn test_quoted_sym_2() {
+        let exp_sxs = Sx::List(Rc::new(vec![
+            Sx::Quote(Rc::new(Sx::Quote(Rc::new(Sx::Symbol(Rc::new("foo".to_string()))))))
+        ]));
+
+        test_sxs("''foo", exp_sxs);
     }
 
     #[test]
