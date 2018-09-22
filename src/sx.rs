@@ -7,7 +7,7 @@ pub type SxInteger  = i64;
 pub type SxString   = Arc<String>;
 pub type SxSymbol   = Arc<String>;
 pub type SxList     = Arc<Vec<Sx>>;
-type SxQuote        = Arc<Sx>;
+pub type SxQuote    = Arc<Sx>;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Sx {
@@ -25,8 +25,8 @@ macro_rules! sx_nil {
 }
 
 #[macro_export]
-macro_rules! sx_int {
-    ($e:expr) => (Sx::Int(e));
+macro_rules! sx_integer {
+    ($e:expr) => (Sx::Integer($e));
 }
 
 #[macro_export]
@@ -42,6 +42,11 @@ macro_rules! sx_string {
 #[macro_export]
 macro_rules! sx_list {
     [ $( $e:expr ),*] => (Sx::List(Arc::new(vec![$($e),*])));
+}
+
+#[macro_export]
+macro_rules! sx_quote {
+    ($e:expr) => (Sx::Quote(Arc::new($e)));
 }
 
 impl ToString for Sx {

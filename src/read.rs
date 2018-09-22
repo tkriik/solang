@@ -15,9 +15,12 @@ pub enum ReadError {
 pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
     let mut opt_sx = None;
     let mut sxs = Vec::new();
-    let mut stack = Vec::new();
-    let mut read_errors = Vec::new();
+
+    let mut sxs_stack = Vec::new();
+    let mut quote_stack = Vec::new();
     let mut num_quotes = 0;
+
+    let mut read_errors = Vec::new();
 
     let tokens = tokenize(source);
     for token in tokens.iter() {
@@ -47,15 +50,25 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             },
 
             Kind::ListStart => {
-                stack.push(sxs);
+                sxs_stack.push(sxs);
+                quote_stack.push(num_quotes);
+
                 let sub_sxs = Vec::new();
                 sxs = sub_sxs;
+                num_quotes = 0;
             },
 
             Kind::ListEnd => {
-                match stack.pop() {
+                match sxs_stack.pop() {
                     Some(mut top_sxs) => {
-                        top_sxs.push(Sx::List(Arc::new(sxs)));
+                        let mut sx = Sx::List(Arc::new(sxs));
+                        num_quotes = quote_stack.pop().expect("empty quote stack");
+                        for _ in 0 .. num_quotes {
+                            sx = Sx::Quote(Arc::new(sx));
+                            num_quotes -= 1;
+                        }
+
+                        top_sxs.push(sx);
                         sxs = top_sxs;
                     }
 
@@ -86,6 +99,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             Some(mut sx) => {
                 for _ in 0 .. num_quotes {
                     sx = Sx::Quote(Arc::new(sx));
+                    num_quotes -= 1;
                 }
 
                 sxs.push(sx.clone());
@@ -97,7 +111,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
 
     }
 
-    if !stack.is_empty() {
+    if !sxs_stack.is_empty() {
         read_errors.push(ReadError::UnmatchedDelimiter);
     }
 
@@ -114,7 +128,8 @@ mod tests {
 
     fn test_sxs(source: &str, exp_sxs: Sx) {
         let act_sxs = read(source);
-        assert_eq!(Ok(exp_sxs), act_sxs);
+        assert!(act_sxs.is_ok());
+        assert_eq!(exp_sxs.to_string(), act_sxs.unwrap().to_string());
     }
 
     fn test_errors(source: &str, exp_errs: Vec<ReadError>) {
@@ -301,7 +316,7 @@ mod tests {
     #[test]
     fn test_quoted_sym_1() {
         let exp_sxs = sx_list![
-            Sx::Quote(Arc::new(sx_symbol!("foo")))
+            sx_quote!(sx_symbol!("foo"))
         ];
 
         test_sxs("'foo", exp_sxs);
@@ -310,10 +325,60 @@ mod tests {
     #[test]
     fn test_quoted_sym_2() {
         let exp_sxs = sx_list![
-            Sx::Quote(Arc::new(Sx::Quote(Arc::new(sx_symbol!("foo")))))
+            sx_quote!(sx_quote!(sx_symbol!("foo")))
         ];
 
         test_sxs("''foo", exp_sxs);
+    }
+
+    #[test]
+    fn test_quoted_list_1() {
+        let exp_sxs = sx_list![
+            sx_quote!(
+                sx_list![
+                    sx_integer!(1),
+                    sx_nil!(),
+                    sx_symbol!("foo")
+                ]
+            )
+        ];
+
+        test_sxs("'(1 nil foo)", exp_sxs);
+    }
+
+    #[test]
+    fn test_quoted_list_3() {
+        let exp_sxs = sx_list![
+            sx_quote!(sx_quote!(sx_quote!(
+                sx_list![
+                    sx_integer!(1),
+                    sx_nil!(),
+                    sx_symbol!("foo")
+                ]
+            )))
+        ];
+
+        test_sxs("'''(1 nil foo)", exp_sxs);
+    }
+
+    #[test]
+    fn test_quoted_list_nested() {
+        let exp_sxs = sx_list![
+            sx_quote!(
+                sx_list![
+                    sx_integer!(1),
+                    sx_integer!(2),
+                    sx_quote!(
+                        sx_list![
+                            sx_quote!(sx_symbol!("foo")),
+                            sx_quote!(sx_symbol!("bar"))
+                        ]
+                    )
+                ]
+            )
+        ];
+
+        test_sxs("'(1 2 '('foo 'bar))", exp_sxs);
     }
 
     #[test]
