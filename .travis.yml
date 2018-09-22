@@ -1,18 +1,19 @@
-language: c
+language: rust
 
-compiler:
-  - clang
-  - gcc
+rust:
+  - stable
+  - beta
+  - nightly
+
+cache: cargo
 
 install:
-  - make deps
+  - cargo build --verbose --all
 
 script:
-  - make
-  - make test
-  - echo "\q" | ./solang
-  - ./solang_test
+  - cargo test --verbose --all
 
 branches:
   only:
   - master
+  - riir

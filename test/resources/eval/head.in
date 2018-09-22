@@ -1,3 +1,0 @@
-(head '(foo))
-(head '(bar baz))
-(head '(baz foo bar))

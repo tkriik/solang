@@ -1,3 +1,0 @@
-(tail '(foo))
-(tail '(foo bar))
-(tail '(foo bar baz))

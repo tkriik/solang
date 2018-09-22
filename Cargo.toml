@@ -1,0 +1,13 @@
+[package]
+name = "solang"
+version = "0.1.0"
+authors = ["Tanel Kriik <tanel.kriik+github@gmail.com>"]
+
+[dependencies]
+clap = "2.26.0"
+rpds = "0.5.0"
+rustyline = "2.0.1"
+unicode-segmentation = "1.1.0"
+
+[dev-dependencies]
+pretty_assertions = "0.5.1"
