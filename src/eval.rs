@@ -9,81 +9,45 @@ pub enum EvalError {
 }
 
 pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
-    if is_self_eval(sx) {
-        return Ok(sx.clone());
-    }
-
-    if is_quoted(sx) {
-        match sx {
-            Sx::Quote(unquoted) => {
-                return Ok(unquoted.as_ref().clone());
-            },
-
-            _ => assert!(false)
-        }
-    }
-
-    if is_symbol(sx) {
-        match env.lookup(sx) {
-            Some(v) => {
-                return Ok(v.clone());
-            },
-
-            None => {
-                return Err(EvalError::Undefined(sx.clone()));
-            }
-        }
-    }
-
-    if is_def(sx) {
-        return do_def(env, sx);
-    }
-
-    return Err(EvalError::Undefined(sx.clone()));
-}
-
-fn is_self_eval(sx: &Sx) -> bool {
     match sx {
-        Sx::Nil | Sx::Integer(_) | Sx::String(_) => true,
+        Sx::Nil | Sx::Integer(_) | Sx::String(_) => {
+            return Ok(sx.clone());
+        },
 
-        Sx::List(l) => l.is_empty(),
+        Sx::List(l) if l.is_empty() => {
+            return Ok(sx.clone());
+        },
 
-        _ => false
-    }
-}
+        Sx::Quote(v) => {
+            return Ok(v.as_ref().clone());
+        },
 
-fn is_quoted(sx: &Sx) -> bool {
-    match sx {
-        Sx::Quote(_) => true,
+        Sx::Symbol(_) => {
+            match env.lookup(sx) {
+                Some(v) => {
+                    return Ok(v.clone());
+                },
 
-        _ => false
-    }
-}
-
-fn is_symbol(sx: &Sx) -> bool {
-    match sx {
-        Sx::Symbol(_) => true,
-
-        _ => false
-    }
-}
-
-// TODO: refactor
-fn is_def(sx: &Sx) -> bool {
-    match sx {
-        Sx::List(l) => {
-            match l.first() {
-                Some(Sx::Symbol(name)) => name.as_ref() == "def",
-
-                Some(_) => false,
-
-                None => false
+                None => {
+                    return Err(EvalError::Undefined(sx.clone()));
+                }
             }
         },
 
-        _ => false
+        Sx::List(l) => {
+            match l.first() {
+                Some(Sx::Symbol(name)) if name.as_ref() == "def" => {
+                    return do_def(env, sx);
+                },
+
+                _ => {
+                    return Err(EvalError::Undefined(sx.clone()));
+                }
+            }
+        }
     }
 }
+
 
 // TODO: refactor
 fn do_def(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
@@ -103,8 +67,16 @@ fn do_def(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
 
                 None => {
                     let value = &l[2];
-                    env.define(symbol.clone(), value.clone());
-                    return Ok(symbol.clone());
+                    match eval(env, value) {
+                        Ok(result) => {
+                            env.define(symbol.clone(), result.clone());
+                            return Ok(symbol.clone());
+                        },
+
+                        error @ Err(_) => {
+                            return error;
+                        }
+                    }
                 }
             }
         },
