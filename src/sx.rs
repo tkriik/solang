@@ -6,7 +6,7 @@ use rpds::List;
 pub type SxInteger  = i64;
 pub type SxString   = Arc<String>;
 pub type SxSymbol   = Arc<String>;
-pub type SxList     = Arc<Vec<Sx>>;
+pub type SxList     = Arc<List<Sx>>;
 pub type SxQuote    = Arc<Sx>;
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
@@ -41,7 +41,7 @@ macro_rules! sx_string {
 
 #[macro_export]
 macro_rules! sx_list {
-    [ $( $e:expr ),*] => (Sx::List(Arc::new(vec![$($e),*])));
+    [ $( $e:expr ),*] => (Sx::List(Arc::new(list![$($e),*])));
 }
 
 #[macro_export]

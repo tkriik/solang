@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use rpds::List;
+
 use ::sx::Sx;
 use ::token::{tokenize, Kind};
 
@@ -14,7 +16,7 @@ pub enum ReadError {
 
 pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
     let mut opt_sx = None;
-    let mut sxs = Vec::new();
+    let mut sxs = List::new();
 
     let mut sxs_stack = Vec::new();
     let mut quote_stack = Vec::new();
@@ -53,7 +55,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
                 sxs_stack.push(sxs);
                 quote_stack.push(num_quotes);
 
-                let sub_sxs = Vec::new();
+                let sub_sxs = List::new();
                 sxs = sub_sxs;
                 num_quotes = 0;
             },
@@ -61,14 +63,14 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             Kind::ListEnd => {
                 match sxs_stack.pop() {
                     Some(mut top_sxs) => {
-                        let mut sx = Sx::List(Arc::new(sxs));
+                        let mut sx = Sx::List(Arc::new(sxs.reverse()));
                         num_quotes = quote_stack.pop().expect("empty quote stack");
                         for _ in 0 .. num_quotes {
                             sx = Sx::Quote(Arc::new(sx));
                             num_quotes -= 1;
                         }
 
-                        top_sxs.push(sx);
+                        top_sxs = top_sxs.push_front(sx.clone());
                         sxs = top_sxs;
                     }
 
@@ -102,7 +104,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
                     num_quotes -= 1;
                 }
 
-                sxs.push(sx.clone());
+                sxs = sxs.push_front(sx.clone());
                 opt_sx = None;
             },
 
@@ -119,6 +121,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
         return Err(read_errors);
     }
 
+    sxs = sxs.reverse();
     return Ok(Sx::List(Arc::new(sxs)));
 }
 
