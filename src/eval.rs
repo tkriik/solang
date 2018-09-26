@@ -1,3 +1,5 @@
+use ::std::sync::Arc;
+
 use ::env::Env;
 use ::sx::{Sx, SxSymbol, SxList};
 
@@ -5,6 +7,9 @@ use ::sx::{Sx, SxSymbol, SxList};
 pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
+
+    TooFewArgs(SxSymbol),
+    TooManyArgs(SxSymbol),
 
     DefineTooFewArgs,
     DefineTooManyArgs,
@@ -48,6 +53,10 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
                     match name.as_str() {
                         "def" => {
                             return do_def(env, l);
+                        },
+
+                        "if" => {
+                            return do_if(env, l);
                         },
 
                         "quote" => {
@@ -116,6 +125,45 @@ fn do_def(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
 
         _ => {
             return Err(EvalError::DefineBadSymbol(symbol.clone()))
+        }
+    }
+}
+
+fn do_if(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
+    let mut args = Vec::new();
+    let mut first = true;
+    for sub_sx in list.iter() {
+        if first {
+            first = false;
+            continue;
+        }
+
+        args.push(sub_sx);
+    }
+
+    if args.len() < 3 {
+        return Err(EvalError::TooFewArgs(Arc::new("if".to_string())));
+    }
+
+    if 3 < args.len() {
+        return Err(EvalError::TooManyArgs(Arc::new("if".to_string())));
+    }
+
+    let cond = args[0];
+    let true_path = args[1];
+    let false_path = args[2];
+
+    match eval(env, cond) {
+        Ok(Sx::Nil) | Ok(Sx::Boolean(false)) => {
+            return eval(env, false_path);
+        },
+
+        Ok(_) => {
+            return eval(env, true_path);
+        },
+
+        error @ Err(_) => {
+            return error;
         }
     }
 }
