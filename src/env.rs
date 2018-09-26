@@ -1,23 +1,23 @@
-use std::collections::HashMap;
+use rpds::HashTrieMap;
 
-use sx::Sx;
+use sx::{Sx, SxSymbol};
 
 pub struct Env {
-    definitions: HashMap<Sx, Sx>
+    definitions: HashTrieMap<SxSymbol, Sx>
 }
 
 impl Env {
     pub fn new() -> Env {
         return Env {
-            definitions: HashMap::new()
+            definitions: HashTrieMap::new()
         };
     }
 
-    pub fn define(&mut self, symbol: Sx, value: Sx) {
-        self.definitions.insert(symbol, value);
+    pub fn define(&mut self, symbol: &SxSymbol, value: &Sx) {
+        self.definitions.insert_mut(symbol.clone(), value.clone());
     }
 
-    pub fn lookup(&self, symbol: &Sx) -> Option<&Sx> {
-        return self.definitions.get(&symbol);
+    pub fn lookup(&self, symbol: &SxSymbol) -> Option<&Sx> {
+        return self.definitions.get(symbol.as_ref());
     }
 }
