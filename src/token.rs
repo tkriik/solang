@@ -5,6 +5,7 @@ pub enum Kind {
     Empty,
 
     Nil,
+    Boolean,
     Integer,
     Symbol,
 
@@ -156,13 +157,25 @@ impl <'a> TokenReader<'a> {
                         '(' | ')' | '"' | '\'' => {
                             read_size -= c.len_utf8();
                             break;
-                        }
+                        },
 
                         // Symbol -> Nil
                         'l' if token.size == 2 && token.data.starts_with("ni") => {
                             token.kind = Kind::Nil;
                             token.update(c);
-                        }
+                        },
+
+                        // Symbol -> Boolean
+                        'e' if token.size == 3 && token.data.starts_with("tru") => {
+                            token.kind = Kind::Boolean;
+                            token.update(c);
+                        },
+
+                        // Symbol -> Boolean
+                        'e' if token.size == 4 && token.data.starts_with("fals") => {
+                            token.kind = Kind::Boolean;
+                            token.update(c);
+                        },
 
                         // Symbol -> Integer
                         _ if token.size == 1 && token.data.starts_with("-") => {
@@ -209,21 +222,48 @@ impl <'a> TokenReader<'a> {
                         // Nil -> Done
                         _ if c.is_whitespace() => {
                             break;
-                        }
+                        },
 
                         // Nil -> Done
                         '(' | ')' | '"' | '\'' => {
                             read_size -= c.len_utf8();
                             break;
-                        }
+                        },
 
                         // Nil -> Symbol
                         _ if is_symbol(c) => {
                             token.kind = Kind::Symbol;
                             token.update(c);
-                        }
+                        },
 
                         // Nil -> Invalid
+                        _ => {
+                            token.kind = Kind::Invalid;
+                            token.update(c);
+                        }
+                    }
+                },
+
+                Kind::Boolean => {
+                    match c {
+                        // Boolean -> Done
+                        _ if c.is_whitespace() => {
+                            break
+                        },
+
+                        // Boolean -> Done
+                        '(' | ')' | '"' | '\'' => {
+                            read_size -= c.len_utf8();
+                            break;
+                        },
+
+                        // Boolean -> Symbol
+                        _ if is_symbol(c) => {
+                            token.kind = Kind::Symbol;
+                            token.update(c);
+                        },
+
+                        // Boolean -> Invalid
                         _ => {
                             token.kind = Kind::Invalid;
                             token.update(c);
@@ -331,6 +371,17 @@ mod tests {
 
         test_tokenize("nil,", &exp_tokens);
         test_tokenize("\t\nnil, ", &exp_tokens);
+    }
+
+    #[test]
+    fn test_boolean() {
+        let exp_tokens = vec![
+            Token { kind: Kind::Boolean, size: 4, data: "true"  },
+            Token { kind: Kind::Boolean, size: 5, data: "false" }
+        ];
+
+        test_tokenize("true false", &exp_tokens);
+        test_tokenize("\n true\r\t false\n", &exp_tokens);
     }
 
     #[test]
@@ -469,15 +520,17 @@ mod tests {
         let exp_tokens = vec![
             Token { kind: Kind::ListStart, size: 1, data: "("      },
             Token { kind: Kind::Symbol,    size: 3, data: "foo"    },
+            Token { kind: Kind::Boolean,   size: 4, data: "true"   },
             Token { kind: Kind::Invalid,   size: 2, data: "a,"     },
             Token { kind: Kind::Nil,       size: 3, data: "nil"    },
             Token { kind: Kind::String,    size: 3, data: "abc"    },
             Token { kind: Kind::Symbol,    size: 3, data: "bar"    },
+            Token { kind: Kind::Boolean,   size: 5, data: "false"  },
             Token { kind: Kind::String,    size: 9, data: "北京市" },
             Token { kind: Kind::ListEnd,   size: 1, data: ")"      }
         ];
 
-        test_tokenize("(foo a, nil\"abc\"bar\"北京市\")", &exp_tokens);
-        test_tokenize("(\n\t foo\na, \tnil \"abc\" \nbar\"北京市\" \t\t)\r\n", &exp_tokens);
+        test_tokenize("(foo true a, nil\"abc\"bar false\"北京市\")", &exp_tokens);
+        test_tokenize("(\n\t foo\ttrue\na, \tnil \"abc\" \nbar false\t\"北京市\" \t\t)\r\n", &exp_tokens);
     }
 }

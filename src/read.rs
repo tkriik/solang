@@ -31,10 +31,26 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
                 opt_sx = Some(sx_nil!());
             },
 
+            Kind::Boolean => {
+                match token.data {
+                    "true" => {
+                        opt_sx = Some(sx_boolean!(true));
+                    },
+
+                    "false" => {
+                        opt_sx = Some(sx_boolean!(false));
+                    },
+
+                    _ => {
+                        assert!(false);
+                    }
+                }
+            }
+
             Kind::Integer => {
                 match token.data.parse::<i64>() {
                     Ok(i) => {
-                        opt_sx = Some(Sx::Integer(i));
+                        opt_sx = Some(sx_integer!(i));
                     },
 
                     Err(_) => {
@@ -152,6 +168,16 @@ mod tests {
         ];
 
         test_sxs("nil", exp_sxs);
+    }
+
+    #[test]
+    fn test_boolean() {
+        let exp_sxs = sx_list![
+            sx_boolean!(true),
+            sx_boolean!(false)
+        ];
+
+        test_sxs("true false", exp_sxs);
     }
 
     #[test]

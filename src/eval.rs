@@ -18,7 +18,7 @@ pub enum EvalError {
 
 pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
     match sx {
-        Sx::Nil | Sx::Integer(_) | Sx::String(_) => {
+        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) => {
             return Ok(sx.clone());
         },
 
