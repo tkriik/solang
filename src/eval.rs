@@ -10,6 +10,9 @@ pub enum EvalError {
     DefineTooManyArgs,
     DefineBadSymbol(Sx),
 
+    QuoteTooFewArgs,
+    QuoteTooManyArgs,
+
     Unknown(Sx)
 }
 
@@ -41,9 +44,21 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
 
         Sx::List(l) => {
             match l.first() {
-                Some(Sx::Symbol(name)) if name.as_ref() == "def" => {
-                    return do_def(env, l);
-                },
+                Some(Sx::Symbol(name)) => {
+                    match name.as_str() {
+                        "def" => {
+                            return do_def(env, l);
+                        },
+
+                        "quote" => {
+                            return do_quote(l);
+                        },
+
+                        _ => {
+                            return Err(EvalError::Unknown(sx.clone()))
+                        }
+                    }
+                }
 
                 _ => {
                     return Err(EvalError::Unknown(sx.clone()));
@@ -103,4 +118,27 @@ fn do_def(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
             return Err(EvalError::DefineBadSymbol(symbol.clone()))
         }
     }
+}
+
+fn do_quote(list: &SxList) -> Result<Sx, EvalError> {
+    let mut args = Vec::new();
+    let mut first = true;
+    for sub_sx in list.iter() {
+        if first {
+            first = false;
+            continue;
+        }
+
+        args.push(sub_sx);
+    }
+
+    if args.len() < 1 {
+        return Err(EvalError::QuoteTooFewArgs);
+    }
+
+    if 1 < args.len() {
+        return Err(EvalError::QuoteTooManyArgs);
+    }
+
+    return Ok(args[0].clone());
 }

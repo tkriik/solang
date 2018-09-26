@@ -120,6 +120,14 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: too many arguments to def");
         },
 
+        EvalError::QuoteTooFewArgs => {
+            println!("eval error: too few arguments to quote");
+        },
+
+        EvalError::QuoteTooManyArgs => {
+            println!("eval error: too many arguments to quote");
+        },
+
         EvalError::DefineBadSymbol(sx) => {
             println!("eval error: first argument to def must be a symbol, got {}", sx.to_string());
         },
