@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use rpds::List;
+
 use ::env::Env;
 use ::eval::{eval, apply_builtin, EvalResult, EvalError};
 use ::sx::{*};
@@ -9,7 +13,8 @@ pub static BUILTIN_ARRAY: &'static [&SxBuiltin] = &[
 
     &PRIMITIVE_APPLY,
     &PRIMITIVE_PLUS,
-    &PRIMITIVE_PRODUCT
+    &PRIMITIVE_PRODUCT,
+    &PRIMITIVE_RANGE,
 ];
 
 static SPECIAL_DEF: SxBuiltin = SxBuiltin {
@@ -52,6 +57,13 @@ static PRIMITIVE_PRODUCT: SxBuiltin = SxBuiltin {
     min_arity:  0,
     max_arity:  None,
     callback:   SxBuiltinCallback::Primitive(primitive_product)
+};
+
+static PRIMITIVE_RANGE: SxBuiltin = SxBuiltin {
+    name:       "range",
+    min_arity:  0,
+    max_arity:  Some(2),
+    callback:   SxBuiltinCallback::Primitive(primitive_range)
 };
 
 fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
@@ -166,4 +178,39 @@ fn primitive_product(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
 
     // TODO: overflow
     return Ok(sx_integer!(product));
+}
+
+// TODO: vectors
+fn primitive_range(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+    let mut numbers = List::new();
+
+    match args[..] {
+        [Sx::Integer(end)] => {
+            for i in 0i64 .. end {
+                numbers.push_front_mut(sx_integer!(i));
+            }
+        },
+
+        [Sx::Integer(start), Sx::Integer(end)] => {
+            for i in start .. end {
+                numbers.push_front_mut(sx_integer!(i));
+            }
+        },
+
+        [ref arg, Sx::Integer(_)] => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
+        },
+
+        [_, ref arg] => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
+        },
+
+        _ => {
+            assert!(false);
+        }
+    }
+
+    numbers.reverse_mut();
+
+    return Ok(Sx::List(Arc::new(numbers)));
 }
