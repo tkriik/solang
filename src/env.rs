@@ -5,6 +5,7 @@ use rpds::HashTrieMap;
 use builtin::BUILTIN_ARRAY;
 use sx::{Sx, SxSymbol};
 
+#[derive(Clone)]
 pub struct Env {
     definitions: HashTrieMap<SxSymbol, Sx>
 }

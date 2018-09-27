@@ -8,10 +8,18 @@ pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
     DefineBadSymbol(Sx),
+
     NotAFunction(Sx),
+    InvalidBinding(Sx),
+
     BuiltinBadArg(&'static str, Sx),
     BuiltinTooFewArgs(&'static str, usize, usize),
     BuiltinTooManyArgs(&'static str, usize, usize),
+
+    BadArg(SxFunction, Sx),
+    TooFewArgs(SxFunction, usize, usize),
+    TooManyArgs(SxFunction, usize, usize),
+
     Unknown(Sx)
 }
 
@@ -19,7 +27,7 @@ pub type EvalResult = Result<Sx, EvalError>;
 
 pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
-        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) => {
+        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) | Sx::Function(_) => {
             return Ok(sx.clone());
         },
 
@@ -55,6 +63,10 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                             return apply_builtin(builtin, env, args);
                         },
 
+                        Ok(Sx::Function(ref f)) => {
+                            return apply_function(f, env, args);
+                        },
+
                         Ok(v) => {
                             return Err(EvalError::NotAFunction(v.clone()));
                         },
@@ -73,7 +85,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     }
 }
 
-pub fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
             return apply_special(builtin, special_fn, env, arglist);
@@ -85,7 +97,7 @@ pub fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> 
     }
 }
 
-fn apply_special(builtin: &SxBuiltin,
+fn apply_special(builtin: &SxBuiltinInfo,
                  special_fn: SxSpecialFn,
                  env: &mut Env,
                  arglist: &List<Sx>) -> EvalResult {
@@ -109,7 +121,7 @@ fn apply_special(builtin: &SxBuiltin,
     return special_fn(env, &args);
 }
 
-fn apply_primitive(builtin: &SxBuiltin,
+fn apply_primitive(builtin: &SxBuiltinInfo,
                    primitive_fn: SxPrimitiveFn,
                    env: &mut Env,
                    arglist: &List<Sx>) -> EvalResult {
@@ -134,6 +146,36 @@ fn apply_primitive(builtin: &SxBuiltin,
     }
 
     return primitive_fn(env, &args);
+}
+
+pub fn apply_function(f: &SxFunction, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+    let arity = arglist.len();
+    if arity < f.arity {
+        return Err(EvalError::TooFewArgs(f.clone(), f.arity, arity));
+    }
+
+    if f.arity < arity {
+        return Err(EvalError::TooManyArgs(f.clone(), f.arity, arity));
+    }
+
+    let mut sub_env = env.clone();
+    for (binding, sx) in f.bindings.iter().zip(arglist.iter()) {
+        match eval(env, sx) {
+            Ok(ref result) => sub_env.define(binding, result),
+            error @ Err(_) => return error
+        }
+    }
+
+    let exprs = f.body.clone();
+    let mut result = sx_nil!();
+    for expr in exprs.iter() {
+        match eval(&mut sub_env, expr) {
+            Ok(sub_result) => result = sub_result,
+            error @ Err(_) => return error
+        }
+    }
+
+    return Ok(result);
 }
 
 #[cfg(test)]

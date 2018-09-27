@@ -3,11 +3,12 @@ use std::sync::Arc;
 use rpds::List;
 
 use ::env::Env;
-use ::eval::{eval, apply_builtin, EvalResult, EvalError};
+use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
 use ::sx::{*};
 
-pub static BUILTIN_ARRAY: &'static [&SxBuiltin] = &[
+pub static BUILTIN_ARRAY: &'static [&SxBuiltinInfo] = &[
     &SPECIAL_DEF,
+    &SPECIAL_FN,
     &SPECIAL_IF,
     &SPECIAL_QUOTE,
 
@@ -17,49 +18,56 @@ pub static BUILTIN_ARRAY: &'static [&SxBuiltin] = &[
     &PRIMITIVE_RANGE,
 ];
 
-static SPECIAL_DEF: SxBuiltin = SxBuiltin {
+static SPECIAL_DEF: SxBuiltinInfo = SxBuiltinInfo {
     name:       "def",
     min_arity:  2,
     max_arity:  Some(2),
     callback:   SxBuiltinCallback::Special(special_def)
 };
 
-static SPECIAL_IF: SxBuiltin = SxBuiltin {
+static SPECIAL_FN: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "fn",
+    min_arity:  2,
+    max_arity:  None,
+    callback:   SxBuiltinCallback::Special(special_fn)
+};
+
+static SPECIAL_IF: SxBuiltinInfo = SxBuiltinInfo {
     name:       "if",
     min_arity:  3,
     max_arity:  Some(3),
     callback:   SxBuiltinCallback::Special(special_if)
 };
 
-static SPECIAL_QUOTE: SxBuiltin = SxBuiltin {
+static SPECIAL_QUOTE: SxBuiltinInfo = SxBuiltinInfo {
     name:       "quote",
     min_arity:  1,
     max_arity:  Some(1),
     callback:   SxBuiltinCallback::Special(special_quote)
 };
 
-static PRIMITIVE_APPLY: SxBuiltin = SxBuiltin {
+static PRIMITIVE_APPLY: SxBuiltinInfo = SxBuiltinInfo {
     name:       "apply",
     min_arity:  2,
     max_arity:  Some(2),
     callback:   SxBuiltinCallback::Primitive(primitive_apply)
 };
 
-static PRIMITIVE_PLUS: SxBuiltin = SxBuiltin {
+static PRIMITIVE_PLUS: SxBuiltinInfo = SxBuiltinInfo {
     name:       "+",
     min_arity:  0,
     max_arity:  None,
     callback:   SxBuiltinCallback::Primitive(primitive_plus)
 };
 
-static PRIMITIVE_PRODUCT: SxBuiltin = SxBuiltin {
+static PRIMITIVE_PRODUCT: SxBuiltinInfo = SxBuiltinInfo {
     name:       "*",
     min_arity:  0,
     max_arity:  None,
     callback:   SxBuiltinCallback::Primitive(primitive_product)
 };
 
-static PRIMITIVE_RANGE: SxBuiltin = SxBuiltin {
+static PRIMITIVE_RANGE: SxBuiltinInfo = SxBuiltinInfo {
     name:       "range",
     min_arity:  0,
     max_arity:  Some(2),
@@ -97,6 +105,45 @@ fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     }
 }
 
+fn special_fn(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
+    let binding_list = args[0];
+    match binding_list {
+        Sx::List(bindings) => {
+            let mut bindings_vec = Vec::new();
+            for binding in bindings.iter() {
+                match binding {
+                    Sx::Symbol(name) => {
+                        bindings_vec.push(name.clone());
+                    },
+
+                    invalid => {
+                        return Err(EvalError::InvalidBinding(invalid.clone()));
+                    }
+                }
+            }
+
+            let mut body = List::new();
+            for i in 1 .. args.len() {
+                body.push_front_mut(args[i].clone());
+            }
+
+            body.reverse_mut();
+
+            let f = SxFunctionInfo {
+                arity:      bindings.len(),
+                bindings:   bindings_vec,
+                body:       Arc::new(body.clone())
+            };
+
+            return Ok(Sx::Function(Arc::new(f)));
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(SPECIAL_FN.name, binding_list.clone()));
+        }
+    }
+}
+
 fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     let cond = args[0];
     let true_path = args[1];
@@ -130,8 +177,16 @@ fn primitive_apply(env: &mut Env, args: &Vec<Sx>) -> EvalResult {
             return apply_builtin(builtin, env, sub_args);
         },
 
+        (Ok(Sx::Function(ref f)), Sx::List(sub_args)) => {
+            return apply_function(f, env, sub_args);
+        }
+
         (Ok(Sx::Builtin(_)), value) => {
             return Err(EvalError::BuiltinBadArg(PRIMITIVE_APPLY.name, value.clone()));
+        },
+
+        (Ok(Sx::Function(f)), value) => {
+            return Err(EvalError::BadArg(f.clone(), value.clone()));
         },
 
         (Ok(v), _) => {
