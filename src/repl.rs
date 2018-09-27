@@ -4,6 +4,7 @@ use std::error::Error;
 
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
+use time;
 
 use ::env::Env;
 use ::eval::{eval, EvalError};
@@ -25,9 +26,12 @@ pub fn enter() {
                 match read(&line) {
                     Ok(Sx::List(sxs)) => {
                         for sx in sxs.iter() {
+                            let t0 = time::precise_time_s();
                             match eval(&mut env, sx) {
                                 Ok(result) => {
+                                    let t1 = time::precise_time_s();
                                     println!("{}", result.to_string());
+                                    println!("time: {:.6}s", t1 - t0);
                                 },
 
                                 Err(eval_error) => {
@@ -123,6 +127,18 @@ fn print_eval_error(eval_error: &EvalError ) {
         EvalError::DefineBadSymbol(sx) => {
             println!("eval error: first argument to def must be a symbol, got {}", sx.to_string());
         },
+
+        EvalError::BadArg(sx) => {
+            println!("eval error: bad argument to function {}", sx.to_string());
+        },
+
+        EvalError::NotAFunction(sx) => {
+            println!("eval error: {} does not evaluate to a function", sx.to_string());
+        },
+
+        EvalError::PrimitiveTooFewArgs(name, exp_arity, act_arity) => {
+            println!("eval error: function {} expects at least {} arguments, got {}", name, exp_arity, act_arity);
+        }
 
         EvalError::Unknown(sx) => {
             println!("eval error: don't know how to evaluate expression: {}", sx.to_string());
