@@ -112,28 +112,12 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: cannot redefine symbol {}", symbol.to_string());
         },
 
-        EvalError::TooFewArgs(symbol) => {
+        EvalError::SpecialTooFewArgs(symbol) => {
             println!("eval error: too few arguments to {}", symbol);
         },
 
-        EvalError::TooManyArgs(symbol) => {
+        EvalError::SpecialTooManyArgs(symbol) => {
             println!("eval error: too many arguments to {}", symbol);
-        },
-
-        EvalError::DefineTooFewArgs => {
-            println!("eval error: too few arguments to def");
-        },
-
-        EvalError::DefineTooManyArgs => {
-            println!("eval error: too many arguments to def");
-        },
-
-        EvalError::QuoteTooFewArgs => {
-            println!("eval error: too few arguments to quote");
-        },
-
-        EvalError::QuoteTooManyArgs => {
-            println!("eval error: too many arguments to quote");
         },
 
         EvalError::DefineBadSymbol(sx) => {

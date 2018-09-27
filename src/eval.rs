@@ -1,27 +1,24 @@
-use ::std::sync::Arc;
+use ::rpds::List;
 
 use ::env::Env;
-use ::sx::{Sx, SxSymbol, SxList};
+use ::sx::{Sx, SxSymbol};
 
-#[derive(Debug)]
+#[derive(Eq, PartialEq, Debug)]
 pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
 
-    TooFewArgs(SxSymbol),
-    TooManyArgs(SxSymbol),
+    SpecialTooFewArgs(SxSymbol),
+    SpecialTooManyArgs(SxSymbol),
 
-    DefineTooFewArgs,
-    DefineTooManyArgs,
     DefineBadSymbol(Sx),
-
-    QuoteTooFewArgs,
-    QuoteTooManyArgs,
 
     Unknown(Sx)
 }
 
-pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
+pub type EvalResult = Result<Sx, EvalError>;
+
+pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
         Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) => {
             return Ok(sx.clone());
@@ -48,19 +45,19 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
         },
 
         Sx::List(l) => {
-            match l.first() {
-                Some(Sx::Symbol(name)) => {
-                    match name.as_str() {
+            match (l.first(), l.drop_first()) {
+                (Some(Sx::Symbol(ref symbol)), Some(ref args)) => {
+                    match symbol.as_str() {
                         "def" => {
-                            return do_def(env, l);
+                            return apply_special(symbol, special_def, 2, env, &args);
                         },
 
                         "if" => {
-                            return do_if(env, l);
+                            return apply_special(symbol, special_if, 3, env, &args);
                         },
 
                         "quote" => {
-                            return do_quote(l);
+                            return apply_special(symbol, special_quote, 1, env, &args);
                         },
 
                         _ => {
@@ -77,38 +74,40 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
     }
 }
 
+type SpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
 
-// TODO: refactor
-fn do_def(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
+fn apply_special(symbol: &SxSymbol,
+                 special_fn: SpecialFn,
+                 arity: usize,
+                 env: &mut Env,
+                 arglist: &List<Sx>) -> EvalResult {
     let mut args = Vec::new();
-    let mut first = true;
-    for sub_sx in list.iter() {
-        if first {
-            first = false;
-            continue;
-        }
-
-        args.push(sub_sx);
+    for arg in arglist.iter() {
+        args.push(arg);
     }
 
-    if args.len() < 2 {
-        return Err(EvalError::DefineTooFewArgs);
+    if args.len() < arity {
+        return Err(EvalError::SpecialTooFewArgs(symbol.clone()));
     }
 
-    if 2 < args.len() {
-        return Err(EvalError::DefineTooManyArgs);
+    if arity < args.len() {
+        return Err(EvalError::SpecialTooManyArgs(symbol.clone()));
     }
 
-    let symbol = args[0];
-    match symbol {
-        Sx::Symbol(name) => {
-            match env.lookup(name) {
+    return special_fn(env, &args);
+}
+
+fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
+    let binding = args[0];
+    match binding {
+        Sx::Symbol(symbol) => {
+            match env.lookup(symbol) {
                 None => {
                     let value = args[1];
                     match eval(env, value) {
                         Ok(result) => {
-                            env.define(name, &result);
-                            return Ok(symbol.clone());
+                            env.define(symbol, &result);
+                            return Ok(binding.clone());
                         },
 
                         error @ Err(_) => {
@@ -118,37 +117,18 @@ fn do_def(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
                 },
 
                 Some(_) => {
-                    return Err(EvalError::Redefine(name.clone()));
+                    return Err(EvalError::Redefine(symbol.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(EvalError::DefineBadSymbol(symbol.clone()))
+            return Err(EvalError::DefineBadSymbol(binding.clone()));
         }
     }
 }
 
-fn do_if(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
-    let mut args = Vec::new();
-    let mut first = true;
-    for sub_sx in list.iter() {
-        if first {
-            first = false;
-            continue;
-        }
-
-        args.push(sub_sx);
-    }
-
-    if args.len() < 3 {
-        return Err(EvalError::TooFewArgs(Arc::new("if".to_string())));
-    }
-
-    if 3 < args.len() {
-        return Err(EvalError::TooManyArgs(Arc::new("if".to_string())));
-    }
-
+fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     let cond = args[0];
     let true_path = args[1];
     let false_path = args[2];
