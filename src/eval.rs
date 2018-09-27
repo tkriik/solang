@@ -1,25 +1,17 @@
 use ::rpds::List;
 
 use ::env::Env;
-use ::primitive::PrimitiveError;
-use ::sx::{Sx, SxSymbol};
+use ::sx::{*};
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
-
-    SpecialTooFewArgs(SxSymbol),
-    SpecialTooManyArgs(SxSymbol),
-
     DefineBadSymbol(Sx),
-
-    // TODO: better info
-    BadArg(Sx),
     NotAFunction(Sx),
-
-    PrimitiveTooFewArgs(&'static str, usize, usize),
-
+    BuiltinBadArg(&'static str, Sx),
+    BuiltinTooFewArgs(&'static str, usize, usize),
+    BuiltinTooManyArgs(&'static str, usize, usize),
     Unknown(Sx)
 }
 
@@ -27,7 +19,7 @@ pub type EvalResult = Result<Sx, EvalError>;
 
 pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
-        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::SxPrimitive(_) => {
+        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) => {
             return Ok(sx.clone());
         },
 
@@ -53,26 +45,25 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
 
         Sx::List(l) => {
             match (l.first(), l.drop_first()) {
-                (Some(Sx::Symbol(ref symbol)), Some(ref args)) => {
-                    match symbol.as_str() {
-                        "def" => {
-                            return apply_special(symbol, special_def, 2, env, &args);
+                (None, _) => {
+                    return Ok(sx.clone());
+                },
+
+                (Some(ref head), Some(ref args)) => {
+                    match eval(env, head) {
+                        Ok(Sx::Builtin(builtin)) => {
+                            return apply_builtin(builtin, env, args);
                         },
 
-                        "if" => {
-                            return apply_special(symbol, special_if, 3, env, &args);
+                        Ok(v) => {
+                            return Err(EvalError::NotAFunction(v.clone()));
                         },
 
-                        "quote" => {
-                            return apply_special(symbol, special_quote, 1, env, &args);
-                        },
-
-                        _ => {
-                            let head = Sx::Symbol(symbol.clone());
-                            return apply(&head, env, &args);
+                        error @ Err(_) => {
+                            return error;
                         }
                     }
-                }
+                },
 
                 _ => {
                     return Err(EvalError::Unknown(sx.clone()));
@@ -82,53 +73,20 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     }
 }
 
-fn apply(head: &Sx, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
-    match eval(env, head) {
-        Ok(Sx::SxPrimitive(primitive)) => {
-            let mut args = Vec::new();
-            for arg in arglist.iter() {
-                match eval(env, arg) {
-                    Ok(result) => {
-                        args.push(result);
-                    },
-
-                    error @ Err(_) => {
-                        return error;
-                    }
-                }
-            }
-
-            if args.len() < primitive.min_arity {
-                return Err(EvalError::PrimitiveTooFewArgs(primitive.name, primitive.min_arity, args.len()));
-            }
-
-            let callback = primitive.callback;
-            match callback(&args) {
-                Ok(result) => {
-                    return Ok(result);
-                },
-
-                Err(PrimitiveError::BadArg) => {
-                    return Err(EvalError::BadArg(head.clone()));
-                }
-            }
+pub fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+    match builtin.callback {
+        SxBuiltinCallback::Special(special_fn) => {
+            return apply_special(builtin, special_fn, env, arglist);
         },
 
-        Ok(_) => {
-            return Err(EvalError::NotAFunction(head.clone()));
-        }
-
-        error @ Err(_) => {
-            return error;
+        SxBuiltinCallback::Primitive(primitive_fn) => {
+            return apply_primitive(builtin, primitive_fn, env, arglist);
         }
     }
 }
 
-type SpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
-
-fn apply_special(symbol: &SxSymbol,
-                 special_fn: SpecialFn,
-                 arity: usize,
+fn apply_special(builtin: &SxBuiltin,
+                 special_fn: SxSpecialFn,
                  env: &mut Env,
                  arglist: &List<Sx>) -> EvalResult {
     let mut args = Vec::new();
@@ -136,70 +94,46 @@ fn apply_special(symbol: &SxSymbol,
         args.push(arg);
     }
 
-    if args.len() < arity {
-        return Err(EvalError::SpecialTooFewArgs(symbol.clone()));
+    if args.len() < builtin.min_arity {
+        return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
 
-    if arity < args.len() {
-        return Err(EvalError::SpecialTooManyArgs(symbol.clone()));
+    match builtin.max_arity {
+        Some(arity) if arity < args.len() => {
+            return Err(EvalError::BuiltinTooManyArgs(builtin.name, arity, args.len()));
+        },
+
+        Some(_) | None => ()
     }
 
     return special_fn(env, &args);
 }
 
-fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
-    let binding = args[0];
-    match binding {
-        Sx::Symbol(symbol) => {
-            match env.lookup(symbol) {
-                None => {
-                    let value = args[1];
-                    match eval(env, value) {
-                        Ok(result) => {
-                            env.define(symbol, &result);
-                            return Ok(binding.clone());
-                        },
-
-                        error @ Err(_) => {
-                            return error;
-                        }
-                    }
-                },
-
-                Some(_) => {
-                    return Err(EvalError::Redefine(symbol.clone()));
-                }
-            }
-        },
-
-        _ => {
-            return Err(EvalError::DefineBadSymbol(binding.clone()));
+fn apply_primitive(builtin: &SxBuiltin,
+                   primitive_fn: SxPrimitiveFn,
+                   env: &mut Env,
+                   arglist: &List<Sx>) -> EvalResult {
+    let mut args = Vec::new();
+    for arg in arglist.iter() {
+        match eval(env, arg) {
+            Ok(result) => args.push(result),
+            error @ Err(_) => return error
         }
     }
-}
 
-fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
-    let cond = args[0];
-    let true_path = args[1];
-    let false_path = args[2];
-
-    match eval(env, cond) {
-        Ok(Sx::Nil) | Ok(Sx::Boolean(false)) => {
-            return eval(env, false_path);
-        },
-
-        Ok(_) => {
-            return eval(env, true_path);
-        },
-
-        error @ Err(_) => {
-            return error;
-        }
+    if args.len() < builtin.min_arity {
+        return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
-}
 
-fn special_quote(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
-    return Ok(args[0].clone());
+    match builtin.max_arity {
+        Some(arity) if arity < args.len() => {
+            return Err(EvalError::BuiltinTooManyArgs(builtin.name, arity, args.len()));
+        },
+
+        Some(_) | None => ()
+    }
+
+    return primitive_fn(env, &args);
 }
 
 #[cfg(test)]
@@ -306,9 +240,6 @@ mod tests {
 
     #[test]
     fn test_special_error_def() {
-        let def_symbol = Arc::new("def".to_string());
-        let foo_symbol = Arc::new("foo".to_string());
-
         test_eval_results(r#"
             (def)
             (def foo)
@@ -317,12 +248,12 @@ mod tests {
             (def foo 1)
             (def foo 2)
         "#, vec![
-            Err(EvalError::SpecialTooFewArgs(def_symbol.clone())),
-            Err(EvalError::SpecialTooFewArgs(def_symbol.clone())),
-            Err(EvalError::SpecialTooManyArgs(def_symbol.clone())),
+            Err(EvalError::BuiltinTooFewArgs("def", 2, 0)),
+            Err(EvalError::BuiltinTooFewArgs("def", 2, 1)),
+            Err(EvalError::BuiltinTooManyArgs("def", 2, 3)),
             Err(EvalError::DefineBadSymbol(sx_string!("foo"))),
             Ok(sx_symbol!("foo")),
-            Err(EvalError::Redefine(foo_symbol.clone()))
+            Err(EvalError::Redefine(sx_symbol_unwrapped!("foo")))
         ]);
     }
 
@@ -381,6 +312,30 @@ mod tests {
     }
 
     #[test]
+    fn test_primitive_apply() {
+        test_eval(r#"
+            (apply + '())
+            (apply + '(1 2 3))
+        "#, r#"
+            0
+            6
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_error_apply() {
+        test_eval_results(r#"
+            (apply + true)
+            (apply 1 '(1 2 3))
+            (apply foo '(1 2 3))
+        "#, vec![
+            Err(EvalError::BuiltinBadArg("apply", sx_boolean!(true))),
+            Err(EvalError::NotAFunction(sx_integer!(1))),
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo")))
+        ]);
+    }
+
+    #[test]
     fn test_special_quote() {
         test_eval(r#"
             (quote 1)
@@ -415,6 +370,30 @@ mod tests {
             4
             6
             10
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_error_plus() {
+        test_eval_results(r#"
+            (+ 1 nil)
+        "#, vec![
+            Err(EvalError::BuiltinBadArg("+", sx_nil!()))
+        ]);
+    }
+
+    #[test]
+    fn test_primitive_product() {
+        test_eval(r#"
+            (*)
+            (* 1)
+            (* 1 2)
+            (* 1 2 3)
+        "#, r#"
+            1
+            1
+            2
+            6
         "#);
     }
 }

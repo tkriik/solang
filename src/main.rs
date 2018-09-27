@@ -10,9 +10,9 @@ extern crate unicode_segmentation;
 use clap::{Arg, App};
 
 #[macro_use] mod sx;
+mod builtin;
 mod env;
 mod eval;
-mod primitive;
 mod read;
 mod repl;
 mod token;

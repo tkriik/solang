@@ -116,29 +116,25 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: cannot redefine symbol {}", symbol.to_string());
         },
 
-        EvalError::SpecialTooFewArgs(symbol) => {
-            println!("eval error: too few arguments to {}", symbol);
-        },
-
-        EvalError::SpecialTooManyArgs(symbol) => {
-            println!("eval error: too many arguments to {}", symbol);
-        },
-
         EvalError::DefineBadSymbol(sx) => {
             println!("eval error: first argument to def must be a symbol, got {}", sx.to_string());
-        },
-
-        EvalError::BadArg(sx) => {
-            println!("eval error: bad argument to function {}", sx.to_string());
         },
 
         EvalError::NotAFunction(sx) => {
             println!("eval error: {} does not evaluate to a function", sx.to_string());
         },
 
-        EvalError::PrimitiveTooFewArgs(name, exp_arity, act_arity) => {
-            println!("eval error: function {} expects at least {} arguments, got {}", name, exp_arity, act_arity);
-        }
+        EvalError::BuiltinTooFewArgs(name, min_arity, act_arity) => {
+            println!("eval error: {} expects at least {} argument(s), got {}", name, min_arity, act_arity);
+        },
+
+        EvalError::BuiltinTooManyArgs(name, max_arity, act_arity) => {
+            println!("eval error: {} expects at most {} argument(s), got {}", name, max_arity, act_arity);
+        },
+
+        EvalError::BuiltinBadArg(name, arg) => {
+            println!("eval error: invalid argument to {}, got {}", name, arg.to_string());
+        },
 
         EvalError::Unknown(sx) => {
             println!("eval error: don't know how to evaluate expression: {}", sx.to_string());
