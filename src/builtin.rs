@@ -6,7 +6,9 @@ pub static BUILTIN_ARRAY: &'static [&SxBuiltin] = &[
     &SPECIAL_DEF,
     &SPECIAL_IF,
     &SPECIAL_QUOTE,
-    &PRIMITIVE_PLUS
+
+    &PRIMITIVE_PLUS,
+    &PRIMITIVE_PRODUCT
 ];
 
 static SPECIAL_DEF: SxBuiltin = SxBuiltin {
@@ -35,6 +37,13 @@ static PRIMITIVE_PLUS: SxBuiltin = SxBuiltin {
     min_arity:  0,
     max_arity:  None,
     callback:   SxBuiltinCallback::Primitive(primitive_plus)
+};
+
+static PRIMITIVE_PRODUCT: SxBuiltin = SxBuiltin {
+    name:       "*",
+    min_arity:  0,
+    max_arity:  None,
+    callback:   SxBuiltinCallback::Primitive(primitive_product)
 };
 
 fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
@@ -92,7 +101,7 @@ fn special_quote(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     return Ok(args[0].clone());
 }
 
-fn primitive_plus(args: &Vec<Sx>) -> Result<Sx, SxPrimitiveError> {
+fn primitive_plus(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     let mut sum = 0;
     for arg in args {
         match arg {
@@ -101,10 +110,29 @@ fn primitive_plus(args: &Vec<Sx>) -> Result<Sx, SxPrimitiveError> {
             },
 
             _ => {
-                return Err(SxPrimitiveError::BadArg);
+                return Err(EvalError::BuiltinBadArg(PRIMITIVE_PLUS.name, arg.clone()));
             }
         }
     }
 
+    // TODO: overflow
     return Ok(sx_integer!(sum));
+}
+
+fn primitive_product(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+    let mut product = 1;
+    for arg in args {
+        match arg {
+            Sx::Integer(n) => {
+                product *= n;
+            },
+
+            _ => {
+                return Err(EvalError::BuiltinBadArg(PRIMITIVE_PRODUCT.name, arg.clone()));
+            }
+        }
+    }
+
+    // TODO: overflow
+    return Ok(sx_integer!(product));
 }

@@ -7,16 +7,11 @@ use ::sx::{*};
 pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
-
     DefineBadSymbol(Sx),
-
-    // TODO: better info
-    BadArg(Sx),
     NotAFunction(Sx),
-
+    BuiltinBadArg(&'static str, Sx),
     BuiltinTooFewArgs(&'static str, usize, usize),
     BuiltinTooManyArgs(&'static str, usize, usize),
-
     Unknown(Sx)
 }
 
@@ -57,7 +52,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                 (Some(ref head), Some(ref args)) => {
                     match eval(env, head) {
                         Ok(Sx::Builtin(builtin)) => {
-                            return apply_builtin(head, builtin, env, args);
+                            return apply_builtin(builtin, env, args);
                         },
 
                         Ok(v) => {
@@ -78,14 +73,14 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     }
 }
 
-fn apply_builtin(head: &Sx, builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
             return apply_special(builtin, special_fn, env, arglist);
         },
 
         SxBuiltinCallback::Primitive(primitive_fn) => {
-            return apply_primitive(head, builtin, primitive_fn, env, arglist);
+            return apply_primitive(builtin, primitive_fn, env, arglist);
         }
     }
 }
@@ -114,8 +109,7 @@ fn apply_special(builtin: &SxBuiltin,
     return special_fn(env, &args);
 }
 
-fn apply_primitive(head: &Sx, // TODO: get rid of this
-                   builtin: &SxBuiltin,
+fn apply_primitive(builtin: &SxBuiltin,
                    primitive_fn: SxPrimitiveFn,
                    env: &mut Env,
                    arglist: &List<Sx>) -> EvalResult {
@@ -139,15 +133,7 @@ fn apply_primitive(head: &Sx, // TODO: get rid of this
         Some(_) | None => ()
     }
 
-    match primitive_fn(&args) {
-        Ok(result) => {
-            return Ok(result);
-        },
-
-        Err(SxPrimitiveError::BadArg) => {
-            return Err(EvalError::BadArg(head.clone()));
-        }
-    }
+    return primitive_fn(env, &args);
 }
 
 #[cfg(test)]
@@ -360,6 +346,30 @@ mod tests {
             4
             6
             10
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_error_plus() {
+        test_eval_results(r#"
+            (+ 1 nil)
+        "#, vec![
+            Err(EvalError::BuiltinBadArg("+", sx_nil!()))
+        ]);
+    }
+
+    #[test]
+    fn test_primitive_product() {
+        test_eval(r#"
+            (*)
+            (* 1)
+            (* 1 2)
+            (* 1 2 3)
+        "#, r#"
+            1
+            1
+            2
+            6
         "#);
     }
 }

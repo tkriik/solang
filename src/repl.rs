@@ -120,10 +120,6 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: first argument to def must be a symbol, got {}", sx.to_string());
         },
 
-        EvalError::BadArg(sx) => {
-            println!("eval error: bad argument to function {}", sx.to_string());
-        },
-
         EvalError::NotAFunction(sx) => {
             println!("eval error: {} does not evaluate to a function", sx.to_string());
         },
@@ -134,7 +130,11 @@ fn print_eval_error(eval_error: &EvalError ) {
 
         EvalError::BuiltinTooManyArgs(name, max_arity, act_arity) => {
             println!("eval error: {} expects at most {} argument(s), got {}", name, max_arity, act_arity);
-        }
+        },
+
+        EvalError::BuiltinBadArg(name, arg) => {
+            println!("eval error: invalid argument to {}, got {}", name, arg.to_string());
+        },
 
         EvalError::Unknown(sx) => {
             println!("eval error: don't know how to evaluate expression: {}", sx.to_string());

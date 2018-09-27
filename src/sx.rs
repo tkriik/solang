@@ -35,16 +35,12 @@ pub struct SxBuiltin {
 }
 
 pub enum SxBuiltinCallback {
-    Special(fn(&mut Env, &Vec<&Sx>) -> EvalResult),
-    Primitive(fn(&Vec<Sx>) -> Result<Sx, SxPrimitiveError>)
+    Special(SxSpecialFn),
+    Primitive(SxPrimitiveFn)
 }
 
 pub type SxSpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
-pub type SxPrimitiveFn = fn(&Vec<Sx>) -> Result<Sx, SxPrimitiveError>;
-
-pub enum SxPrimitiveError {
-    BadArg
-}
+pub type SxPrimitiveFn = fn(&mut Env, &Vec<Sx>) -> EvalResult;
 
 #[macro_export]
 macro_rules! sx_nil {
