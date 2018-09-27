@@ -1,21 +1,26 @@
-use ::env::Env;
-use ::sx::{Sx, SxSymbol, SxList};
+use ::rpds::List;
 
-#[derive(Debug)]
+use ::env::Env;
+use ::sx::{Sx, SxSymbol};
+
+#[derive(Eq, PartialEq, Debug)]
 pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
 
-    DefineTooFewArgs,
-    DefineTooManyArgs,
+    SpecialTooFewArgs(SxSymbol),
+    SpecialTooManyArgs(SxSymbol),
+
     DefineBadSymbol(Sx),
 
     Unknown(Sx)
 }
 
-pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
+pub type EvalResult = Result<Sx, EvalError>;
+
+pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
-        Sx::Nil | Sx::Integer(_) | Sx::String(_) => {
+        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) => {
             return Ok(sx.clone());
         },
 
@@ -40,10 +45,26 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
         },
 
         Sx::List(l) => {
-            match l.first() {
-                Some(Sx::Symbol(name)) if name.as_ref() == "def" => {
-                    return do_def(env, l);
-                },
+            match (l.first(), l.drop_first()) {
+                (Some(Sx::Symbol(ref symbol)), Some(ref args)) => {
+                    match symbol.as_str() {
+                        "def" => {
+                            return apply_special(symbol, special_def, 2, env, &args);
+                        },
+
+                        "if" => {
+                            return apply_special(symbol, special_if, 3, env, &args);
+                        },
+
+                        "quote" => {
+                            return apply_special(symbol, special_quote, 1, env, &args);
+                        },
+
+                        _ => {
+                            return Err(EvalError::Unknown(sx.clone()))
+                        }
+                    }
+                }
 
                 _ => {
                     return Err(EvalError::Unknown(sx.clone()));
@@ -53,38 +74,40 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result<Sx, EvalError> {
     }
 }
 
+type SpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
 
-// TODO: refactor
-fn do_def(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
+fn apply_special(symbol: &SxSymbol,
+                 special_fn: SpecialFn,
+                 arity: usize,
+                 env: &mut Env,
+                 arglist: &List<Sx>) -> EvalResult {
     let mut args = Vec::new();
-    let mut first = true;
-    for sub_sx in list.iter() {
-        if first {
-            first = false;
-            continue;
-        }
-
-        args.push(sub_sx);
+    for arg in arglist.iter() {
+        args.push(arg);
     }
 
-    if args.len() < 2 {
-        return Err(EvalError::DefineTooFewArgs);
+    if args.len() < arity {
+        return Err(EvalError::SpecialTooFewArgs(symbol.clone()));
     }
 
-    if 2 < args.len() {
-        return Err(EvalError::DefineTooManyArgs);
+    if arity < args.len() {
+        return Err(EvalError::SpecialTooManyArgs(symbol.clone()));
     }
 
-    let symbol = args[0];
-    match symbol {
-        Sx::Symbol(name) => {
-            match env.lookup(name) {
+    return special_fn(env, &args);
+}
+
+fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
+    let binding = args[0];
+    match binding {
+        Sx::Symbol(symbol) => {
+            match env.lookup(symbol) {
                 None => {
                     let value = args[1];
                     match eval(env, value) {
                         Ok(result) => {
-                            env.define(name, &result);
-                            return Ok(symbol.clone());
+                            env.define(symbol, &result);
+                            return Ok(binding.clone());
                         },
 
                         error @ Err(_) => {
@@ -94,13 +117,229 @@ fn do_def(env: &mut Env, list: &SxList) -> Result<Sx, EvalError> {
                 },
 
                 Some(_) => {
-                    return Err(EvalError::Redefine(name.clone()));
+                    return Err(EvalError::Redefine(symbol.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(EvalError::DefineBadSymbol(symbol.clone()))
+            return Err(EvalError::DefineBadSymbol(binding.clone()));
         }
+    }
+}
+
+fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
+    let cond = args[0];
+    let true_path = args[1];
+    let false_path = args[2];
+
+    match eval(env, cond) {
+        Ok(Sx::Nil) | Ok(Sx::Boolean(false)) => {
+            return eval(env, false_path);
+        },
+
+        Ok(_) => {
+            return eval(env, true_path);
+        },
+
+        error @ Err(_) => {
+            return error;
+        }
+    }
+}
+
+fn special_quote(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
+    return Ok(args[0].clone());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::sync::Arc;
+
+    use ::read::read;
+
+    fn test_eval(input_source: &str, output_source: &str) {
+        let mut env = Env::new();
+
+        let input = read(input_source).expect("invalid input source");
+        let output = read(output_source).expect("invalid output source");
+
+        match input {
+            Sx::List(sxs) => {
+                let mut results = List::new();
+                for sx in sxs.iter() {
+                    results.push_front_mut(eval(&mut env, &sx).expect("eval error"));
+                }
+                results.reverse_mut();
+
+                assert_eq!(Sx::List(Arc::new(results)).to_string(), output.to_string());
+            },
+
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    fn test_eval_results(input_source: &str, exp_results: Vec<EvalResult>) {
+        let mut env = Env::new();
+
+        let input = read(input_source).expect("invalid input source");
+        match input {
+            Sx::List(sxs) => {
+                let mut results = Vec::new();
+                for sx in sxs.iter() {
+                    results.push(eval(&mut env, &sx));
+                }
+
+                assert_eq!(results, exp_results);
+            },
+
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_self_eval() {
+        test_eval("nil", "nil");
+        test_eval("true", "true");
+        test_eval("false", "false");
+        test_eval("0", "0");
+        test_eval("-999", "-999");
+        test_eval("\"Yellow submarine\"", "\"Yellow submarine\"");
+        test_eval("\"北京市\"", "\"北京市\"");
+        test_eval("()", "()");
+    }
+
+    #[test]
+    fn test_single_quoted() {
+        test_eval("'nil", "nil");
+        test_eval("'true", "true");
+        test_eval("'false", "false");
+        test_eval("'0", "0");
+        test_eval("'-999", "-999");
+        test_eval("'\"Yellow submarine\"", "\"Yellow submarine\"");
+        test_eval("'\"北京市\"", "\"北京市\"");
+        test_eval("'()", "()");
+        test_eval("'(1 2 3)", "(1 2 3)");
+        test_eval("'foo", "foo");
+    }
+
+    #[test]
+    fn test_double_quoted() {
+        test_eval("''nil", "'nil");
+        test_eval("''true", "'true");
+        test_eval("''false", "'false");
+        test_eval("''0", "'0");
+        test_eval("''-999", "'-999");
+        test_eval("''\"Yellow submarine\"", "'\"Yellow submarine\"");
+        test_eval("''\"北京市\"", "'\"北京市\"");
+        test_eval("''()", "'()");
+        test_eval("''(1 2 3)", "'(1 2 3)");
+        test_eval("''foo", "'foo");
+    }
+
+    #[test]
+    fn test_special_def() {
+        test_eval(r#"
+            (def foo 1)
+            foo
+        "#, r#"
+            foo
+            1
+        "#);
+    }
+
+    #[test]
+    fn test_special_error_def() {
+        let def_symbol = Arc::new("def".to_string());
+        let foo_symbol = Arc::new("foo".to_string());
+
+        test_eval_results(r#"
+            (def)
+            (def foo)
+            (def foo 1 2)
+            (def "foo" 1)
+            (def foo 1)
+            (def foo 2)
+        "#, vec![
+            Err(EvalError::SpecialTooFewArgs(def_symbol.clone())),
+            Err(EvalError::SpecialTooFewArgs(def_symbol.clone())),
+            Err(EvalError::SpecialTooManyArgs(def_symbol.clone())),
+            Err(EvalError::DefineBadSymbol(sx_string!("foo"))),
+            Ok(sx_symbol!("foo")),
+            Err(EvalError::Redefine(foo_symbol.clone()))
+        ]);
+    }
+
+    #[test]
+    fn test_special_if_direct() {
+        test_eval(r#"
+            (if true "happy" "sad")
+            (if "yay!" "happy" "sad")
+            (if false "happy" "sad")
+            (if nil "happy" "sad")
+        "#, r#"
+            "happy"
+            "happy"
+            "sad"
+            "sad"
+        "#);
+    }
+
+    #[test]
+    fn test_special_if_short_circuit() {
+        test_eval(r#"
+            (if true "happy" undefined-symbol)
+            (if false undefined-symbol "sad")
+        "#, r#"
+            "happy"
+            "sad"
+        "#);
+    }
+
+    #[test]
+    fn test_special_error_if() {
+        test_eval_results(r#"
+            (if foo "happy" "sad")
+            (if true foo "sad")
+            (if false "happy" foo)
+        "#, vec![
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo"))),
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo"))),
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo")))
+        ])
+    }
+
+    #[test]
+    fn test_special_if_indirect() {
+        test_eval(r#"
+            (def is-happy? true)
+            (def is-not-happy? false)
+            (if is-happy? "happy" "sad")
+            (if is-not-happy? "happy" "sad")
+        "#, r#"
+            is-happy?
+            is-not-happy?
+            "happy"
+            "sad"
+        "#);
+    }
+
+    #[test]
+    fn test_special_quote() {
+        test_eval(r#"
+            (quote 1)
+            (quote foo)
+            (quote (1 2 3))
+        "#, r#"
+            1
+            foo
+            (1 2 3)
+        "#);
     }
 }

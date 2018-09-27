@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use rpds::List;
 
+pub type SxBoolean  = bool;
 pub type SxInteger  = i64;
 pub type SxString   = Arc<String>;
 pub type SxSymbol   = Arc<String>;
@@ -12,6 +13,7 @@ pub type SxQuote    = Arc<Sx>;
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub enum Sx {
     Nil,
+    Boolean(SxBoolean),
     Integer(SxInteger),
     Symbol(SxSymbol),
     String(SxString),
@@ -25,6 +27,11 @@ macro_rules! sx_nil {
 }
 
 #[macro_export]
+macro_rules! sx_boolean {
+    ($e:expr) => (Sx::Boolean($e));
+}
+
+#[macro_export]
 macro_rules! sx_integer {
     ($e:expr) => (Sx::Integer($e));
 }
@@ -32,6 +39,11 @@ macro_rules! sx_integer {
 #[macro_export]
 macro_rules! sx_symbol {
     ($e:expr) => (Sx::Symbol(Arc::new($e.to_string())));
+}
+
+#[macro_export]
+macro_rules! sx_symbol_unwrapped {
+    ($e:expr) => (Arc::new($e.to_string()));
 }
 
 #[macro_export]
@@ -53,6 +65,8 @@ impl ToString for Sx {
     fn to_string(&self) -> String {
         match self {
             Sx::Nil => format!("nil"),
+
+            Sx::Boolean(b) => format!("{}", b),
 
             Sx::Integer(i) => format!("{}", i),
 
