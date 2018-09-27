@@ -317,7 +317,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
 }
 
 fn is_symbol_start(c: char) -> bool {
-    return c.is_ascii_lowercase() || "*-></+!".contains(c);
+    return c.is_ascii_lowercase() || "*-></+!?".contains(c);
 }
 
 fn is_symbol(c: char) -> bool {

@@ -42,6 +42,11 @@ macro_rules! sx_symbol {
 }
 
 #[macro_export]
+macro_rules! sx_symbol_unwrapped {
+    ($e:expr) => (Arc::new($e.to_string()));
+}
+
+#[macro_export]
 macro_rules! sx_string {
     ($e:expr) => (Sx::String(Arc::new($e.to_string())));
 }

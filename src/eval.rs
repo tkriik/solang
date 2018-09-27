@@ -148,25 +148,198 @@ fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     }
 }
 
-fn do_quote(list: &SxList) -> Result<Sx, EvalError> {
-    let mut args = Vec::new();
-    let mut first = true;
-    for sub_sx in list.iter() {
-        if first {
-            first = false;
-            continue;
-        }
-
-        args.push(sub_sx);
-    }
-
-    if args.len() < 1 {
-        return Err(EvalError::QuoteTooFewArgs);
-    }
-
-    if 1 < args.len() {
-        return Err(EvalError::QuoteTooManyArgs);
-    }
-
+fn special_quote(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     return Ok(args[0].clone());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::sync::Arc;
+
+    use ::read::read;
+
+    fn test_eval(input_source: &str, output_source: &str) {
+        let mut env = Env::new();
+
+        let input = read(input_source).expect("invalid input source");
+        let output = read(output_source).expect("invalid output source");
+
+        match input {
+            Sx::List(sxs) => {
+                let mut results = List::new();
+                for sx in sxs.iter() {
+                    results.push_front_mut(eval(&mut env, &sx).expect("eval error"));
+                }
+                results.reverse_mut();
+
+                assert_eq!(Sx::List(Arc::new(results)).to_string(), output.to_string());
+            },
+
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    fn test_eval_results(input_source: &str, exp_results: Vec<EvalResult>) {
+        let mut env = Env::new();
+
+        let input = read(input_source).expect("invalid input source");
+        match input {
+            Sx::List(sxs) => {
+                let mut results = Vec::new();
+                for sx in sxs.iter() {
+                    results.push(eval(&mut env, &sx));
+                }
+
+                assert_eq!(results, exp_results);
+            },
+
+            _ => {
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_self_eval() {
+        test_eval("nil", "nil");
+        test_eval("true", "true");
+        test_eval("false", "false");
+        test_eval("0", "0");
+        test_eval("-999", "-999");
+        test_eval("\"Yellow submarine\"", "\"Yellow submarine\"");
+        test_eval("\"北京市\"", "\"北京市\"");
+        test_eval("()", "()");
+    }
+
+    #[test]
+    fn test_single_quoted() {
+        test_eval("'nil", "nil");
+        test_eval("'true", "true");
+        test_eval("'false", "false");
+        test_eval("'0", "0");
+        test_eval("'-999", "-999");
+        test_eval("'\"Yellow submarine\"", "\"Yellow submarine\"");
+        test_eval("'\"北京市\"", "\"北京市\"");
+        test_eval("'()", "()");
+        test_eval("'(1 2 3)", "(1 2 3)");
+        test_eval("'foo", "foo");
+    }
+
+    #[test]
+    fn test_double_quoted() {
+        test_eval("''nil", "'nil");
+        test_eval("''true", "'true");
+        test_eval("''false", "'false");
+        test_eval("''0", "'0");
+        test_eval("''-999", "'-999");
+        test_eval("''\"Yellow submarine\"", "'\"Yellow submarine\"");
+        test_eval("''\"北京市\"", "'\"北京市\"");
+        test_eval("''()", "'()");
+        test_eval("''(1 2 3)", "'(1 2 3)");
+        test_eval("''foo", "'foo");
+    }
+
+    #[test]
+    fn test_special_def() {
+        test_eval(r#"
+            (def foo 1)
+            foo
+        "#, r#"
+            foo
+            1
+        "#);
+    }
+
+    #[test]
+    fn test_special_error_def() {
+        let def_symbol = Arc::new("def".to_string());
+        let foo_symbol = Arc::new("foo".to_string());
+
+        test_eval_results(r#"
+            (def)
+            (def foo)
+            (def foo 1 2)
+            (def "foo" 1)
+            (def foo 1)
+            (def foo 2)
+        "#, vec![
+            Err(EvalError::SpecialTooFewArgs(def_symbol.clone())),
+            Err(EvalError::SpecialTooFewArgs(def_symbol.clone())),
+            Err(EvalError::SpecialTooManyArgs(def_symbol.clone())),
+            Err(EvalError::DefineBadSymbol(sx_string!("foo"))),
+            Ok(sx_symbol!("foo")),
+            Err(EvalError::Redefine(foo_symbol.clone()))
+        ]);
+    }
+
+    #[test]
+    fn test_special_if_direct() {
+        test_eval(r#"
+            (if true "happy" "sad")
+            (if "yay!" "happy" "sad")
+            (if false "happy" "sad")
+            (if nil "happy" "sad")
+        "#, r#"
+            "happy"
+            "happy"
+            "sad"
+            "sad"
+        "#);
+    }
+
+    #[test]
+    fn test_special_if_short_circuit() {
+        test_eval(r#"
+            (if true "happy" undefined-symbol)
+            (if false undefined-symbol "sad")
+        "#, r#"
+            "happy"
+            "sad"
+        "#);
+    }
+
+    #[test]
+    fn test_special_error_if() {
+        test_eval_results(r#"
+            (if foo "happy" "sad")
+            (if true foo "sad")
+            (if false "happy" foo)
+        "#, vec![
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo"))),
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo"))),
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo")))
+        ])
+    }
+
+    #[test]
+    fn test_special_if_indirect() {
+        test_eval(r#"
+            (def is-happy? true)
+            (def is-not-happy? false)
+            (if is-happy? "happy" "sad")
+            (if is-not-happy? "happy" "sad")
+        "#, r#"
+            is-happy?
+            is-not-happy?
+            "happy"
+            "sad"
+        "#);
+    }
+
+    #[test]
+    fn test_special_quote() {
+        test_eval(r#"
+            (quote 1)
+            (quote foo)
+            (quote (1 2 3))
+        "#, r#"
+            1
+            foo
+            (1 2 3)
+        "#);
+    }
 }
