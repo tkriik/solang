@@ -5,22 +5,8 @@ use std::sync::Arc;
 
 use rpds::List;
 
-use primitive::PrimitiveFn;
-
-pub type SxBoolean      = bool;
-pub type SxInteger      = i64;
-pub type SxString       = Arc<String>;
-pub type SxSymbol       = Arc<String>;
-pub type SxList         = Arc<List<Sx>>;
-pub type SxQuote        = Arc<Sx>;
-pub type SxPrimitive    = Arc<SxPrimitiveInfo>;
-
-pub struct SxPrimitiveInfo {
-    pub name:       &'static str,
-    pub min_arity:  usize,
-    pub max_arity:  Option<usize>,
-    pub callback:   PrimitiveFn
-}
+use ::env::Env;
+use ::eval::EvalResult;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Sx {
@@ -31,7 +17,33 @@ pub enum Sx {
     String(SxString),
     List(SxList),
     Quote(SxQuote),
-    SxPrimitive(SxPrimitive)
+    Builtin(&'static SxBuiltin)
+}
+
+pub type SxBoolean      = bool;
+pub type SxInteger      = i64;
+pub type SxString       = Arc<String>;
+pub type SxSymbol       = Arc<String>;
+pub type SxList         = Arc<List<Sx>>;
+pub type SxQuote        = Arc<Sx>;
+
+pub struct SxBuiltin {
+    pub name:       &'static str,
+    pub min_arity:  usize,
+    pub max_arity:  Option<usize>,
+    pub callback:   SxBuiltinCallback
+}
+
+pub enum SxBuiltinCallback {
+    Special(fn(&mut Env, &Vec<&Sx>) -> EvalResult),
+    Primitive(fn(&Vec<Sx>) -> Result<Sx, SxPrimitiveError>)
+}
+
+pub type SxSpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
+pub type SxPrimitiveFn = fn(&Vec<Sx>) -> Result<Sx, SxPrimitiveError>;
+
+pub enum SxPrimitiveError {
+    BadArg
 }
 
 #[macro_export]
@@ -108,41 +120,48 @@ impl ToString for Sx {
 
             Sx::Quote(sx) => format!("'{}", sx.to_string()),
 
-            Sx::SxPrimitive(p) => p.to_string()
+            Sx::Builtin(b) => b.to_string()
         }
     }
 }
 
-impl Copy for SxPrimitiveInfo {}
+impl Copy for SxBuiltinCallback {}
 
-impl Clone for SxPrimitiveInfo {
+impl Clone for SxBuiltinCallback {
     fn clone(&self) -> Self {
-        return SxPrimitiveInfo {
-            name:       self.name.clone(),
-            min_arity:  self.min_arity,
-            max_arity:  self.max_arity,
-            callback:   self.callback
-        }
+        *self
     }
 }
-impl fmt::Debug for SxPrimitiveInfo {
+
+impl fmt::Debug for SxBuiltin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.to_string().as_str())
     }
 }
 
-impl Eq for SxPrimitiveInfo {}
+impl Eq for SxBuiltin {}
 
-impl PartialEq for SxPrimitiveInfo {
-    fn eq(&self, other: &SxPrimitiveInfo) -> bool {
-        return self.name == other.name
+impl PartialEq for SxBuiltin {
+    fn eq(&self, other: &SxBuiltin) -> bool {
+        let info_eq = self.name == other.name
             && self.min_arity == other.min_arity
-            && self.max_arity == other.max_arity
-            && self.callback as usize == other.callback as usize;
+            && self.max_arity == other.max_arity;
+
+        let callback_eq = match (self.callback, other.callback) {
+            (SxBuiltinCallback::Special(_), SxBuiltinCallback::Primitive(_)) => false,
+
+            (SxBuiltinCallback::Primitive(_), SxBuiltinCallback::Special(_)) => false,
+
+            (SxBuiltinCallback::Special(a), SxBuiltinCallback::Special(b)) => a as usize == b as usize,
+
+            (SxBuiltinCallback::Primitive(a), SxBuiltinCallback::Primitive(b)) => a as usize == b as usize
+        };
+
+        return info_eq && callback_eq;
     }
 }
 
-impl ToString for SxPrimitiveInfo {
+impl ToString for SxBuiltin {
     fn to_string(&self) -> String {
         let arity_str = match (self.min_arity, self.max_arity) {
             (min_arity, Some(max_arity)) if min_arity == max_arity => format!("{}", min_arity),
@@ -150,6 +169,16 @@ impl ToString for SxPrimitiveInfo {
             (min_arity, None) => format!("{}..", min_arity)
         };
 
-        return format!("#primitive<name: {}, arity: {}>", self.name, arity_str);
+        let info_str = format!("name: {}, arity: {}", self.name, arity_str);
+
+        match self.callback {
+            SxBuiltinCallback::Special(_) => {
+                return format!("#special<{}>", info_str);
+            },
+
+            SxBuiltinCallback::Primitive(_) => {
+                return format!("#primitive<{}>", info_str);
+            }
+        }
     }
 }

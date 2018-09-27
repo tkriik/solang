@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rpds::HashTrieMap;
 
-use primitive::PRIMITIVES;
+use builtin::BUILTIN_ARRAY;
 use sx::{Sx, SxSymbol};
 
 pub struct Env {
@@ -15,9 +15,9 @@ impl Env {
             definitions: HashTrieMap::new()
         };
 
-        for primitive_info in PRIMITIVES.iter() {
-            let symbol = sx_symbol_unwrapped!(primitive_info.name);
-            let value = Sx::SxPrimitive(Arc::new(*primitive_info.clone()));
+        for builtin in BUILTIN_ARRAY.iter() {
+            let symbol = sx_symbol_unwrapped!(builtin.name);
+            let value = Sx::Builtin(*builtin);
             env.define(&symbol, &value);
         }
 
