@@ -1,6 +1,7 @@
 use ::rpds::List;
 
 use ::env::Env;
+use ::primitive::PrimitiveError;
 use ::sx::{Sx, SxSymbol};
 
 #[derive(Eq, PartialEq, Debug)]
@@ -13,6 +14,12 @@ pub enum EvalError {
 
     DefineBadSymbol(Sx),
 
+    // TODO: better info
+    BadArg(Sx),
+    NotAFunction(Sx),
+
+    PrimitiveTooFewArgs(&'static str, usize, usize),
+
     Unknown(Sx)
 }
 
@@ -20,7 +27,7 @@ pub type EvalResult = Result<Sx, EvalError>;
 
 pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
-        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) => {
+        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::SxPrimitive(_) => {
             return Ok(sx.clone());
         },
 
@@ -61,7 +68,8 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                         },
 
                         _ => {
-                            return Err(EvalError::Unknown(sx.clone()))
+                            let head = Sx::Symbol(symbol.clone());
+                            return apply(&head, env, &args);
                         }
                     }
                 }
@@ -70,6 +78,48 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                     return Err(EvalError::Unknown(sx.clone()));
                 }
             }
+        }
+    }
+}
+
+fn apply(head: &Sx, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+    match eval(env, head) {
+        Ok(Sx::SxPrimitive(primitive)) => {
+            let mut args = Vec::new();
+            for arg in arglist.iter() {
+                match eval(env, arg) {
+                    Ok(result) => {
+                        args.push(result);
+                    },
+
+                    error @ Err(_) => {
+                        return error;
+                    }
+                }
+            }
+
+            if args.len() < primitive.min_arity {
+                return Err(EvalError::PrimitiveTooFewArgs(primitive.name, primitive.min_arity, args.len()));
+            }
+
+            let callback = primitive.callback;
+            match callback(&args) {
+                Ok(result) => {
+                    return Ok(result);
+                },
+
+                Err(PrimitiveError::BadArg) => {
+                    return Err(EvalError::BadArg(head.clone()));
+                }
+            }
+        },
+
+        Ok(_) => {
+            return Err(EvalError::NotAFunction(head.clone()));
+        }
+
+        error @ Err(_) => {
+            return error;
         }
     }
 }
@@ -340,6 +390,31 @@ mod tests {
             1
             foo
             (1 2 3)
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_plus() {
+        test_eval(r#"
+            (+)
+            (+ 1)
+            (+ 0 0)
+            (+ -1 1)
+            (+ 1 1)
+            (+ 999 1)
+            (+ (+ 1 1) (+ 1 1))
+            (+ 1 2 3)
+            (+ 1 2 (+ 1 2) 4)
+        "#, r#"
+            0
+            1
+            0
+            0
+            2
+            1000
+            4
+            6
+            10
         "#);
     }
 }

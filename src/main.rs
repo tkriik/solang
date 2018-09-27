@@ -1,6 +1,7 @@
 extern crate clap;
 #[macro_use] extern crate rpds;
 extern crate rustyline;
+extern crate time;
 extern crate unicode_segmentation;
 
 #[cfg(test)]
@@ -11,6 +12,7 @@ use clap::{Arg, App};
 #[macro_use] mod sx;
 mod env;
 mod eval;
+mod primitive;
 mod read;
 mod repl;
 mod token;
