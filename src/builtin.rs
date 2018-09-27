@@ -1,5 +1,5 @@
 use ::env::Env;
-use ::eval::{eval, EvalResult, EvalError};
+use ::eval::{eval, apply_builtin, EvalResult, EvalError};
 use ::sx::{*};
 
 pub static BUILTIN_ARRAY: &'static [&SxBuiltin] = &[
@@ -7,6 +7,7 @@ pub static BUILTIN_ARRAY: &'static [&SxBuiltin] = &[
     &SPECIAL_IF,
     &SPECIAL_QUOTE,
 
+    &PRIMITIVE_APPLY,
     &PRIMITIVE_PLUS,
     &PRIMITIVE_PRODUCT
 ];
@@ -30,6 +31,13 @@ static SPECIAL_QUOTE: SxBuiltin = SxBuiltin {
     min_arity:  1,
     max_arity:  Some(1),
     callback:   SxBuiltinCallback::Special(special_quote)
+};
+
+static PRIMITIVE_APPLY: SxBuiltin = SxBuiltin {
+    name:       "apply",
+    min_arity:  2,
+    max_arity:  Some(2),
+    callback:   SxBuiltinCallback::Primitive(primitive_apply)
 };
 
 static PRIMITIVE_PLUS: SxBuiltin = SxBuiltin {
@@ -99,6 +107,29 @@ fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
 
 fn special_quote(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     return Ok(args[0].clone());
+}
+
+// TODO: call apply in eval.rs
+fn primitive_apply(env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+    let head = &args[0];
+    let value = &args[1];
+    match (eval(env, head), value) {
+        (Ok(Sx::Builtin(builtin)), Sx::List(sub_args)) => {
+            return apply_builtin(builtin, env, sub_args);
+        },
+
+        (Ok(Sx::Builtin(_)), value) => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_APPLY.name, value.clone()));
+        },
+
+        (Ok(v), _) => {
+            return Err(EvalError::NotAFunction(v.clone()));
+        },
+
+        (error @ Err(_), _) => {
+            return error;
+        }
+    }
 }
 
 fn primitive_plus(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {

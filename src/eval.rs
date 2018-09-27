@@ -73,7 +73,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     }
 }
 
-fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+pub fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
             return apply_special(builtin, special_fn, env, arglist);
@@ -309,6 +309,30 @@ mod tests {
             "happy"
             "sad"
         "#);
+    }
+
+    #[test]
+    fn test_primitive_apply() {
+        test_eval(r#"
+            (apply + '())
+            (apply + '(1 2 3))
+        "#, r#"
+            0
+            6
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_error_apply() {
+        test_eval_results(r#"
+            (apply + true)
+            (apply 1 '(1 2 3))
+            (apply foo '(1 2 3))
+        "#, vec![
+            Err(EvalError::BuiltinBadArg("apply", sx_boolean!(true))),
+            Err(EvalError::NotAFunction(sx_integer!(1))),
+            Err(EvalError::Undefined(sx_symbol_unwrapped!("foo")))
+        ]);
     }
 
     #[test]
