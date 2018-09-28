@@ -29,10 +29,6 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
             return Ok(sx.clone());
         },
 
-        Sx::List(l) if l.is_empty() => {
-            return Ok(sx.clone());
-        },
-
         Sx::Quote(v) => {
             return Ok(v.as_ref().clone());
         },
@@ -91,15 +87,7 @@ pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> 
     }
 }
 
-fn apply_special(builtin: &SxBuiltinInfo,
-                 special_fn: SxSpecialFn,
-                 env: &mut Env,
-                 arglist: &[Sx]) -> EvalResult {
-    let mut args = Vec::new();
-    for arg in arglist.iter() {
-        args.push(arg);
-    }
-
+fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> EvalResult {
     if args.len() < builtin.min_arity {
         return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
@@ -112,38 +100,35 @@ fn apply_special(builtin: &SxBuiltinInfo,
         Some(_) | None => ()
     }
 
-    return special_fn(env, &args);
+    return special_fn(env, args);
 }
 
-fn apply_primitive(builtin: &SxBuiltinInfo,
-                   primitive_fn: SxPrimitiveFn,
-                   env: &mut Env,
-                   arglist: &[Sx]) -> EvalResult {
-    let mut args = Vec::new();
-    for arg in arglist.iter() {
+fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> EvalResult {
+    if args.len() < builtin.min_arity {
+        return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
+    }
+
+    match builtin.max_arity {
+        Some(arity) if arity < args.len() => {
+            return Err(EvalError::BuiltinTooManyArgs(builtin.name, arity, args.len()));
+        },
+
+        Some(_) | None => ()
+    }
+
+    let mut result_args = args.to_vec();
+    for arg in result_args.iter_mut() {
         match eval(env, arg) {
-            Ok(result) => args.push(result),
+            Ok(result) => *arg = result,
             error @ Err(_) => return error
         }
     }
 
-    if args.len() < builtin.min_arity {
-        return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
-    }
-
-    match builtin.max_arity {
-        Some(arity) if arity < args.len() => {
-            return Err(EvalError::BuiltinTooManyArgs(builtin.name, arity, args.len()));
-        },
-
-        Some(_) | None => ()
-    }
-
-    return primitive_fn(env, &args);
+    return primitive_fn(env, &result_args);
 }
 
-pub fn apply_function(f: &SxFunction, env: &mut Env, arglist: &[Sx]) -> EvalResult {
-    let arity = arglist.len();
+pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> EvalResult {
+    let arity = args.len();
     if arity < f.arity {
         return Err(EvalError::TooFewArgs(f.clone(), f.arity, arity));
     }
@@ -153,7 +138,7 @@ pub fn apply_function(f: &SxFunction, env: &mut Env, arglist: &[Sx]) -> EvalResu
     }
 
     let mut sub_env = env.clone();
-    for (binding, sx) in f.bindings.iter().zip(arglist.iter()) {
+    for (binding, sx) in f.bindings.iter().zip(args.iter()) {
         match eval(env, sx) {
             Ok(ref result) => sub_env.define(binding, result),
             error @ Err(_) => return error

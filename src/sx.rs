@@ -36,12 +36,11 @@ pub struct SxBuiltinInfo {
 }
 
 pub enum SxBuiltinCallback {
-    Special(SxSpecialFn),
-    Primitive(SxPrimitiveFn)
+    Special(SxBuiltinFn),
+    Primitive(SxBuiltinFn)
 }
 
-pub type SxSpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
-pub type SxPrimitiveFn = fn(&mut Env, &Vec<Sx>) -> EvalResult;
+pub type SxBuiltinFn = fn(&mut Env, &[Sx]) -> EvalResult;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct SxFunctionInfo {

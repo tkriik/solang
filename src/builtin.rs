@@ -98,13 +98,13 @@ static PRIMITIVE_RANGE: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Primitive(primitive_range)
 };
 
-fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
-    let binding = args[0];
+fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
+    let binding = &args[0];
     match binding {
         Sx::Symbol(symbol) => {
             match env.lookup(symbol) {
                 None => {
-                    let value = args[1];
+                    let value = &args[1];
                     match eval(env, value) {
                         Ok(result) => {
                             env.define(symbol, &result);
@@ -129,8 +129,8 @@ fn special_def(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     }
 }
 
-fn special_fn(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
-    let binding_list = args[0];
+fn special_fn(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    let binding_list = &args[0];
     match binding_list {
         Sx::List(bindings) => {
             let mut bindings_vec = Vec::new();
@@ -170,10 +170,10 @@ fn special_fn(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     }
 }
 
-fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
-    let cond = args[0];
-    let true_path = args[1];
-    let false_path = args[2];
+fn special_if(env: &mut Env, args: &[Sx]) -> EvalResult {
+    let cond = &args[0];
+    let true_path = &args[1];
+    let false_path = &args[2];
 
     match eval(env, cond) {
         Ok(Sx::Nil) | Ok(Sx::Boolean(false)) => {
@@ -190,12 +190,12 @@ fn special_if(env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
     }
 }
 
-fn special_quote(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
+fn special_quote(_env: &mut Env, args: &[Sx]) -> EvalResult {
     return Ok(args[0].clone());
 }
 
 // TODO: call apply in eval.rs
-fn primitive_apply(env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
     let head = &args[0];
     let value = &args[1];
     match (eval(env, head), value) {
@@ -221,7 +221,7 @@ fn primitive_apply(env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     }
 }
 
-fn primitive_cons(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_cons(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let value = &args[0];
     let list_arg = &args[1];
 
@@ -238,7 +238,7 @@ fn primitive_cons(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     }
 }
 
-fn primitive_head(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_head(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let list_arg = &args[0];
     match list_arg {
         Sx::List(list) => {
@@ -259,7 +259,7 @@ fn primitive_head(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     }
 }
 
-fn primitive_tail(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_tail(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let list_arg = &args[0];
     match list_arg {
         Sx::List(list) => {
@@ -281,7 +281,7 @@ fn primitive_tail(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     }
 }
 
-fn primitive_plus(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_plus(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let mut sum = 0;
     for arg in args {
         match arg {
@@ -299,7 +299,7 @@ fn primitive_plus(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     return Ok(sx_integer!(sum));
 }
 
-fn primitive_product(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_product(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let mut product = 1;
     for arg in args {
         match arg {
@@ -318,7 +318,7 @@ fn primitive_product(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
 }
 
 // TODO: vectors
-fn primitive_range(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+fn primitive_range(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let mut numbers = Vec::new();
 
     match args[..] {
