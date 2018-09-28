@@ -1,5 +1,3 @@
-use ::rpds::List;
-
 use ::env::Env;
 use ::sx::{*};
 
@@ -20,9 +18,7 @@ pub enum EvalError {
     BuiltinTooManyArgs(&'static str, usize, usize),
 
     TooFewArgs(SxFunction, usize, usize),
-    TooManyArgs(SxFunction, usize, usize),
-
-    Unknown(Sx)
+    TooManyArgs(SxFunction, usize, usize)
 }
 
 pub type EvalResult = Result<Sx, EvalError>;
@@ -54,12 +50,12 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
         },
 
         Sx::List(l) => {
-            match (l.first(), l.drop_first()) {
-                (None, _) => {
+            match l.split_first() {
+                None => {
                     return Ok(sx.clone());
                 },
 
-                (Some(ref head), Some(ref args)) => {
+                Some((head, args)) => {
                     match eval(env, head) {
                         Ok(Sx::Builtin(builtin)) => {
                             return apply_builtin(builtin, env, args);
@@ -77,17 +73,13 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                             return error;
                         }
                     }
-                },
-
-                _ => {
-                    return Err(EvalError::Unknown(sx.clone()));
                 }
             }
         }
     }
 }
 
-pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> EvalResult {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
             return apply_special(builtin, special_fn, env, arglist);
@@ -102,7 +94,7 @@ pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &List<Sx>)
 fn apply_special(builtin: &SxBuiltinInfo,
                  special_fn: SxSpecialFn,
                  env: &mut Env,
-                 arglist: &List<Sx>) -> EvalResult {
+                 arglist: &[Sx]) -> EvalResult {
     let mut args = Vec::new();
     for arg in arglist.iter() {
         args.push(arg);
@@ -126,7 +118,7 @@ fn apply_special(builtin: &SxBuiltinInfo,
 fn apply_primitive(builtin: &SxBuiltinInfo,
                    primitive_fn: SxPrimitiveFn,
                    env: &mut Env,
-                   arglist: &List<Sx>) -> EvalResult {
+                   arglist: &[Sx]) -> EvalResult {
     let mut args = Vec::new();
     for arg in arglist.iter() {
         match eval(env, arg) {
@@ -150,7 +142,7 @@ fn apply_primitive(builtin: &SxBuiltinInfo,
     return primitive_fn(env, &args);
 }
 
-pub fn apply_function(f: &SxFunction, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+pub fn apply_function(f: &SxFunction, env: &mut Env, arglist: &[Sx]) -> EvalResult {
     let arity = arglist.len();
     if arity < f.arity {
         return Err(EvalError::TooFewArgs(f.clone(), f.arity, arity));
@@ -197,11 +189,10 @@ mod tests {
 
         match input {
             Sx::List(sxs) => {
-                let mut results = List::new();
+                let mut results = Vec::new();
                 for sx in sxs.iter() {
-                    results.push_front_mut(eval(&mut env, &sx).expect("eval error"));
+                    results.push(eval(&mut env, &sx).expect("eval error"));
                 }
-                results.reverse_mut();
 
                 assert_eq!(Sx::List(Arc::new(results)).to_string(), output.to_string());
             },
@@ -338,13 +329,13 @@ mod tests {
         let f1 = Arc::new(SxFunctionInfo {
             arity:      1,
             bindings:   vec![sx_symbol_unwrapped!("x")],
-            body:       Arc::new(list![sx_symbol!("x")])
+            body:       Arc::new(vec![sx_symbol!("x")])
         });
 
         let f2 = Arc::new(SxFunctionInfo {
             arity:      2,
             bindings:   vec![sx_symbol_unwrapped!("x"), sx_symbol_unwrapped!("y")],
-            body:       Arc::new(list![sx_symbol!("x")])
+            body:       Arc::new(vec![sx_symbol!("x")])
         });
 
         test_eval_results(r#"
@@ -361,13 +352,13 @@ mod tests {
         let f1 = Arc::new(SxFunctionInfo {
             arity:      0,
             bindings:   vec![],
-            body:       Arc::new(list![sx_nil!()])
+            body:       Arc::new(vec![sx_nil!()])
         });
 
         let f2 = Arc::new(SxFunctionInfo {
             arity:      1,
             bindings:   vec![sx_symbol_unwrapped!("x")],
-            body:       Arc::new(list![sx_symbol!("x")])
+            body:       Arc::new(vec![sx_symbol!("x")])
         });
 
         test_eval_results(r#"

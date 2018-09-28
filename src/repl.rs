@@ -150,10 +150,6 @@ fn print_eval_error(eval_error: &EvalError ) {
 
         EvalError::TooManyArgs(f, max_arity, act_arity) => {
             println!("eval error: {} expects at most {} argument(s), got {}", f.to_string(), max_arity, act_arity);
-        },
-
-        EvalError::Unknown(sx) => {
-            println!("eval error: don't know how to evaluate expression: {}", sx.to_string());
         }
     }
 }

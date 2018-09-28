@@ -3,8 +3,6 @@ use std::clone::Clone;
 use std::string::ToString;
 use std::sync::Arc;
 
-use rpds::List;
-
 use ::env::Env;
 use ::eval::EvalResult;
 
@@ -25,7 +23,7 @@ pub type SxBoolean      = bool;
 pub type SxInteger      = i64;
 pub type SxString       = Arc<String>;
 pub type SxSymbol       = Arc<String>;
-pub type SxList         = Arc<List<Sx>>;
+pub type SxList         = Arc<Vec<Sx>>;
 pub type SxQuote        = Arc<Sx>;
 pub type SxBuiltin      = &'static SxBuiltinInfo;
 pub type SxFunction     = Arc<SxFunctionInfo>;
@@ -84,7 +82,7 @@ macro_rules! sx_string {
 
 #[macro_export]
 macro_rules! sx_list {
-    [ $( $e:expr ),*] => (Sx::List(Arc::new(list![$($e),*])));
+    [ $( $e:expr ),*] => (Sx::List(Arc::new(vec![$($e),*])));
 }
 
 #[macro_export]

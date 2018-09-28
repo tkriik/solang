@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use rpds::List;
-
 use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
 use ::sx::{*};
@@ -152,17 +150,15 @@ fn special_fn(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
                 }
             }
 
-            let mut body = List::new();
+            let mut body = Vec::new();
             for i in 1 .. args.len() {
-                body.push_front_mut(args[i].clone());
+                body.push(args[i].clone());
             }
-
-            body.reverse_mut();
 
             let f = SxFunctionInfo {
                 arity:      bindings.len(),
                 bindings:   bindings_vec,
-                body:       Arc::new(body.clone())
+                body:       Arc::new(body)
             };
 
             return Ok(Sx::Function(Arc::new(f)));
@@ -231,8 +227,9 @@ fn primitive_cons(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
 
     match list_arg {
         Sx::List(list) => {
-            let new_list = Arc::new(list.push_front(value.clone()));
-            return Ok(Sx::List(new_list));
+            let mut new_list = list.as_slice().to_vec();
+            new_list.insert(0, value.clone());
+            return Ok(Sx::List(Arc::new(new_list)));
         },
 
         _ => {
@@ -266,9 +263,10 @@ fn primitive_tail(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
     let list_arg = &args[0];
     match list_arg {
         Sx::List(list) => {
-            match list.drop_first() {
-                Some(list_tail) => {
-                    return Ok(Sx::List(Arc::new(list_tail.clone())));
+            match list.split_first() {
+                Some((_, tail_slice)) => {
+                    let tail = tail_slice.to_vec();
+                    return Ok(Sx::List(Arc::new(tail)));
                 },
 
                 None => {
@@ -321,18 +319,18 @@ fn primitive_product(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
 
 // TODO: vectors
 fn primitive_range(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
-    let mut numbers = List::new();
+    let mut numbers = Vec::new();
 
     match args[..] {
         [Sx::Integer(end)] => {
             for i in 0i64 .. end {
-                numbers.push_front_mut(sx_integer!(i));
+                numbers.push(sx_integer!(i));
             }
         },
 
         [Sx::Integer(start), Sx::Integer(end)] => {
             for i in start .. end {
-                numbers.push_front_mut(sx_integer!(i));
+                numbers.push(sx_integer!(i));
             }
         },
 
@@ -348,8 +346,6 @@ fn primitive_range(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
             assert!(false);
         }
     }
-
-    numbers.reverse_mut();
 
     return Ok(Sx::List(Arc::new(numbers)));
 }

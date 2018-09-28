@@ -7,6 +7,7 @@ use sx::{Sx, SxSymbol};
 
 #[derive(Clone)]
 pub struct Env {
+    // TODO: immutable.rs?
     definitions: HashTrieMap<SxSymbol, Sx>
 }
 

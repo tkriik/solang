@@ -1,5 +1,5 @@
 extern crate clap;
-#[macro_use] extern crate rpds;
+extern crate rpds;
 extern crate rustyline;
 extern crate time;
 extern crate unicode_segmentation;
