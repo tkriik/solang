@@ -12,7 +12,9 @@ pub enum EvalError {
     NotAFunction(Sx),
     InvalidBinding(Sx),
     DuplicateBinding(SxSymbol),
+    // TODO: top-level shadow error
 
+    // TODO: BadArg expected info
     BuiltinBadArg(&'static str, Sx),
     BuiltinTooFewArgs(&'static str, usize, usize),
     BuiltinTooManyArgs(&'static str, usize, usize),
@@ -178,6 +180,7 @@ pub fn apply_function(f: &SxFunction, env: &mut Env, arglist: &List<Sx>) -> Eval
     return Ok(result);
 }
 
+// TODO: relocate primitive and special tests
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -465,6 +468,45 @@ mod tests {
             Err(EvalError::NotAFunction(sx_integer!(1))),
             Err(EvalError::Undefined(sx_symbol_unwrapped!("foo")))
         ]);
+    }
+
+    #[test]
+    fn test_primitive_cons() {
+        test_eval(r#"
+            (cons 1 ())
+            (cons 1 '(2))
+            (cons 1 (cons 2 (cons 3 ())))
+        "#, r#"
+            (1)
+            (1 2)
+            (1 2 3)
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_head() {
+        test_eval(r#"
+            (head '(1))
+            (head '(2 1))
+            (head '(3 2 1))
+        "#, r#"
+            1
+            2
+            3
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_tail() {
+        test_eval(r#"
+            (tail '(1))
+            (tail '(1 2 3))
+            (tail (tail '(1 2 3)))
+        "#, r#"
+            ()
+            (2 3)
+            (3)
+        "#);
     }
 
     #[test]

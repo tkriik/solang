@@ -6,16 +6,21 @@ use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
 use ::sx::{*};
 
-pub static BUILTIN_ARRAY: &'static [&SxBuiltinInfo] = &[
+pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
     &SPECIAL_DEF,
     &SPECIAL_FN,
     &SPECIAL_IF,
     &SPECIAL_QUOTE,
 
     &PRIMITIVE_APPLY,
+
+    &PRIMITIVE_CONS,
+    &PRIMITIVE_HEAD,
+    &PRIMITIVE_TAIL,
+
     &PRIMITIVE_PLUS,
     &PRIMITIVE_PRODUCT,
-    &PRIMITIVE_RANGE,
+    &PRIMITIVE_RANGE
 ];
 
 static SPECIAL_DEF: SxBuiltinInfo = SxBuiltinInfo {
@@ -51,6 +56,27 @@ static PRIMITIVE_APPLY: SxBuiltinInfo = SxBuiltinInfo {
     min_arity:  2,
     max_arity:  Some(2),
     callback:   SxBuiltinCallback::Primitive(primitive_apply)
+};
+
+static PRIMITIVE_CONS: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "cons",
+    min_arity:  2,
+    max_arity:  Some(2),
+    callback:   SxBuiltinCallback::Primitive(primitive_cons)
+};
+
+static PRIMITIVE_HEAD: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "head",
+    min_arity:  1,
+    max_arity:  Some(1),
+    callback:   SxBuiltinCallback::Primitive(primitive_head)
+};
+
+static PRIMITIVE_TAIL: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "tail",
+    min_arity:  1,
+    max_arity:  Some(1),
+    callback:   SxBuiltinCallback::Primitive(primitive_tail)
 };
 
 static PRIMITIVE_PLUS: SxBuiltinInfo = SxBuiltinInfo {
@@ -195,6 +221,64 @@ fn primitive_apply(env: &mut Env, args: &Vec<Sx>) -> EvalResult {
 
         (error @ Err(_), _) => {
             return error;
+        }
+    }
+}
+
+fn primitive_cons(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+    let value = &args[0];
+    let list_arg = &args[1];
+
+    match list_arg {
+        Sx::List(list) => {
+            let new_list = Arc::new(list.push_front(value.clone()));
+            return Ok(Sx::List(new_list));
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_CONS.name, list_arg.clone()));
+        }
+    }
+}
+
+fn primitive_head(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+    let list_arg = &args[0];
+    match list_arg {
+        Sx::List(list) => {
+            match list.first() {
+                Some(value) => {
+                    return Ok(value.clone());
+                },
+
+                None => {
+                    return Err(EvalError::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
+                }
+            }
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
+        }
+    }
+}
+
+fn primitive_tail(_env: &mut Env, args: &Vec<Sx>) -> EvalResult {
+    let list_arg = &args[0];
+    match list_arg {
+        Sx::List(list) => {
+            match list.drop_first() {
+                Some(list_tail) => {
+                    return Ok(Sx::List(Arc::new(list_tail.clone())));
+                },
+
+                None => {
+                    return Err(EvalError::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
+                }
+            }
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
         }
     }
 }
