@@ -1,4 +1,5 @@
 extern crate clap;
+#[macro_use] extern crate im;
 extern crate rpds;
 extern crate rustyline;
 extern crate time;

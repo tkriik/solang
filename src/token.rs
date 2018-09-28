@@ -8,13 +8,12 @@ pub enum Kind {
     Boolean,
     Integer,
     Symbol,
-
     StringPartial,
     String,
-
     ListStart,
     ListEnd,
-
+    VectorStart,
+    VectorEnd,
     Quote,
 
     Invalid
@@ -105,6 +104,20 @@ impl <'a> TokenReader<'a> {
                             break;
                         }
 
+                        // Empty -> Done (VectorStart)
+                        '[' => {
+                            token = Token::new(Kind::VectorStart, &self.window[offset ..]);
+                            token.update(c);
+                            break;
+                        }
+
+                        // Empty -> Done (VectorEnd)
+                        ']' => {
+                            token = Token::new(Kind::VectorEnd, &self.window[offset ..]);
+                            token.update(c);
+                            break;
+                        }
+
                         // Empty -> Done (Quote)
                         '\'' => {
                             token = Token::new(Kind::Quote, &self.window[offset ..]);
@@ -128,7 +141,7 @@ impl <'a> TokenReader<'a> {
                         }
 
                         // Integer -> Done
-                        '(' | ')' | '"' | '\'' => {
+                        '(' | ')' | '"' | '\'' | '[' | ']' => {
                             read_size -= c.len_utf8();
                             break;
                         }
@@ -154,7 +167,7 @@ impl <'a> TokenReader<'a> {
                         },
 
                         // Symbol -> Done
-                        '(' | ')' | '"' | '\'' => {
+                        '(' | ')' | '"' | '\'' | '[' | ']' => {
                             read_size -= c.len_utf8();
                             break;
                         },
@@ -225,7 +238,7 @@ impl <'a> TokenReader<'a> {
                         },
 
                         // Nil -> Done
-                        '(' | ')' | '"' | '\'' => {
+                        '(' | ')' | '"' | '\'' | '[' | ']' => {
                             read_size -= c.len_utf8();
                             break;
                         },
@@ -252,7 +265,7 @@ impl <'a> TokenReader<'a> {
                         },
 
                         // Boolean -> Done
-                        '(' | ')' | '"' | '\'' => {
+                        '(' | ')' | '"' | '\'' | '[' | ']' => {
                             read_size -= c.len_utf8();
                             break;
                         },
@@ -277,6 +290,12 @@ impl <'a> TokenReader<'a> {
                         _ if c.is_whitespace() => {
                             break;
                         }
+
+                        // Invalid -> Done
+                        '(' | ')' | '"' | '\'' | '[' | ']' => {
+                            read_size -= c.len_utf8();
+                            break;
+                        },
 
                         // Invalid -> Invalid
                         _ => {
@@ -518,6 +537,21 @@ mod tests {
 
         test_tokenize("(())", &exp_tokens);
         test_tokenize("\n(\t (\n  )\n\r\t)\n ", &exp_tokens);
+        //test_tokenize("\n( \t\r\n(   )\t\t )\n", &exp_tokens); // TODO: report \r\n -> \r bug/feature in unicode_segmentation lib
+    }
+
+    #[test]
+    fn test_vector() {
+        let exp_tokens = vec![
+            Token { kind: Kind::VectorStart, size: 1, data: "[" },
+            Token { kind: Kind::VectorStart, size: 1, data: "[" },
+            Token { kind: Kind::VectorEnd,   size: 1, data: "]" },
+            Token { kind: Kind::VectorEnd,   size: 1, data: "]" }
+        ];
+
+        test_tokenize("[[]]", &exp_tokens);
+        test_tokenize("\n[  [\t\r]\n  \t]\n", &exp_tokens);
+        //test_tokenize("\n[ \t\r\n[   ]\t\t ]\n", &exp_tokens); // TODO: report \r\n -> \r bug/feature in unicode_segmentation lib
     }
 
     #[test]
@@ -536,19 +570,22 @@ mod tests {
     #[test]
     fn test_multi() {
         let exp_tokens = vec![
-            Token { kind: Kind::ListStart, size: 1, data: "("      },
-            Token { kind: Kind::Symbol,    size: 3, data: "foo"    },
-            Token { kind: Kind::Boolean,   size: 4, data: "true"   },
-            Token { kind: Kind::Invalid,   size: 2, data: "a,"     },
-            Token { kind: Kind::Nil,       size: 3, data: "nil"    },
-            Token { kind: Kind::String,    size: 3, data: "abc"    },
-            Token { kind: Kind::Symbol,    size: 3, data: "bar"    },
-            Token { kind: Kind::Boolean,   size: 5, data: "false"  },
-            Token { kind: Kind::String,    size: 9, data: "北京市" },
-            Token { kind: Kind::ListEnd,   size: 1, data: ")"      }
+            Token { kind: Kind::ListStart,   size: 1, data: "("      },
+            Token { kind: Kind::VectorStart, size: 1, data: "["      },
+            Token { kind: Kind::Symbol,      size: 3, data: "foo"    },
+            Token { kind: Kind::Boolean,     size: 4, data: "true"   },
+            Token { kind: Kind::VectorEnd,   size: 1, data: "]"      },
+            Token { kind: Kind::Invalid,     size: 2, data: "a,"     },
+            Token { kind: Kind::VectorStart, size: 1, data: "["      },
+            Token { kind: Kind::Nil,         size: 3, data: "nil"    },
+            Token { kind: Kind::String,      size: 3, data: "abc"    },
+            Token { kind: Kind::Symbol,      size: 3, data: "bar"    },
+            Token { kind: Kind::Boolean,     size: 5, data: "false"  },
+            Token { kind: Kind::String,      size: 9, data: "北京市" },
+            Token { kind: Kind::ListEnd,     size: 1, data: ")"      }
         ];
 
-        test_tokenize("(foo true a, nil\"abc\"bar false\"北京市\")", &exp_tokens);
-        test_tokenize("(\n\t foo\ttrue\na, \tnil \"abc\" \nbar false\t\"北京市\" \t\t)\r\n", &exp_tokens);
+        test_tokenize("([foo true]a,[nil\"abc\"bar false\"北京市\")", &exp_tokens);
+        test_tokenize("(\n\t[ foo\ttrue\n] a, [\tnil \"abc\" \nbar false\t\"北京市\" \t\t)\r\n", &exp_tokens);
     }
 }

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use im;
+
 use ::sx::Sx;
 use ::token::{tokenize, Kind};
 
@@ -8,17 +10,17 @@ pub enum ReadError {
     InvalidToken(String),
     IntegerLimit(String),
     PartialString(String),
+    InvalidCloseDelimiter(Kind, String),
     TrailingDelimiter(String),
-    UnmatchedDelimiter
+    UnmatchedDelimiter(Kind)
 }
 
 pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
     let mut opt_sx = None;
     let mut sxs = Vec::new();
 
-    let mut sxs_stack = Vec::new();
-    let mut quote_stack = Vec::new();
-    let mut num_quotes = 0;
+    let mut read_stack = Vec::new();
+    let mut nquotes = 0;
 
     let mut read_errors = Vec::new();
 
@@ -65,28 +67,44 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
                 opt_sx = Some(sx_string!(token.data));
             },
 
-            Kind::ListStart => {
-                sxs_stack.push(sxs);
-                quote_stack.push(num_quotes);
+            Kind::ListStart | Kind::VectorStart => {
+                read_stack.push((sxs, token.kind, nquotes));
 
                 let sub_sxs = Vec::new();
                 sxs = sub_sxs;
-                num_quotes = 0;
+                nquotes = 0;
             },
 
-            Kind::ListEnd => {
-                match sxs_stack.pop() {
-                    Some(mut top_sxs) => {
-                        let mut sx = Sx::List(Arc::new(sxs));
-                        num_quotes = quote_stack.pop().expect("empty quote stack");
-                        for _ in 0 .. num_quotes {
-                            sx = Sx::Quote(Arc::new(sx));
-                            num_quotes -= 1;
+            Kind::ListEnd | Kind::VectorEnd => {
+                match read_stack.pop () {
+                    Some((mut top_sxs, top_delim, top_nquotes)) => {
+                        match (top_delim, token.kind) {
+                            (Kind::ListStart, Kind::ListEnd) => (),
+                            (Kind::VectorStart, Kind::VectorEnd) => (),
+                            _ => {
+                                read_errors.push(ReadError::InvalidCloseDelimiter(top_delim, token.data.to_string()));
+                                continue;
+                            }
+                        }
+
+                        let mut sx = match token.kind {
+                            Kind::ListEnd => sx_list_from_vec!(sxs),
+                            Kind::VectorEnd => sx_vector_from_vec!(sxs),
+                            _ => {
+                                assert!(false);
+                                sx_nil!()
+                            }
+                        };
+
+                        nquotes = top_nquotes;
+                        for _ in 0 .. nquotes {
+                            sx = sx_quote!(sx);
+                            nquotes -= 1;
                         }
 
                         top_sxs.push(sx.clone());
-                        sxs = top_sxs;
-                    }
+                        sxs = top_sxs
+                    },
 
                     None => {
                         read_errors.push(ReadError::TrailingDelimiter(token.data.to_string()));
@@ -95,7 +113,7 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
             },
 
             Kind::Quote => {
-                num_quotes += 1;
+                nquotes += 1;
             },
 
             Kind::StringPartial => {
@@ -113,9 +131,9 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
 
         match opt_sx {
             Some(mut sx) => {
-                for _ in 0 .. num_quotes {
-                    sx = Sx::Quote(Arc::new(sx));
-                    num_quotes -= 1;
+                for _ in 0 .. nquotes {
+                    sx = sx_quote!(sx);
+                    nquotes -= 1;
                 }
 
                 sxs.push(sx);
@@ -127,8 +145,8 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
 
     }
 
-    if !sxs_stack.is_empty() {
-        read_errors.push(ReadError::UnmatchedDelimiter);
+    for (_, top_delim, _) in read_stack.iter() {
+        read_errors.push(ReadError::UnmatchedDelimiter(*top_delim));
     }
 
     if !read_errors.is_empty() {
@@ -180,9 +198,9 @@ mod tests {
     #[test]
     fn test_int() {
         let exp_sxs = sx_list![
-            Sx::Integer(0),
-            Sx::Integer(1),
-            Sx::Integer(12345678)
+            sx_integer!(0),
+            sx_integer!(1),
+            sx_integer!(12345678)
         ];
 
         test_sxs("0 1 12345678", exp_sxs);
@@ -191,9 +209,9 @@ mod tests {
     #[test]
     fn test_negative_int() {
         let exp_sxs = sx_list![
-            Sx::Integer(-0),
-            Sx::Integer(-1),
-            Sx::Integer(-12345678)
+            sx_integer!(-0),
+            sx_integer!(-1),
+            sx_integer!(-12345678)
         ];
 
         test_sxs("-0 -1 -12345678", exp_sxs);
@@ -309,6 +327,54 @@ mod tests {
         ];
 
         test_sxs("(nil (foo) \"北京市\")", exp_sxs);
+    }
+
+    #[test]
+    fn test_vector_empty() {
+        let exp_sxs = sx_list![
+            sx_vector![]
+        ];
+
+        test_sxs("[]", exp_sxs);
+    }
+
+    #[test]
+    fn test_vector_singleton() {
+        let exp_sxs = sx_list![
+            sx_vector![sx_integer!(3)]
+        ];
+
+        test_sxs("[3]", exp_sxs);
+    }
+
+    #[test]
+    fn test_vector_nonempty() {
+        let exp_sxs = sx_list![
+            sx_vector![
+                sx_nil!(),
+                sx_symbol!("foo"),
+                sx_string!("北京市"),
+                sx_symbol!("bar")
+            ]
+        ];
+
+        test_sxs("[nil foo \"北京市\" bar]", exp_sxs);
+    }
+
+    #[test]
+    fn test_vector_nested() {
+        let exp_sxs = sx_list![
+            sx_vector![
+                sx_vector![sx_nil!()],
+                sx_vector![
+                    sx_symbol!("foo"),
+                    sx_vector![sx_string!("北京市")]
+                ],
+                sx_vector![sx_symbol!("bar")]
+            ]
+        ];
+
+        test_sxs("[[nil] [foo [\"北京市\"]] [bar]]", exp_sxs);
     }
 
     #[test]
@@ -436,12 +502,23 @@ mod tests {
     }
 
     #[test]
-    fn test_unmatched_delimiter_list() {
+    fn test_invalid_close_delimiter() {
         let exp_errs = vec![
-                ReadError::UnmatchedDelimiter
+            ReadError::InvalidCloseDelimiter(Kind::ListStart, "]".to_string()),
+            ReadError::InvalidCloseDelimiter(Kind::VectorStart, ")".to_string())
         ];
 
-        test_errors("(foo bar baz", exp_errs);
+        test_errors("(foo bar baz] [foo bar baz)", exp_errs);
+    }
+
+    #[test]
+    fn test_unmatched_delimiter() {
+        let exp_errs = vec![
+                ReadError::UnmatchedDelimiter(Kind::ListStart),
+                ReadError::UnmatchedDelimiter(Kind::VectorStart)
+        ];
+
+        test_errors("(foo bar baz [foo bar baz", exp_errs);
     }
 
     #[test]
