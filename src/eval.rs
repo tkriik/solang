@@ -1,5 +1,3 @@
-use ::rpds::List;
-
 use ::env::Env;
 use ::sx::{*};
 
@@ -8,22 +6,26 @@ pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
     DefineBadSymbol(Sx),
+
     NotAFunction(Sx),
+    InvalidBinding(Sx),
+    DuplicateBinding(SxSymbol),
+    // TODO: top-level shadow error
+
+    // TODO: BadArg expected info
     BuiltinBadArg(&'static str, Sx),
     BuiltinTooFewArgs(&'static str, usize, usize),
     BuiltinTooManyArgs(&'static str, usize, usize),
-    Unknown(Sx)
+
+    TooFewArgs(SxFunction, usize, usize),
+    TooManyArgs(SxFunction, usize, usize)
 }
 
 pub type EvalResult = Result<Sx, EvalError>;
 
 pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
-        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) => {
-            return Ok(sx.clone());
-        },
-
-        Sx::List(l) if l.is_empty() => {
+        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) | Sx::Function(_) => {
             return Ok(sx.clone());
         },
 
@@ -44,15 +46,19 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
         },
 
         Sx::List(l) => {
-            match (l.first(), l.drop_first()) {
-                (None, _) => {
+            match l.split_first() {
+                None => {
                     return Ok(sx.clone());
                 },
 
-                (Some(ref head), Some(ref args)) => {
+                Some((head, args)) => {
                     match eval(env, head) {
                         Ok(Sx::Builtin(builtin)) => {
                             return apply_builtin(builtin, env, args);
+                        },
+
+                        Ok(Sx::Function(ref f)) => {
+                            return apply_function(f, env, args);
                         },
 
                         Ok(v) => {
@@ -63,17 +69,13 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                             return error;
                         }
                     }
-                },
-
-                _ => {
-                    return Err(EvalError::Unknown(sx.clone()));
                 }
             }
         }
     }
 }
 
-pub fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> EvalResult {
+pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> EvalResult {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
             return apply_special(builtin, special_fn, env, arglist);
@@ -85,15 +87,7 @@ pub fn apply_builtin(builtin: &SxBuiltin, env: &mut Env, arglist: &List<Sx>) -> 
     }
 }
 
-fn apply_special(builtin: &SxBuiltin,
-                 special_fn: SxSpecialFn,
-                 env: &mut Env,
-                 arglist: &List<Sx>) -> EvalResult {
-    let mut args = Vec::new();
-    for arg in arglist.iter() {
-        args.push(arg);
-    }
-
+fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> EvalResult {
     if args.len() < builtin.min_arity {
         return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
@@ -106,36 +100,64 @@ fn apply_special(builtin: &SxBuiltin,
         Some(_) | None => ()
     }
 
-    return special_fn(env, &args);
+    return special_fn(env, args);
 }
 
-fn apply_primitive(builtin: &SxBuiltin,
-                   primitive_fn: SxPrimitiveFn,
-                   env: &mut Env,
-                   arglist: &List<Sx>) -> EvalResult {
-    let mut args = Vec::new();
-    for arg in arglist.iter() {
+fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> EvalResult {
+    if args.len() < builtin.min_arity {
+        return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
+    }
+
+    match builtin.max_arity {
+        Some(arity) if arity < args.len() => {
+            return Err(EvalError::BuiltinTooManyArgs(builtin.name, arity, args.len()));
+        },
+
+        Some(_) | None => ()
+    }
+
+    let mut result_args = args.to_vec();
+    for arg in result_args.iter_mut() {
         match eval(env, arg) {
-            Ok(result) => args.push(result),
+            Ok(result) => *arg = result,
             error @ Err(_) => return error
         }
     }
 
-    if args.len() < builtin.min_arity {
-        return Err(EvalError::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
-    }
-
-    match builtin.max_arity {
-        Some(arity) if arity < args.len() => {
-            return Err(EvalError::BuiltinTooManyArgs(builtin.name, arity, args.len()));
-        },
-
-        Some(_) | None => ()
-    }
-
-    return primitive_fn(env, &args);
+    return primitive_fn(env, &result_args);
 }
 
+pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> EvalResult {
+    let arity = args.len();
+    if arity < f.arity {
+        return Err(EvalError::TooFewArgs(f.clone(), f.arity, arity));
+    }
+
+    if f.arity < arity {
+        return Err(EvalError::TooManyArgs(f.clone(), f.arity, arity));
+    }
+
+    let mut sub_env = env.clone();
+    for (binding, sx) in f.bindings.iter().zip(args.iter()) {
+        match eval(env, sx) {
+            Ok(ref result) => sub_env.define(binding, result),
+            error @ Err(_) => return error
+        }
+    }
+
+    let exprs = f.body.clone();
+    let mut result = sx_nil!();
+    for expr in exprs.iter() {
+        match eval(&mut sub_env, expr) {
+            Ok(sub_result) => result = sub_result,
+            error @ Err(_) => return error
+        }
+    }
+
+    return Ok(result);
+}
+
+// TODO: relocate primitive and special tests
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -152,11 +174,10 @@ mod tests {
 
         match input {
             Sx::List(sxs) => {
-                let mut results = List::new();
+                let mut results = Vec::new();
                 for sx in sxs.iter() {
-                    results.push_front_mut(eval(&mut env, &sx).expect("eval error"));
+                    results.push(eval(&mut env, &sx).expect("eval error"));
                 }
-                results.reverse_mut();
 
                 assert_eq!(Sx::List(Arc::new(results)).to_string(), output.to_string());
             },
@@ -258,6 +279,83 @@ mod tests {
     }
 
     #[test]
+    fn test_special_fn_invoke() {
+        test_eval(r#"
+            ((fn () nil))
+            ((fn (x) (* x x)) 3)
+            ((fn (pred x y) (if pred x y)) true "happy" "sad")
+        "#, r#"
+            nil
+            9
+            "happy"
+        "#);
+    }
+
+    #[test]
+    fn test_special_fn_invalid_binding() {
+        test_eval_results(r#"
+            (fn (x 1) nil)
+        "#, vec![
+            Err(EvalError::InvalidBinding(sx_integer!(1)))
+        ]);
+    }
+
+    #[test]
+    fn test_special_fn_duplicate_binding() {
+        test_eval_results(r#"
+            (fn (x x) (+ x x))
+        "#, vec![
+            Err(EvalError::DuplicateBinding(sx_symbol_unwrapped!("x")))
+        ]);
+    }
+
+    #[test]
+    fn test_special_fn_too_few_args() {
+        let f1 = Arc::new(SxFunctionInfo {
+            arity:      1,
+            bindings:   vec![sx_symbol_unwrapped!("x")],
+            body:       Arc::new(vec![sx_symbol!("x")])
+        });
+
+        let f2 = Arc::new(SxFunctionInfo {
+            arity:      2,
+            bindings:   vec![sx_symbol_unwrapped!("x"), sx_symbol_unwrapped!("y")],
+            body:       Arc::new(vec![sx_symbol!("x")])
+        });
+
+        test_eval_results(r#"
+            ((fn (x) x))
+            ((fn (x y) x) 1)
+        "#, vec![
+            Err(EvalError::TooFewArgs(f1.clone(), 1, 0)),
+            Err(EvalError::TooFewArgs(f2.clone(), 2, 1))
+        ]);
+    }
+
+    #[test]
+    fn test_special_fn_too_many_args() {
+        let f1 = Arc::new(SxFunctionInfo {
+            arity:      0,
+            bindings:   vec![],
+            body:       Arc::new(vec![sx_nil!()])
+        });
+
+        let f2 = Arc::new(SxFunctionInfo {
+            arity:      1,
+            bindings:   vec![sx_symbol_unwrapped!("x")],
+            body:       Arc::new(vec![sx_symbol!("x")])
+        });
+
+        test_eval_results(r#"
+            ((fn () nil) 1)
+            ((fn (x) x) 1 2)
+        "#, vec![
+            Err(EvalError::TooManyArgs(f1.clone(), 0, 1)),
+            Err(EvalError::TooManyArgs(f2.clone(), 1, 2))
+        ]);
+    }
+
+    #[test]
     fn test_special_if_direct() {
         test_eval(r#"
             (if true "happy" "sad")
@@ -312,6 +410,19 @@ mod tests {
     }
 
     #[test]
+    fn test_special_quote() {
+        test_eval(r#"
+            (quote 1)
+            (quote foo)
+            (quote (1 2 3))
+        "#, r#"
+            1
+            foo
+            (1 2 3)
+        "#);
+    }
+
+    #[test]
     fn test_primitive_apply() {
         test_eval(r#"
             (apply + '())
@@ -336,15 +447,41 @@ mod tests {
     }
 
     #[test]
-    fn test_special_quote() {
+    fn test_primitive_cons() {
         test_eval(r#"
-            (quote 1)
-            (quote foo)
-            (quote (1 2 3))
+            (cons 1 ())
+            (cons 1 '(2))
+            (cons 1 (cons 2 (cons 3 ())))
+        "#, r#"
+            (1)
+            (1 2)
+            (1 2 3)
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_head() {
+        test_eval(r#"
+            (head '(1))
+            (head '(2 1))
+            (head '(3 2 1))
         "#, r#"
             1
-            foo
-            (1 2 3)
+            2
+            3
+        "#);
+    }
+
+    #[test]
+    fn test_primitive_tail() {
+        test_eval(r#"
+            (tail '(1))
+            (tail '(1 2 3))
+            (tail (tail '(1 2 3)))
+        "#, r#"
+            ()
+            (2 3)
+            (3)
         "#);
     }
 
@@ -395,5 +532,43 @@ mod tests {
             2
             6
         "#);
+    }
+
+    #[test]
+    fn test_primitive_error_too_few_args() {
+        test_eval_results(r#"
+            (apply)
+            (apply +)
+        "#, vec![
+            Err(EvalError::BuiltinTooFewArgs("apply", 2, 0)),
+            Err(EvalError::BuiltinTooFewArgs("apply", 2, 1))
+        ]);
+    }
+
+    #[test]
+    fn test_primitive_error_too_many_args() {
+        test_eval_results(r#"
+            (apply + '(1 2) 1)
+        "#, vec![
+            Err(EvalError::BuiltinTooManyArgs("apply", 2, 3))
+        ]);
+    }
+
+    #[test]
+    fn test_error_not_a_function() {
+        test_eval_results(r#"
+            (1 2 3)
+        "#, vec![
+            Err(EvalError::NotAFunction(sx_integer!(1)))
+        ]);
+    }
+
+    #[test]
+    fn test_error_sub_error() {
+        test_eval_results(r#"
+            ((1 2 3) 2 3)
+        "#, vec![
+            Err(EvalError::NotAFunction(sx_integer!(1)))
+        ]);
     }
 }

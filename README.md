@@ -33,3 +33,18 @@ Work in progress
 ## Run
 
     $ cargo run
+
+## Run tests
+
+    $ cargo test
+
+## Test coverage
+
+Dependencies:
+
+  * [kcov](https://github.com/SimonKagstrom/kcov)
+  * [jq](https://github.com/stedolan/jq)
+
+Generate and open line coverage report:
+
+    $ ./scripts/coverage.sh

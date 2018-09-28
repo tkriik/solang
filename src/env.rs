@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use rpds::HashTrieMap;
 
-use builtin::BUILTIN_ARRAY;
+use builtin::BUILTIN_TABLE;
 use sx::{Sx, SxSymbol};
 
+#[derive(Clone)]
 pub struct Env {
+    // TODO: immutable.rs?
     definitions: HashTrieMap<SxSymbol, Sx>
 }
 
@@ -15,7 +17,7 @@ impl Env {
             definitions: HashTrieMap::new()
         };
 
-        for builtin in BUILTIN_ARRAY.iter() {
+        for builtin in BUILTIN_TABLE.iter() {
             let symbol = sx_symbol_unwrapped!(builtin.name);
             let value = Sx::Builtin(*builtin);
             env.define(&symbol, &value);

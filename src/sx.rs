@@ -3,8 +3,6 @@ use std::clone::Clone;
 use std::string::ToString;
 use std::sync::Arc;
 
-use rpds::List;
-
 use ::env::Env;
 use ::eval::EvalResult;
 
@@ -17,17 +15,20 @@ pub enum Sx {
     String(SxString),
     List(SxList),
     Quote(SxQuote),
-    Builtin(&'static SxBuiltin)
+    Builtin(SxBuiltin),
+    Function(SxFunction)
 }
 
 pub type SxBoolean      = bool;
 pub type SxInteger      = i64;
 pub type SxString       = Arc<String>;
 pub type SxSymbol       = Arc<String>;
-pub type SxList         = Arc<List<Sx>>;
+pub type SxList         = Arc<Vec<Sx>>;
 pub type SxQuote        = Arc<Sx>;
+pub type SxBuiltin      = &'static SxBuiltinInfo;
+pub type SxFunction     = Arc<SxFunctionInfo>;
 
-pub struct SxBuiltin {
+pub struct SxBuiltinInfo {
     pub name:       &'static str,
     pub min_arity:  usize,
     pub max_arity:  Option<usize>,
@@ -35,12 +36,18 @@ pub struct SxBuiltin {
 }
 
 pub enum SxBuiltinCallback {
-    Special(SxSpecialFn),
-    Primitive(SxPrimitiveFn)
+    Special(SxBuiltinFn),
+    Primitive(SxBuiltinFn)
 }
 
-pub type SxSpecialFn = fn(&mut Env, &Vec<&Sx>) -> EvalResult;
-pub type SxPrimitiveFn = fn(&mut Env, &Vec<Sx>) -> EvalResult;
+pub type SxBuiltinFn = fn(&mut Env, &[Sx]) -> EvalResult;
+
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct SxFunctionInfo {
+    pub arity:      usize,
+    pub bindings:   Vec<SxSymbol>,
+    pub body:       SxList
+}
 
 #[macro_export]
 macro_rules! sx_nil {
@@ -74,7 +81,7 @@ macro_rules! sx_string {
 
 #[macro_export]
 macro_rules! sx_list {
-    [ $( $e:expr ),*] => (Sx::List(Arc::new(list![$($e),*])));
+    [ $( $e:expr ),*] => (Sx::List(Arc::new(vec![$($e),*])));
 }
 
 #[macro_export]
@@ -116,7 +123,9 @@ impl ToString for Sx {
 
             Sx::Quote(sx) => format!("'{}", sx.to_string()),
 
-            Sx::Builtin(b) => b.to_string()
+            Sx::Builtin(b) => b.to_string(),
+
+            Sx::Function(f) => format!("{}", f.to_string())
         }
     }
 }
@@ -129,16 +138,16 @@ impl Clone for SxBuiltinCallback {
     }
 }
 
-impl fmt::Debug for SxBuiltin {
+impl fmt::Debug for SxBuiltinInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.to_string().as_str())
     }
 }
 
-impl Eq for SxBuiltin {}
+impl Eq for SxBuiltinInfo {}
 
-impl PartialEq for SxBuiltin {
-    fn eq(&self, other: &SxBuiltin) -> bool {
+impl PartialEq for SxBuiltinInfo {
+    fn eq(&self, other: &SxBuiltinInfo) -> bool {
         let info_eq = self.name == other.name
             && self.min_arity == other.min_arity
             && self.max_arity == other.max_arity;
@@ -157,7 +166,7 @@ impl PartialEq for SxBuiltin {
     }
 }
 
-impl ToString for SxBuiltin {
+impl ToString for SxBuiltinInfo {
     fn to_string(&self) -> String {
         let arity_str = match (self.min_arity, self.max_arity) {
             (min_arity, Some(max_arity)) if min_arity == max_arity => format!("{}", min_arity),
@@ -176,5 +185,25 @@ impl ToString for SxBuiltin {
                 return format!("#primitive<{}>", info_str);
             }
         }
+    }
+}
+
+impl ToString for SxFunctionInfo {
+    fn to_string(&self) -> String {
+        let mut bindings_str = String::new();
+        let mut first = true;
+
+        bindings_str.push('(');
+        for symbol in self.bindings.iter() {
+            if !first {
+                bindings_str.push(' ');
+            }
+
+            first = false;
+            bindings_str.push_str(symbol.as_ref());
+        }
+        bindings_str.push(')');
+
+        return format!("#function<arity: {}, bindings: {}>", self.arity, bindings_str);
     }
 }

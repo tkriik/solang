@@ -283,7 +283,7 @@ impl <'a> TokenReader<'a> {
                             token.update(c);
                         }
                     }
-                },
+                }
 
                 _ => {
                     assert!(false);
@@ -382,6 +382,24 @@ mod tests {
 
         test_tokenize("true false", &exp_tokens);
         test_tokenize("\n true\r\t false\n", &exp_tokens);
+    }
+
+    #[test]
+    fn test_boolean_to_other() {
+        let exp_tokens = vec![
+            Token { kind: Kind::Boolean,    size: 4,    data: "true"    },
+            Token { kind: Kind::ListStart,  size: 1,    data: "("       },
+            Token { kind: Kind::Boolean,    size: 4,    data: "true"    },
+            Token { kind: Kind::ListEnd,    size: 1,    data: ")"       },
+            Token { kind: Kind::Boolean,    size: 4,    data: "true"    },
+            Token { kind: Kind::String,     size: 0,    data: ""        },
+            Token { kind: Kind::Boolean,    size: 4,    data: "true"    },
+            Token { kind: Kind::Quote,      size: 1,    data: "'"       },
+            Token { kind: Kind::Symbol,     size: 5,    data: "truee"   },
+            Token { kind: Kind::Invalid,    size: 5,    data: "true$"   }
+        ];
+
+        test_tokenize("true( true) true\"\" true' truee true$", &exp_tokens);
     }
 
     #[test]

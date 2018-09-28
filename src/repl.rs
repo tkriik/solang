@@ -124,6 +124,14 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: {} does not evaluate to a function", sx.to_string());
         },
 
+        EvalError::InvalidBinding(sx) => {
+            println!("eval error: invalid binding form in function, got {}", sx.to_string());
+        },
+
+        EvalError::DuplicateBinding(symbol) => {
+            println!("eval error: cannot bind symbol {} more than once in function definition", symbol);
+        },
+
         EvalError::BuiltinTooFewArgs(name, min_arity, act_arity) => {
             println!("eval error: {} expects at least {} argument(s), got {}", name, min_arity, act_arity);
         },
@@ -136,8 +144,12 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: invalid argument to {}, got {}", name, arg.to_string());
         },
 
-        EvalError::Unknown(sx) => {
-            println!("eval error: don't know how to evaluate expression: {}", sx.to_string());
+        EvalError::TooFewArgs(f, min_arity, act_arity) => {
+            println!("eval error: {} expects at least {} argument(s), got {}", f.to_string(), min_arity, act_arity);
+        },
+
+        EvalError::TooManyArgs(f, max_arity, act_arity) => {
+            println!("eval error: {} expects at most {} argument(s), got {}", f.to_string(), max_arity, act_arity);
         }
     }
 }
