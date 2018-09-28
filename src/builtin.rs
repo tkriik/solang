@@ -4,20 +4,29 @@ use im;
 
 use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
+use ::module;
 use ::sx::{*};
 
+pub static BUILTIN_MODULE_NAME: &'static str = "core";
+
 pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
+    // Specials
     &SPECIAL_DEF,
     &SPECIAL_FN,
     &SPECIAL_IF,
     &SPECIAL_QUOTE,
+    &SPECIAL_USE,
 
+    // General
     &PRIMITIVE_APPLY,
+    &PRIMITIVE_ENV,
 
+    // Collections
     &PRIMITIVE_CONS,
     &PRIMITIVE_HEAD,
     &PRIMITIVE_TAIL,
 
+    // Numbers
     &PRIMITIVE_PLUS,
     &PRIMITIVE_PRODUCT,
     &PRIMITIVE_RANGE
@@ -51,11 +60,25 @@ static SPECIAL_QUOTE: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Special(special_quote)
 };
 
+static SPECIAL_USE: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "use",
+    min_arity:  1,
+    max_arity:  Some(1),
+    callback:   SxBuiltinCallback::Special(special_use)
+};
+
 static PRIMITIVE_APPLY: SxBuiltinInfo = SxBuiltinInfo {
     name:       "apply",
     min_arity:  2,
     max_arity:  Some(2),
     callback:   SxBuiltinCallback::Primitive(primitive_apply)
+};
+
+static PRIMITIVE_ENV: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "env",
+    min_arity:  0,
+    max_arity:  Some(0),
+    callback:   SxBuiltinCallback::Primitive(primitive_env)
 };
 
 static PRIMITIVE_CONS: SxBuiltinInfo = SxBuiltinInfo {
@@ -103,13 +126,18 @@ static PRIMITIVE_RANGE: SxBuiltinInfo = SxBuiltinInfo {
 fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
     let binding = &args[0];
     match binding {
-        Sx::Symbol(symbol) => {
-            match env.lookup(symbol) {
+        Sx::Symbol(ref symbol) => {
+            match env.lookup_core(symbol) {
+                Some(_) => return Err(EvalError::RedefineCore(symbol.clone())),
+                None    => ()
+            }
+
+            match env.lookup_current(symbol) {
                 None => {
                     let value = &args[1];
                     match eval(env, value) {
                         Ok(result) => {
-                            env.define(symbol, &result);
+                            env.define_current(symbol, &result);
                             return Ok(binding.clone());
                         },
 
@@ -197,6 +225,19 @@ fn special_quote(_env: &mut Env, args: &[Sx]) -> EvalResult {
     return Ok(args[0].clone());
 }
 
+fn special_use(env: &mut Env, args: &[Sx]) -> EvalResult {
+    let module_arg = &args[0];
+    match module_arg {
+        Sx::Symbol(ref module_name) => {
+            return module::load_use(env, module_name);
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(SPECIAL_USE.name, module_arg.clone()));
+        }
+    }
+}
+
 // TODO: call apply in eval.rs
 // TODO: apply over vector
 fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
@@ -223,6 +264,33 @@ fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
             return error;
         }
     }
+}
+
+// TODO: iterator magic
+fn primitive_env(env: &mut Env, _args: &[Sx]) -> EvalResult {
+    let mut module_paths = Vec::new();
+    for module_path in env.module_paths.iter() {
+        module_paths.push(sx_string!(module_path));
+    }
+
+    let current_module = env.current_module.clone();
+
+    let mut loaded_modules = Vec::new();
+    for module in env.loaded_modules.iter() {
+        loaded_modules.push(Sx::Symbol(module.clone()));
+    }
+
+    let mut env_list = Vec::new();
+    for ((module, symbol), value) in env.definitions.iter() {
+        env_list.push(sx_vector![Sx::Symbol(module.clone()), Sx::Symbol(symbol.clone()), value.clone()]);
+    }
+
+    return Ok(sx_vector![
+        sx_vector![sx_symbol!("module-paths"), sx_vector_from_vec!(module_paths)],
+        sx_vector![sx_symbol!("current-module"), Sx::Symbol(current_module)],
+        sx_vector![sx_symbol!("loaded-modules"), sx_vector_from_vec!(loaded_modules)],
+        sx_vector![sx_symbol!("definitions"), sx_vector_from_vec!(env_list)]
+    ]);
 }
 
 // TODO: vector

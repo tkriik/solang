@@ -1,3 +1,4 @@
+use std::string::ToString;
 use std::sync::Arc;
 
 use im;
@@ -154,6 +155,62 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
     }
 
     return Ok(Sx::List(Arc::new(sxs)));
+}
+
+impl ToString for ReadError {
+    fn to_string(&self) -> String {
+        match self {
+            ReadError::InvalidToken(s) => {
+                return format!("invalid token: {}", s)
+            },
+
+            ReadError::IntegerLimit(s) => {
+                return format!("integer limit: {}", s)
+            },
+
+            ReadError::PartialString(s) => {
+                return format!("non-terminated string: \"{}", s)
+            }
+
+            ReadError::InvalidCloseDelimiter(kind, s) => {
+                match kind {
+                    Kind::ListStart => {
+                        return format!("invalid list close delimiter: '{}'", s)
+                    },
+
+                    Kind::VectorStart => {
+                        return format!("invalid vector close delimiter: '{}'", s)
+                    },
+
+                    _ => {
+                        assert!(false);
+                        return "".to_string();
+                    }
+                }
+            },
+
+            ReadError::TrailingDelimiter(s) => {
+                return format!("trailing delimiter: '{}'", s)
+            },
+
+            ReadError::UnmatchedDelimiter(kind) => {
+                match kind {
+                    Kind::ListStart => {
+                        return format!("non-terminated list")
+                    },
+
+                    Kind::VectorStart => {
+                        return format!("non-terminated vector")
+                    },
+
+                    _ => {
+                        assert!(false);
+                        return "".to_string();
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

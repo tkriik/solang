@@ -1,13 +1,18 @@
+use std::string::ToString;
 use std::sync::Arc;
 
 use ::env::Env;
+use ::read::ReadError;
+use ::module;
 use ::sx::{*};
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum EvalError {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
+    RedefineCore(SxSymbol),
     DefineBadSymbol(Sx),
+    SymbolBadModuleFormat(SxSymbol),
 
     NotAFunction(Sx),
     InvalidBinding(Sx),
@@ -19,8 +24,17 @@ pub enum EvalError {
     BuiltinTooFewArgs(&'static str, usize, usize),
     BuiltinTooManyArgs(&'static str, usize, usize),
 
-    TooFewArgs(SxFunction, usize, usize),
-    TooManyArgs(SxFunction, usize, usize)
+    FnTooFewArgs(SxFunction, usize, usize),
+    FnTooManyArgs(SxFunction, usize, usize),
+
+    ModuleSelfRefer(SxSymbol),
+    ModulePathError(String, String),
+    ModuleNotFound(SxSymbol, Vec<String>),
+    ModuleMultipleOptions(SxSymbol, Vec<String>),
+    ModuleIoOpenError(SxSymbol, String),
+    ModuleIoReadError(SxSymbol, String),
+    ModuleReadErrors(SxSymbol, Vec<ReadError>),
+    ModuleEvalErrors(SxSymbol, Vec<EvalError>)
 }
 
 pub type EvalResult = Result<Sx, EvalError>;
@@ -36,19 +50,33 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
             return Ok(sx.clone());
         },
 
-        Sx::Quote(v) => {
-            return Ok(v.as_ref().clone());
+        Sx::Quote(value) => {
+            return Ok(value.as_ref().clone());
         },
 
-        Sx::Symbol(symbol) => {
-            match env.lookup(symbol) {
-                Some(v) => {
-                    return Ok(v.clone());
+        Sx::Symbol(ref symbol) => {
+            let mut effective_module = env.core_module.clone();
+            let mut effective_symbol = symbol.clone();
+
+            match module::entry_from_symbol(symbol)[..] {
+                [ref other_module, ref sub_symbol] => {
+                    effective_module = other_module.clone();
+                    effective_symbol = sub_symbol.clone();
                 },
 
-                None => {
-                    return Err(EvalError::Undefined(symbol.clone()));
-                }
+                [_] => (),
+
+                _ => return Err(EvalError::SymbolBadModuleFormat(symbol.clone()))
+            }
+
+            match env.lookup(&effective_module, &effective_symbol) {
+                Some(value) => return Ok(value.clone()),
+                None        => ()
+            }
+
+            match env.lookup_current(symbol) {
+                Some(value) => return Ok(value.clone()),
+                None        => return Err(EvalError::Undefined(symbol.clone()))
             }
         },
 
@@ -149,17 +177,17 @@ fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut
 pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> EvalResult {
     let arity = args.len();
     if arity < f.arity {
-        return Err(EvalError::TooFewArgs(f.clone(), f.arity, arity));
+        return Err(EvalError::FnTooFewArgs(f.clone(), f.arity, arity));
     }
 
     if f.arity < arity {
-        return Err(EvalError::TooManyArgs(f.clone(), f.arity, arity));
+        return Err(EvalError::FnTooManyArgs(f.clone(), f.arity, arity));
     }
 
     let mut sub_env = env.clone();
     for (binding, sx) in f.bindings.iter().zip(args.iter()) {
         match eval(env, sx) {
-            Ok(ref result) => sub_env.define(binding, result),
+            Ok(ref result) => sub_env.define_current(binding, result),
             error @ Err(_) => return error
         }
     }
@@ -176,6 +204,108 @@ pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> EvalResult 
     return Ok(result);
 }
 
+impl ToString for EvalError {
+    fn to_string(&self) -> String {
+        match self {
+            EvalError::Undefined(sx) => {
+                return format!("undefined symbol: {}", sx.to_string());
+            }
+
+            EvalError::Redefine(symbol) => {
+                return format!("cannot redefine symbol {}", symbol.to_string());
+            }
+
+            EvalError::RedefineCore(symbol) => {
+                return format!("cannot redefine core symbol {}", symbol.to_string());
+            }
+
+            EvalError::DefineBadSymbol(sx) => {
+                return format!("first argument to def must be a symbol, got {}", sx.to_string());
+            }
+
+            EvalError::SymbolBadModuleFormat(symbol) => {
+                return format!("badly formatted symbol {}, expected something like my-module/my-val", symbol.clone());
+            }
+
+            EvalError::NotAFunction(sx) => {
+                return format!("{} does not evaluate to a function", sx.to_string());
+            }
+
+            EvalError::InvalidBinding(sx) => {
+                return format!("invalid binding form in function, got {}", sx.to_string());
+            }
+
+            EvalError::DuplicateBinding(symbol) => {
+                return format!("cannot bind symbol {} more than once in function definition", symbol);
+            }
+
+            EvalError::BuiltinTooFewArgs(name, min_arity, act_arity) => {
+                return format!("{} expects at least {} argument(s), got {}", name, min_arity, act_arity);
+            }
+
+            EvalError::BuiltinTooManyArgs(name, max_arity, act_arity) => {
+                return format!("{} expects at most {} argument(s), got {}", name, max_arity, act_arity);
+            }
+
+            EvalError::BuiltinBadArg(name, arg) => {
+                return format!("invalid argument to {}, got {}", name, arg.to_string());
+            }
+
+            EvalError::FnTooFewArgs(f, min_arity, act_arity) => {
+                return format!("{} expects at least {} argument(s), got {}", f.to_string(), min_arity, act_arity);
+            }
+
+            EvalError::FnTooManyArgs(f, max_arity, act_arity) => {
+                return format!("{} expects at most {} argument(s), got {}", f.to_string(), max_arity, act_arity);
+            }
+
+            EvalError::ModuleSelfRefer(module_name) => {
+                return format!("cannot use self in module {}", module_name);
+            }
+
+            EvalError::ModulePathError(module_path, module_name) => {
+                return format!("failed to compose filename from module path {} and name {}", module_path, module_name);
+            }
+
+            EvalError::ModuleNotFound(module_name, module_paths) => {
+                let module_paths_str = module_paths.join(", ");
+                return format!("could not find module named {} under following module paths: {}", module_name, module_paths_str);
+            }
+
+            EvalError::ModuleMultipleOptions(module_name, filename_matches) => {
+                let filename_matches_str = filename_matches.join(", ");
+                return format!("could not load module {} due to multiple options: {}", module_name, filename_matches_str);
+            }
+
+            EvalError::ModuleIoOpenError(module_name, io_error) => {
+                return format!("error while opening file for module {}: {}", module_name, io_error);
+            }
+
+            EvalError::ModuleIoReadError(module_name, io_error) => {
+                return format!("error while reading file for module {}: {}", module_name, io_error);
+            }
+
+            EvalError::ModuleReadErrors(_module_name, read_errors) => {
+                let mut s = read_errors
+                    .iter()
+                    .fold(String::new(), |acc, e| acc + &e.to_string() + "\n");
+                s.pop();
+
+                return s;
+            }
+
+            EvalError::ModuleEvalErrors(_module_name, eval_errors) => {
+                let mut s = eval_errors
+                    .iter()
+                    .fold(String::new(), |acc, e| acc + &e.to_string() + "\n");
+                s.pop();
+
+                return s;
+            }
+        }
+    }
+}
+
 // TODO: relocate primitive and special tests
 #[cfg(test)]
 mod tests {
@@ -185,8 +315,18 @@ mod tests {
 
     use ::read::read;
 
+    fn mk_test_env() -> Env {
+        let module_paths = vec![
+            "./resources/test/eval".to_string()
+        ];
+
+        let current_module = sx_symbol_unwrapped!("test-eval");
+
+        return Env::new(&module_paths, &current_module);
+    }
+
     fn test_eval(input_source: &str, output_source: &str) {
-        let mut env = Env::new();
+        let mut env = mk_test_env();
 
         let input = read(input_source).expect("invalid input source");
         let output = read(output_source).expect("invalid output source");
@@ -208,7 +348,7 @@ mod tests {
     }
 
     fn test_eval_results(input_source: &str, exp_results: Vec<EvalResult>) {
-        let mut env = Env::new();
+        let mut env = mk_test_env();
 
         let input = read(input_source).expect("invalid input source");
         match input {
@@ -348,8 +488,8 @@ mod tests {
             ((fn (x) x))
             ((fn (x y) x) 1)
         "#, vec![
-            Err(EvalError::TooFewArgs(f1.clone(), 1, 0)),
-            Err(EvalError::TooFewArgs(f2.clone(), 2, 1))
+            Err(EvalError::FnTooFewArgs(f1.clone(), 1, 0)),
+            Err(EvalError::FnTooFewArgs(f2.clone(), 2, 1))
         ]);
     }
 
@@ -371,8 +511,8 @@ mod tests {
             ((fn () nil) 1)
             ((fn (x) x) 1 2)
         "#, vec![
-            Err(EvalError::TooManyArgs(f1.clone(), 0, 1)),
-            Err(EvalError::TooManyArgs(f2.clone(), 1, 2))
+            Err(EvalError::FnTooManyArgs(f1.clone(), 0, 1)),
+            Err(EvalError::FnTooManyArgs(f2.clone(), 1, 2))
         ]);
     }
 
