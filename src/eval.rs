@@ -11,6 +11,7 @@ pub enum EvalError {
 
     NotAFunction(Sx),
     InvalidBinding(Sx),
+    DuplicateBinding(SxSymbol),
 
     BuiltinBadArg(&'static str, Sx),
     BuiltinTooFewArgs(&'static str, usize, usize),
@@ -317,6 +318,15 @@ mod tests {
             (fn (x 1) nil)
         "#, vec![
             Err(EvalError::InvalidBinding(sx_integer!(1)))
+        ]);
+    }
+
+    #[test]
+    fn test_special_fn_duplicate_binding() {
+        test_eval_results(r#"
+            (fn (x x) (+ x x))
+        "#, vec![
+            Err(EvalError::DuplicateBinding(sx_symbol_unwrapped!("x")))
         ]);
     }
 

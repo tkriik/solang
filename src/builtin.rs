@@ -113,6 +113,10 @@ fn special_fn(_env: &mut Env, args: &Vec<&Sx>) -> EvalResult {
             for binding in bindings.iter() {
                 match binding {
                     Sx::Symbol(name) => {
+                        if bindings_vec.contains(name) {
+                            return Err(EvalError::DuplicateBinding(name.clone()));
+                        }
+
                         bindings_vec.push(name.clone());
                     },
 

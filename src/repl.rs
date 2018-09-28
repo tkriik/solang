@@ -128,6 +128,10 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: invalid binding form in function, got {}", sx.to_string());
         },
 
+        EvalError::DuplicateBinding(symbol) => {
+            println!("eval error: cannot bind symbol {} more than once in function definition", symbol);
+        },
+
         EvalError::BuiltinTooFewArgs(name, min_arity, act_arity) => {
             println!("eval error: {} expects at least {} argument(s), got {}", name, min_arity, act_arity);
         },
