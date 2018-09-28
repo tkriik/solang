@@ -10,6 +10,7 @@ use ::env::Env;
 use ::eval::{eval, EvalError};
 use ::read::{read, ReadError};
 use ::sx::Sx;
+use ::token::Kind;
 
 pub fn enter() {
     let history_path = ".solang_history";
@@ -93,15 +94,27 @@ fn print_read_error(read_error: &ReadError) {
         },
 
         ReadError::PartialString(s) => {
-            println!("read error: non-terminated string: {}", s);
+            println!("read error: non-terminated string: \"{}", s);
+        },
+
+        ReadError::InvalidCloseDelimiter(kind, s) => {
+            match kind {
+                Kind::ListStart     => println!("read error: invalid list close delimiter: '{}'", s),
+                Kind::VectorStart   => println!("read error: invalid vector close delimiter: '{}'", s),
+                _                   => assert!(false)
+            }
         },
 
         ReadError::TrailingDelimiter(s) => {
             println!("read error: trailing delimiter: '{}'", s);
         },
 
-        ReadError::UnmatchedDelimiter => {
-            println!("read error: unmatched delimiter");
+        ReadError::UnmatchedDelimiter(kind) => {
+            match kind {
+                Kind::ListStart     => println!("read error: non-terminated list"),
+                Kind::VectorStart   => println!("read error: non-terminated vector"),
+                _                   => assert!(false)
+            }
         }
     }
 }

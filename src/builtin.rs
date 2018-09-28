@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use im;
+
 use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
 use ::sx::{*};
@@ -129,6 +131,7 @@ fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+// TODO: vector binding
 fn special_fn(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let binding_list = &args[0];
     match binding_list {
@@ -195,6 +198,7 @@ fn special_quote(_env: &mut Env, args: &[Sx]) -> EvalResult {
 }
 
 // TODO: call apply in eval.rs
+// TODO: apply over vector
 fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
     let head = &args[0];
     let value = &args[1];
@@ -221,6 +225,7 @@ fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+// TODO: vector
 fn primitive_cons(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let value = &args[0];
     let list_arg = &args[1];
@@ -238,6 +243,7 @@ fn primitive_cons(_env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+// TODO: vector
 fn primitive_head(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let list_arg = &args[0];
     match list_arg {
@@ -259,6 +265,7 @@ fn primitive_head(_env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+// TODO: vector
 fn primitive_tail(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let list_arg = &args[0];
     match list_arg {
@@ -319,18 +326,18 @@ fn primitive_product(_env: &mut Env, args: &[Sx]) -> EvalResult {
 
 // TODO: vectors
 fn primitive_range(_env: &mut Env, args: &[Sx]) -> EvalResult {
-    let mut numbers = Vec::new();
+    let mut numbers = im::Vector::new();
 
     match args[..] {
         [Sx::Integer(end)] => {
             for i in 0i64 .. end {
-                numbers.push(sx_integer!(i));
+                numbers.push_back(sx_integer!(i));
             }
         },
 
         [Sx::Integer(start), Sx::Integer(end)] => {
             for i in start .. end {
-                numbers.push(sx_integer!(i));
+                numbers.push_back(sx_integer!(i));
             }
         },
 
@@ -347,5 +354,5 @@ fn primitive_range(_env: &mut Env, args: &[Sx]) -> EvalResult {
         }
     }
 
-    return Ok(Sx::List(Arc::new(numbers)));
+    return Ok(Sx::Vector(Arc::new(numbers)));
 }

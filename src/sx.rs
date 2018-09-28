@@ -3,6 +3,8 @@ use std::clone::Clone;
 use std::string::ToString;
 use std::sync::Arc;
 
+use im;
+
 use ::env::Env;
 use ::eval::EvalResult;
 
@@ -14,6 +16,7 @@ pub enum Sx {
     Symbol(SxSymbol),
     String(SxString),
     List(SxList),
+    Vector(SxVector),
     Quote(SxQuote),
     Builtin(SxBuiltin),
     Function(SxFunction)
@@ -24,6 +27,7 @@ pub type SxInteger      = i64;
 pub type SxString       = Arc<String>;
 pub type SxSymbol       = Arc<String>;
 pub type SxList         = Arc<Vec<Sx>>;
+pub type SxVector       = Arc<im::Vector<Sx>>;
 pub type SxQuote        = Arc<Sx>;
 pub type SxBuiltin      = &'static SxBuiltinInfo;
 pub type SxFunction     = Arc<SxFunctionInfo>;
@@ -85,6 +89,21 @@ macro_rules! sx_list {
 }
 
 #[macro_export]
+macro_rules! sx_list_from_vec {
+    ($e:expr) => (Sx::List(Arc::new($e)));
+}
+
+#[macro_export]
+macro_rules! sx_vector {
+    [ $( $e:expr ),*] => (Sx::Vector(Arc::new(vector![$($e),*])));
+}
+
+#[macro_export]
+macro_rules! sx_vector_from_vec {
+    ($e:expr) => (Sx::Vector(Arc::new(im::Vector::from($e))));
+}
+
+#[macro_export]
 macro_rules! sx_quote {
     ($e:expr) => (Sx::Quote(Arc::new($e)));
 }
@@ -120,6 +139,25 @@ impl ToString for Sx {
 
                 return s;
             },
+
+            Sx::Vector(v) => {
+                let mut s = String::new();
+                let mut first = true;
+
+                s.push('[');
+                for sx in v.iter() {
+                    if !first {
+                        s.push(' ');
+                    }
+
+                    first = false;
+                    let sub = sx.to_string();
+                    s.push_str(sub.as_ref());
+                }
+                s.push(']');
+
+                return s;
+            }
 
             Sx::Quote(sx) => format!("'{}", sx.to_string()),
 

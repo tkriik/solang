@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ::env::Env;
 use ::sx::{*};
 
@@ -25,7 +27,12 @@ pub type EvalResult = Result<Sx, EvalError>;
 
 pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     match sx {
-        Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) | Sx::Function(_) => {
+        Sx::Nil         |
+        Sx::Boolean(_)  |
+        Sx::Integer(_)  |
+        Sx::String(_)   |
+        Sx::Builtin(_)  |
+        Sx::Function(_) => {
             return Ok(sx.clone());
         },
 
@@ -71,6 +78,18 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                     }
                 }
             }
+        },
+
+        Sx::Vector(v) => {
+            let mut w = v.as_ref().clone();
+            for sx in w.iter_mut() {
+                match eval(env, sx) {
+                    Ok(result) => *sx = result,
+                    error @ Err(_) => return error
+                }
+            }
+
+            return Ok(Sx::Vector(Arc::new(w)));
         }
     }
 }
@@ -231,6 +250,7 @@ mod tests {
         test_eval("'\"北京市\"", "\"北京市\"");
         test_eval("'()", "()");
         test_eval("'(1 2 3)", "(1 2 3)");
+        test_eval("'[1 2 3]", "[1 2 3]");
         test_eval("'foo", "foo");
     }
 
@@ -245,6 +265,7 @@ mod tests {
         test_eval("''\"北京市\"", "'\"北京市\"");
         test_eval("''()", "'()");
         test_eval("''(1 2 3)", "'(1 2 3)");
+        test_eval("''[1 2 3]", "'[1 2 3]");
         test_eval("''foo", "'foo");
     }
 
@@ -570,5 +591,16 @@ mod tests {
         "#, vec![
             Err(EvalError::NotAFunction(sx_integer!(1)))
         ]);
+    }
+
+    #[test]
+    fn test_vector_eval() {
+        test_eval(r#"
+            (def foo 2)
+            [1 foo 3 (+ 2 2)]
+        "#, r#"
+            foo
+            [1 2 3 4]
+        "#)
     }
 }
