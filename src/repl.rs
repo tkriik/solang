@@ -140,10 +140,6 @@ fn print_eval_error(eval_error: &EvalError ) {
             println!("eval error: invalid argument to {}, got {}", name, arg.to_string());
         },
 
-        EvalError::BadArg(f, arg) => {
-            println!("eval error: invalid argument to {}, got {}", f.to_string(), arg.to_string());
-        },
-
         EvalError::TooFewArgs(f, min_arity, act_arity) => {
             println!("eval error: {} expects at least {} argument(s), got {}", f.to_string(), min_arity, act_arity);
         },

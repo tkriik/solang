@@ -16,7 +16,6 @@ pub enum EvalError {
     BuiltinTooFewArgs(&'static str, usize, usize),
     BuiltinTooManyArgs(&'static str, usize, usize),
 
-    BadArg(SxFunction, Sx),
     TooFewArgs(SxFunction, usize, usize),
     TooManyArgs(SxFunction, usize, usize),
 
@@ -300,6 +299,74 @@ mod tests {
     }
 
     #[test]
+    fn test_special_fn_invoke() {
+        test_eval(r#"
+            ((fn () nil))
+            ((fn (x) (* x x)) 3)
+            ((fn (pred x y) (if pred x y)) true "happy" "sad")
+        "#, r#"
+            nil
+            9
+            "happy"
+        "#);
+    }
+
+    #[test]
+    fn test_special_fn_invalid_binding() {
+        test_eval_results(r#"
+            (fn (x 1) nil)
+        "#, vec![
+            Err(EvalError::InvalidBinding(sx_integer!(1)))
+        ]);
+    }
+
+    #[test]
+    fn test_special_fn_too_few_args() {
+        let f1 = Arc::new(SxFunctionInfo {
+            arity:      1,
+            bindings:   vec![sx_symbol_unwrapped!("x")],
+            body:       Arc::new(list![sx_symbol!("x")])
+        });
+
+        let f2 = Arc::new(SxFunctionInfo {
+            arity:      2,
+            bindings:   vec![sx_symbol_unwrapped!("x"), sx_symbol_unwrapped!("y")],
+            body:       Arc::new(list![sx_symbol!("x")])
+        });
+
+        test_eval_results(r#"
+            ((fn (x) x))
+            ((fn (x y) x) 1)
+        "#, vec![
+            Err(EvalError::TooFewArgs(f1.clone(), 1, 0)),
+            Err(EvalError::TooFewArgs(f2.clone(), 2, 1))
+        ]);
+    }
+
+    #[test]
+    fn test_special_fn_too_many_args() {
+        let f1 = Arc::new(SxFunctionInfo {
+            arity:      0,
+            bindings:   vec![],
+            body:       Arc::new(list![sx_nil!()])
+        });
+
+        let f2 = Arc::new(SxFunctionInfo {
+            arity:      1,
+            bindings:   vec![sx_symbol_unwrapped!("x")],
+            body:       Arc::new(list![sx_symbol!("x")])
+        });
+
+        test_eval_results(r#"
+            ((fn () nil) 1)
+            ((fn (x) x) 1 2)
+        "#, vec![
+            Err(EvalError::TooManyArgs(f1.clone(), 0, 1)),
+            Err(EvalError::TooManyArgs(f2.clone(), 1, 2))
+        ]);
+    }
+
+    #[test]
     fn test_special_if_direct() {
         test_eval(r#"
             (if true "happy" "sad")
@@ -354,6 +421,19 @@ mod tests {
     }
 
     #[test]
+    fn test_special_quote() {
+        test_eval(r#"
+            (quote 1)
+            (quote foo)
+            (quote (1 2 3))
+        "#, r#"
+            1
+            foo
+            (1 2 3)
+        "#);
+    }
+
+    #[test]
     fn test_primitive_apply() {
         test_eval(r#"
             (apply + '())
@@ -375,19 +455,6 @@ mod tests {
             Err(EvalError::NotAFunction(sx_integer!(1))),
             Err(EvalError::Undefined(sx_symbol_unwrapped!("foo")))
         ]);
-    }
-
-    #[test]
-    fn test_special_quote() {
-        test_eval(r#"
-            (quote 1)
-            (quote foo)
-            (quote (1 2 3))
-        "#, r#"
-            1
-            foo
-            (1 2 3)
-        "#);
     }
 
     #[test]
@@ -437,5 +504,43 @@ mod tests {
             2
             6
         "#);
+    }
+
+    #[test]
+    fn test_primitive_error_too_few_args() {
+        test_eval_results(r#"
+            (apply)
+            (apply +)
+        "#, vec![
+            Err(EvalError::BuiltinTooFewArgs("apply", 2, 0)),
+            Err(EvalError::BuiltinTooFewArgs("apply", 2, 1))
+        ]);
+    }
+
+    #[test]
+    fn test_primitive_error_too_many_args() {
+        test_eval_results(r#"
+            (apply + '(1 2) 1)
+        "#, vec![
+            Err(EvalError::BuiltinTooManyArgs("apply", 2, 3))
+        ]);
+    }
+
+    #[test]
+    fn test_error_not_a_function() {
+        test_eval_results(r#"
+            (1 2 3)
+        "#, vec![
+            Err(EvalError::NotAFunction(sx_integer!(1)))
+        ]);
+    }
+
+    #[test]
+    fn test_error_sub_error() {
+        test_eval_results(r#"
+            ((1 2 3) 2 3)
+        "#, vec![
+            Err(EvalError::NotAFunction(sx_integer!(1)))
+        ]);
     }
 }

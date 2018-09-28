@@ -185,10 +185,6 @@ fn primitive_apply(env: &mut Env, args: &Vec<Sx>) -> EvalResult {
             return Err(EvalError::BuiltinBadArg(PRIMITIVE_APPLY.name, value.clone()));
         },
 
-        (Ok(Sx::Function(f)), value) => {
-            return Err(EvalError::BadArg(f.clone(), value.clone()));
-        },
-
         (Ok(v), _) => {
             return Err(EvalError::NotAFunction(v.clone()));
         },
