@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
 use im;
+use time;
 
 use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
+use ::pretty::pretty;
 use ::module;
 use ::sx::{*};
 
@@ -20,6 +22,7 @@ pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
     // General
     &PRIMITIVE_APPLY,
     &PRIMITIVE_ENV,
+    &PRIMITIVE_TRACE,
 
     // Collections
     &PRIMITIVE_CONS,
@@ -83,6 +86,13 @@ static PRIMITIVE_ENV: SxBuiltinInfo = SxBuiltinInfo {
     min_arity:  0,
     max_arity:  Some(0),
     callback:   SxBuiltinCallback::Primitive(primitive_env)
+};
+
+static PRIMITIVE_TRACE: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "trace",
+    min_arity:  2,
+    max_arity:  Some(2),
+    callback:   SxBuiltinCallback::Primitive(primitive_trace)
 };
 
 static PRIMITIVE_CONS: SxBuiltinInfo = SxBuiltinInfo {
@@ -309,6 +319,29 @@ fn primitive_env(env: &mut Env, _args: &[Sx]) -> EvalResult {
         sx_vector![sx_symbol!("loaded-modules"), sx_vector_from_vec!(loaded_modules)],
         sx_vector![sx_symbol!("definitions"), sx_vector_from_vec!(env_list)]
     ]);
+}
+
+fn primitive_trace(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    let ts = time::now();
+
+    let label_arg = &args[0];
+    let label = match label_arg {
+        Sx::String(s) => s,
+        _ => return Err(EvalError::BuiltinBadArg(PRIMITIVE_TRACE.name, label_arg.clone()))
+    };
+
+    let value = &args[1];
+
+    println!(r#"
+-----BEGIN TRACE-----
+Label: {}
+Timestamp: {}
+
+{}
+-----END TRACE-----"#,
+             label.as_ref(), ts.rfc3339(), pretty(value));
+
+    return Ok(value.clone());
 }
 
 // TODO: vector
