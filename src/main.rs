@@ -13,6 +13,7 @@ mod builtin;
 mod env;
 mod eval;
 mod module;
+mod pretty;
 mod read;
 mod repl;
 mod script;

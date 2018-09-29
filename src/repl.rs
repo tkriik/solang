@@ -8,6 +8,7 @@ use time;
 
 use ::env::Env;
 use ::eval::eval;
+use ::pretty::pretty_print;
 use ::read::read;
 use ::sx::Sx;
 
@@ -30,9 +31,9 @@ pub fn enter(mut env: &mut Env) {
                         for sx in sxs.iter() {
                             let t0 = time::precise_time_s();
                             match eval(&mut env, sx) {
-                                Ok(result) => {
+                                Ok(ref result) => {
                                     let t1 = time::precise_time_s();
-                                    println!("{}", result.to_string());
+                                    pretty_print(result);
                                     println!("time: {:.6}s", t1 - t0);
                                 },
 
