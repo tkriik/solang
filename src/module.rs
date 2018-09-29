@@ -76,11 +76,9 @@ pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> EvalResult {
     }
 
     let sxs = match read(source.as_ref()) {
-        Ok(Sx::List(sxs))   => sxs,
-        Err(read_errors)    => return Err(EvalError::ModuleReadErrors(module_name.clone(), read_errors)),
-        Ok(_) => {
-            assert!(false);
-            return Err(EvalError::Undefined(module_name.clone())); // TODO: read vectors
+        Ok(xs) => xs,
+        Err(read_errors) => {
+            return Err(EvalError::ModuleReadErrors(module_name.clone(), read_errors))
         }
     };
 

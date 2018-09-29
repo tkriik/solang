@@ -10,7 +10,6 @@ use ::env::Env;
 use ::eval::eval;
 use ::pretty::pretty;
 use ::read::read;
-use ::sx::Sx;
 
 pub fn enter(mut env: &mut Env) {
     let history_path = ".solang_history";
@@ -27,7 +26,7 @@ pub fn enter(mut env: &mut Env) {
         match readline {
             Ok(line) => {
                 match read(&line) {
-                    Ok(Sx::List(sxs)) => {
+                    Ok(sxs) => {
                         for sx in sxs.iter() {
                             let t0 = time::precise_time_s();
                             match eval(&mut env, sx) {
@@ -48,10 +47,6 @@ pub fn enter(mut env: &mut Env) {
                         for read_error in read_errors {
                             println!("read error: {}", read_error.to_string());
                         }
-                    },
-
-                    _ => {
-                        assert!(false);
                     }
                 }
 

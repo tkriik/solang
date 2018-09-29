@@ -331,40 +331,25 @@ mod tests {
         let input = read(input_source).expect("invalid input source");
         let output = read(output_source).expect("invalid output source");
 
-        match input {
-            Sx::List(sxs) => {
-                let mut results = Vec::new();
-                for sx in sxs.iter() {
-                    results.push(eval(&mut env, &sx).expect("eval error"));
-                }
-
-                assert_eq!(Sx::List(Arc::new(results)).to_string(), output.to_string());
-            },
-
-            _ => {
-                assert!(false);
-            }
+        let mut results = Vec::new();
+        for sx in input.iter() {
+            results.push(eval(&mut env, &sx).expect("eval error"));
         }
+
+        assert_eq!(sx_list_from_vec!(results).to_string(), sx_list_from_vec!(output).to_string());
     }
 
     fn test_eval_results(input_source: &str, exp_results: Vec<EvalResult>) {
         let mut env = mk_test_env();
 
         let input = read(input_source).expect("invalid input source");
-        match input {
-            Sx::List(sxs) => {
-                let mut results = Vec::new();
-                for sx in sxs.iter() {
-                    results.push(eval(&mut env, &sx));
-                }
 
-                assert_eq!(results, exp_results);
-            },
-
-            _ => {
-                assert!(false);
-            }
+        let mut results = Vec::new();
+        for sx in input.iter() {
+            results.push(eval(&mut env, &sx));
         }
+
+        assert_eq!(results, exp_results);
     }
 
     #[test]
