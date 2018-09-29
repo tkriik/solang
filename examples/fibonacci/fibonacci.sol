@@ -1,9 +1,8 @@
 (def fibonacci
   (fn (x)
-    (* x x)))
-
-(fibonacci 1)
-(fibonacci 2)
-(fibonacci 3)
-
-(env)
+    (if (= x 0)
+      0
+      (if (= x 1)
+        1
+        (+ (fibonacci (- x 1))
+           (fibonacci (- x 2)))))))

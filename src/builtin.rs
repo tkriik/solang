@@ -26,8 +26,12 @@ pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
     &PRIMITIVE_HEAD,
     &PRIMITIVE_TAIL,
 
+    // Logic
+    &PRIMITIVE_EQ,
+
     // Numbers
     &PRIMITIVE_PLUS,
+    &PRIMITIVE_MINUS,
     &PRIMITIVE_PRODUCT,
     &PRIMITIVE_RANGE
 ];
@@ -102,11 +106,25 @@ static PRIMITIVE_TAIL: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Primitive(primitive_tail)
 };
 
+static PRIMITIVE_EQ: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "=",
+    min_arity:  1,
+    max_arity:  None,
+    callback:   SxBuiltinCallback::Primitive(primitive_eq)
+};
+
 static PRIMITIVE_PLUS: SxBuiltinInfo = SxBuiltinInfo {
     name:       "+",
     min_arity:  0,
     max_arity:  None,
     callback:   SxBuiltinCallback::Primitive(primitive_plus)
+};
+
+static PRIMITIVE_MINUS: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "-",
+    min_arity:  1,
+    max_arity:  None,
+    callback:   SxBuiltinCallback::Primitive(primitive_minus)
 };
 
 static PRIMITIVE_PRODUCT: SxBuiltinInfo = SxBuiltinInfo {
@@ -356,9 +374,32 @@ fn primitive_tail(_env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+fn primitive_eq(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    if args.len() == 1 {
+        return Ok(Sx::Boolean(true));
+    }
+
+    let mut eq = true;
+    let mut first = true;
+    let value = &args[0];
+    for arg in args.iter() {
+        if first {
+            first = false;
+            continue;
+        }
+
+        if arg != value {
+            eq = false;
+            break;
+        }
+    }
+
+    return Ok(Sx::Boolean(eq));
+}
+
 fn primitive_plus(_env: &mut Env, args: &[Sx]) -> EvalResult {
-    let mut sum = 0;
-    for arg in args {
+    let mut sum = 0i64;
+    for arg in args.iter() {
         match arg {
             Sx::Integer(n) => {
                 sum += n;
@@ -372,6 +413,43 @@ fn primitive_plus(_env: &mut Env, args: &[Sx]) -> EvalResult {
 
     // TODO: overflow
     return Ok(sx_integer!(sum));
+}
+
+fn primitive_minus(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    let diff_arg = &args[0];
+    match diff_arg {
+        Sx::Integer(x) => {
+            if args.len() == 1 {
+                return Ok(sx_integer!(-x));
+            }
+
+            let mut first = true;
+            let mut diff = *x;
+            for arg in args.iter() {
+                if first {
+                    first = false;
+                    continue;
+                }
+
+                match arg {
+                    Sx::Integer(n) => {
+                        diff -= n;
+                    },
+
+                    _ => {
+                        return Err(EvalError::BuiltinBadArg(PRIMITIVE_MINUS.name, arg.clone()));
+                    }
+                }
+            }
+
+            // TODO: overflow
+            return Ok(sx_integer!(diff));
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_MINUS.name, diff_arg.clone()));
+        }
+    }
 }
 
 fn primitive_product(_env: &mut Env, args: &[Sx]) -> EvalResult {
