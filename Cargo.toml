@@ -6,7 +6,6 @@ authors = ["Tanel Kriik <tanel.kriik+github@gmail.com>"]
 [dependencies]
 clap = { version = "2.32.0", features = ["yaml"] }
 im = "12.1.0"
-rpds = "0.5.0"
 rustyline = "2.0.1"
 time = "0.1.40"
 unicode-segmentation = "1.1.0"

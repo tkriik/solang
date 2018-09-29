@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use rpds::HashTrieMap;
 use im;
 
 use builtin::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
@@ -11,7 +10,7 @@ pub struct Env {
     pub module_paths:   Vec<String>,
     pub current_module: SxSymbol,
     pub loaded_modules: im::HashSet<SxSymbol>,
-    pub definitions:    HashTrieMap<(SxSymbol, SxSymbol), Sx>, // TODO: immutable.rs
+    pub definitions:    im::HashMap<(SxSymbol, SxSymbol), Sx>,
 
     pub core_module:    SxSymbol
 }
@@ -24,7 +23,7 @@ impl Env {
             module_paths:   module_paths.clone(),
             current_module: current_module.clone(),
             loaded_modules: hashset!(core_module.clone(), current_module.clone()),
-            definitions:    HashTrieMap::new(),
+            definitions:    hashmap!(),
 
             core_module:    core_module.clone()
         };
@@ -39,7 +38,7 @@ impl Env {
     }
 
     pub fn define(&mut self, module: &SxSymbol, symbol: &SxSymbol, value: &Sx) {
-        self.definitions.insert_mut((module.clone(), symbol.clone()), value.clone());
+        self.definitions.insert((module.clone(), symbol.clone()), value.clone());
     }
 
     pub fn define_current(&mut self, symbol: &SxSymbol, value: &Sx) {
