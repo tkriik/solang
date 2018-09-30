@@ -5,9 +5,9 @@ use time;
 
 use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
-use ::pretty::pretty;
 use ::module;
 use ::sx::{*};
+use ::util::pretty::pretty;
 
 pub static BUILTIN_MODULE_NAME: &'static str = "core";
 

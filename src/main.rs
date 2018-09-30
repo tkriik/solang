@@ -12,11 +12,11 @@ mod builtin;
 mod env;
 mod eval;
 mod module;
-mod pretty;
 mod read;
 mod repl;
 mod script;
 mod token;
+mod util;
 
 use std::sync::Arc;
 use clap::App;

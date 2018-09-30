@@ -8,8 +8,8 @@ use time;
 
 use ::env::Env;
 use ::eval::eval;
-use ::pretty::pretty;
 use ::read::read;
+use ::util::pretty::pretty;
 
 pub fn enter(mut env: &mut Env) {
     let history_path = ".solang_history";
