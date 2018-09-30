@@ -1,24 +1,41 @@
 use std::sync::Arc;
 
 use im;
+use time;
 
 use ::env::Env;
 use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
+use ::pretty::pretty;
+use ::module;
 use ::sx::{*};
 
+pub static BUILTIN_MODULE_NAME: &'static str = "core";
+
 pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
+    // Specials
     &SPECIAL_DEF,
     &SPECIAL_FN,
     &SPECIAL_IF,
+    &SPECIAL_MODULE,
     &SPECIAL_QUOTE,
+    &SPECIAL_USE,
 
+    // General
     &PRIMITIVE_APPLY,
+    &PRIMITIVE_ENV,
+    &PRIMITIVE_TRACE,
 
+    // Collections
     &PRIMITIVE_CONS,
     &PRIMITIVE_HEAD,
     &PRIMITIVE_TAIL,
 
+    // Logic
+    &PRIMITIVE_EQ,
+
+    // Numbers
     &PRIMITIVE_PLUS,
+    &PRIMITIVE_MINUS,
     &PRIMITIVE_PRODUCT,
     &PRIMITIVE_RANGE
 ];
@@ -44,6 +61,13 @@ static SPECIAL_IF: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Special(special_if)
 };
 
+static SPECIAL_MODULE: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "module",
+    min_arity:  1,
+    max_arity:  Some(1),
+    callback:   SxBuiltinCallback::Special(special_module)
+};
+
 static SPECIAL_QUOTE: SxBuiltinInfo = SxBuiltinInfo {
     name:       "quote",
     min_arity:  1,
@@ -51,11 +75,32 @@ static SPECIAL_QUOTE: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Special(special_quote)
 };
 
+static SPECIAL_USE: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "use",
+    min_arity:  1,
+    max_arity:  Some(1),
+    callback:   SxBuiltinCallback::Special(special_use)
+};
+
 static PRIMITIVE_APPLY: SxBuiltinInfo = SxBuiltinInfo {
     name:       "apply",
     min_arity:  2,
     max_arity:  Some(2),
     callback:   SxBuiltinCallback::Primitive(primitive_apply)
+};
+
+static PRIMITIVE_ENV: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "env",
+    min_arity:  0,
+    max_arity:  Some(0),
+    callback:   SxBuiltinCallback::Primitive(primitive_env)
+};
+
+static PRIMITIVE_TRACE: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "trace",
+    min_arity:  2,
+    max_arity:  Some(2),
+    callback:   SxBuiltinCallback::Primitive(primitive_trace)
 };
 
 static PRIMITIVE_CONS: SxBuiltinInfo = SxBuiltinInfo {
@@ -79,11 +124,25 @@ static PRIMITIVE_TAIL: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Primitive(primitive_tail)
 };
 
+static PRIMITIVE_EQ: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "=",
+    min_arity:  1,
+    max_arity:  None,
+    callback:   SxBuiltinCallback::Primitive(primitive_eq)
+};
+
 static PRIMITIVE_PLUS: SxBuiltinInfo = SxBuiltinInfo {
     name:       "+",
     min_arity:  0,
     max_arity:  None,
     callback:   SxBuiltinCallback::Primitive(primitive_plus)
+};
+
+static PRIMITIVE_MINUS: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "-",
+    min_arity:  1,
+    max_arity:  None,
+    callback:   SxBuiltinCallback::Primitive(primitive_minus)
 };
 
 static PRIMITIVE_PRODUCT: SxBuiltinInfo = SxBuiltinInfo {
@@ -103,13 +162,18 @@ static PRIMITIVE_RANGE: SxBuiltinInfo = SxBuiltinInfo {
 fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
     let binding = &args[0];
     match binding {
-        Sx::Symbol(symbol) => {
-            match env.lookup(symbol) {
+        Sx::Symbol(ref symbol) => {
+            match env.lookup_core(symbol) {
+                Some(_) => return Err(EvalError::RedefineCore(symbol.clone())),
+                None    => ()
+            }
+
+            match env.lookup_current(symbol) {
                 None => {
                     let value = &args[1];
                     match eval(env, value) {
                         Ok(result) => {
-                            env.define(symbol, &result);
+                            env.define_current(symbol, &result);
                             return Ok(binding.clone());
                         },
 
@@ -132,7 +196,7 @@ fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
 }
 
 // TODO: vector binding
-fn special_fn(_env: &mut Env, args: &[Sx]) -> EvalResult {
+fn special_fn(env: &mut Env, args: &[Sx]) -> EvalResult {
     let binding_list = &args[0];
     match binding_list {
         Sx::List(bindings) => {
@@ -159,6 +223,7 @@ fn special_fn(_env: &mut Env, args: &[Sx]) -> EvalResult {
             }
 
             let f = SxFunctionInfo {
+                module:     env.current_module.clone(),
                 arity:      bindings.len(),
                 bindings:   bindings_vec,
                 body:       Arc::new(body)
@@ -193,12 +258,37 @@ fn special_if(env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+fn special_module(env: &mut Env, args: &[Sx]) -> EvalResult {
+    let module_name_arg = &args[0];
+    let module_name = match module_name_arg {
+        Sx::Symbol(module_name) => module_name,
+        _ => return Err(EvalError::BuiltinBadArg(SPECIAL_MODULE.name, module_name_arg.clone()))
+    };
+
+    env.loaded_modules.insert(module_name.clone());
+    env.current_module = module_name.clone();
+
+    return Ok(Sx::Symbol(module_name.clone()));
+}
+
 fn special_quote(_env: &mut Env, args: &[Sx]) -> EvalResult {
     return Ok(args[0].clone());
 }
 
-// TODO: call apply in eval.rs
-// TODO: apply over vector
+fn special_use(env: &mut Env, args: &[Sx]) -> EvalResult {
+    let module_arg = &args[0];
+    match module_arg {
+        Sx::Symbol(ref module_name) => {
+            return module::load_use(env, module_name);
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(SPECIAL_USE.name, module_arg.clone()));
+        }
+    }
+}
+
+// TODO: generic iterators
 fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
     let head = &args[0];
     let value = &args[1];
@@ -223,6 +313,56 @@ fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
             return error;
         }
     }
+}
+
+// TODO: iterator magic
+fn primitive_env(env: &mut Env, _args: &[Sx]) -> EvalResult {
+    let mut module_paths = Vec::new();
+    for module_path in env.module_paths.iter() {
+        module_paths.push(sx_string!(module_path));
+    }
+
+    let current_module = env.current_module.clone();
+
+    let mut loaded_modules = Vec::new();
+    for module in env.loaded_modules.iter() {
+        loaded_modules.push(Sx::Symbol(module.clone()));
+    }
+
+    let mut env_list = Vec::new();
+    for ((module, symbol), value) in env.definitions.iter() {
+        env_list.push(sx_vector![Sx::Symbol(module.clone()), Sx::Symbol(symbol.clone()), value.clone()]);
+    }
+
+    return Ok(sx_vector![
+        sx_vector![sx_symbol!("module-paths"), sx_vector_from_vec!(module_paths)],
+        sx_vector![sx_symbol!("current-module"), Sx::Symbol(current_module)],
+        sx_vector![sx_symbol!("loaded-modules"), sx_vector_from_vec!(loaded_modules)],
+        sx_vector![sx_symbol!("definitions"), sx_vector_from_vec!(env_list)]
+    ]);
+}
+
+fn primitive_trace(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    let ts = time::now();
+
+    let label_arg = &args[0];
+    let label = match label_arg {
+        Sx::String(s) => s,
+        _ => return Err(EvalError::BuiltinBadArg(PRIMITIVE_TRACE.name, label_arg.clone()))
+    };
+
+    let value = &args[1];
+
+    println!(r#"
+-----BEGIN TRACE-----
+Label: {}
+Timestamp: {}
+
+{}
+-----END TRACE-----"#,
+             label.as_ref(), ts.rfc3339(), pretty(value));
+
+    return Ok(value.clone());
 }
 
 // TODO: vector
@@ -288,9 +428,32 @@ fn primitive_tail(_env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+fn primitive_eq(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    if args.len() == 1 {
+        return Ok(Sx::Boolean(true));
+    }
+
+    let mut eq = true;
+    let mut first = true;
+    let value = &args[0];
+    for arg in args.iter() {
+        if first {
+            first = false;
+            continue;
+        }
+
+        if arg != value {
+            eq = false;
+            break;
+        }
+    }
+
+    return Ok(Sx::Boolean(eq));
+}
+
 fn primitive_plus(_env: &mut Env, args: &[Sx]) -> EvalResult {
-    let mut sum = 0;
-    for arg in args {
+    let mut sum = 0i64;
+    for arg in args.iter() {
         match arg {
             Sx::Integer(n) => {
                 sum += n;
@@ -304,6 +467,43 @@ fn primitive_plus(_env: &mut Env, args: &[Sx]) -> EvalResult {
 
     // TODO: overflow
     return Ok(sx_integer!(sum));
+}
+
+fn primitive_minus(_env: &mut Env, args: &[Sx]) -> EvalResult {
+    let diff_arg = &args[0];
+    match diff_arg {
+        Sx::Integer(x) => {
+            if args.len() == 1 {
+                return Ok(sx_integer!(-x));
+            }
+
+            let mut first = true;
+            let mut diff = *x;
+            for arg in args.iter() {
+                if first {
+                    first = false;
+                    continue;
+                }
+
+                match arg {
+                    Sx::Integer(n) => {
+                        diff -= n;
+                    },
+
+                    _ => {
+                        return Err(EvalError::BuiltinBadArg(PRIMITIVE_MINUS.name, arg.clone()));
+                    }
+                }
+            }
+
+            // TODO: overflow
+            return Ok(sx_integer!(diff));
+        },
+
+        _ => {
+            return Err(EvalError::BuiltinBadArg(PRIMITIVE_MINUS.name, diff_arg.clone()));
+        }
+    }
 }
 
 fn primitive_product(_env: &mut Env, args: &[Sx]) -> EvalResult {

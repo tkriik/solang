@@ -7,36 +7,37 @@ use rustyline::error::ReadlineError;
 use time;
 
 use ::env::Env;
-use ::eval::{eval, EvalError};
-use ::read::{read, ReadError};
-use ::sx::Sx;
-use ::token::Kind;
+use ::eval::eval;
+use ::pretty::pretty;
+use ::read::read;
 
-pub fn enter() {
+pub fn enter(mut env: &mut Env) {
     let history_path = ".solang_history";
 
     let mut rl = Editor::<()>::new();
     let _ = rl.load_history(history_path);
 
-    let mut env = Env::new();
+    let version = env!("CARGO_PKG_VERSION");
+    println!("solang (Solid Language) {}", version);
 
     loop {
-        let readline  = rl.readline(">> ");
+        let prompt = format!("{}=> ", env.current_module);
+        let readline  = rl.readline(prompt.as_ref());
         match readline {
             Ok(line) => {
                 match read(&line) {
-                    Ok(Sx::List(sxs)) => {
+                    Ok(sxs) => {
                         for sx in sxs.iter() {
                             let t0 = time::precise_time_s();
                             match eval(&mut env, sx) {
-                                Ok(result) => {
+                                Ok(ref result) => {
                                     let t1 = time::precise_time_s();
-                                    println!("{}", result.to_string());
+                                    println!("{}", pretty(result));
                                     println!("time: {:.6}s", t1 - t0);
                                 },
 
                                 Err(eval_error) => {
-                                    print_eval_error(&eval_error);
+                                    println!("eval error: {}", eval_error.to_string());
                                 }
                             }
                         }
@@ -44,12 +45,8 @@ pub fn enter() {
 
                     Err(read_errors) => {
                         for read_error in read_errors {
-                            print_read_error(&read_error);
+                            println!("read error: {}", read_error.to_string());
                         }
-                    },
-
-                    _ => {
-                        assert!(false);
                     }
                 }
 
@@ -79,90 +76,6 @@ pub fn enter() {
         Err(err) => {
             println!("Failed to save shell history to {}: {}",
                      history_path, err.description());
-        }
-    }
-}
-
-fn print_read_error(read_error: &ReadError) {
-    match read_error {
-        ReadError::InvalidToken(s) => {
-            println!("read error: invalid token: {}", s);
-        },
-
-        ReadError::IntegerLimit(s) => {
-            println!("read error: integer limit: {}", s);
-        },
-
-        ReadError::PartialString(s) => {
-            println!("read error: non-terminated string: \"{}", s);
-        },
-
-        ReadError::InvalidCloseDelimiter(kind, s) => {
-            match kind {
-                Kind::ListStart     => println!("read error: invalid list close delimiter: '{}'", s),
-                Kind::VectorStart   => println!("read error: invalid vector close delimiter: '{}'", s),
-                _                   => assert!(false)
-            }
-        },
-
-        ReadError::TrailingDelimiter(s) => {
-            println!("read error: trailing delimiter: '{}'", s);
-        },
-
-        ReadError::UnmatchedDelimiter(kind) => {
-            match kind {
-                Kind::ListStart     => println!("read error: non-terminated list"),
-                Kind::VectorStart   => println!("read error: non-terminated vector"),
-                _                   => assert!(false)
-            }
-        }
-    }
-}
-
-fn print_eval_error(eval_error: &EvalError ) {
-    match eval_error {
-        EvalError::Undefined(sx) => {
-            println!("eval error: undefined symbol: {}", sx.to_string());
-        },
-
-        EvalError::Redefine(symbol) => {
-            println!("eval error: cannot redefine symbol {}", symbol.to_string());
-        },
-
-        EvalError::DefineBadSymbol(sx) => {
-            println!("eval error: first argument to def must be a symbol, got {}", sx.to_string());
-        },
-
-        EvalError::NotAFunction(sx) => {
-            println!("eval error: {} does not evaluate to a function", sx.to_string());
-        },
-
-        EvalError::InvalidBinding(sx) => {
-            println!("eval error: invalid binding form in function, got {}", sx.to_string());
-        },
-
-        EvalError::DuplicateBinding(symbol) => {
-            println!("eval error: cannot bind symbol {} more than once in function definition", symbol);
-        },
-
-        EvalError::BuiltinTooFewArgs(name, min_arity, act_arity) => {
-            println!("eval error: {} expects at least {} argument(s), got {}", name, min_arity, act_arity);
-        },
-
-        EvalError::BuiltinTooManyArgs(name, max_arity, act_arity) => {
-            println!("eval error: {} expects at most {} argument(s), got {}", name, max_arity, act_arity);
-        },
-
-        EvalError::BuiltinBadArg(name, arg) => {
-            println!("eval error: invalid argument to {}, got {}", name, arg.to_string());
-        },
-
-        EvalError::TooFewArgs(f, min_arity, act_arity) => {
-            println!("eval error: {} expects at least {} argument(s), got {}", f.to_string(), min_arity, act_arity);
-        },
-
-        EvalError::TooManyArgs(f, max_arity, act_arity) => {
-            println!("eval error: {} expects at most {} argument(s), got {}", f.to_string(), max_arity, act_arity);
         }
     }
 }

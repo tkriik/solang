@@ -1,3 +1,4 @@
+use std::string::ToString;
 use std::sync::Arc;
 
 use im;
@@ -15,7 +16,7 @@ pub enum ReadError {
     UnmatchedDelimiter(Kind)
 }
 
-pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
+pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
     let mut opt_sx = None;
     let mut sxs = Vec::new();
 
@@ -153,17 +154,74 @@ pub fn read(source: &str) -> Result<Sx, Vec<ReadError>> {
         return Err(read_errors);
     }
 
-    return Ok(Sx::List(Arc::new(sxs)));
+    return Ok(sxs);
+}
+
+impl ToString for ReadError {
+    fn to_string(&self) -> String {
+        match self {
+            ReadError::InvalidToken(s) => {
+                return format!("invalid token: {}", s)
+            },
+
+            ReadError::IntegerLimit(s) => {
+                return format!("integer limit: {}", s)
+            },
+
+            ReadError::PartialString(s) => {
+                return format!("non-terminated string: \"{}", s)
+            }
+
+            ReadError::InvalidCloseDelimiter(kind, s) => {
+                match kind {
+                    Kind::ListStart => {
+                        return format!("invalid list close delimiter: '{}'", s)
+                    },
+
+                    Kind::VectorStart => {
+                        return format!("invalid vector close delimiter: '{}'", s)
+                    },
+
+                    _ => {
+                        assert!(false);
+                        return "".to_string();
+                    }
+                }
+            },
+
+            ReadError::TrailingDelimiter(s) => {
+                return format!("trailing delimiter: '{}'", s)
+            },
+
+            ReadError::UnmatchedDelimiter(kind) => {
+                match kind {
+                    Kind::ListStart => {
+                        return format!("non-terminated list")
+                    },
+
+                    Kind::VectorStart => {
+                        return format!("non-terminated vector")
+                    },
+
+                    _ => {
+                        assert!(false);
+                        return "".to_string();
+                    }
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn test_sxs(source: &str, exp_sxs: Sx) {
+    fn test_sxs(source: &str, exp_sxs: Vec<Sx>) {
         let act_sxs = read(source);
         assert!(act_sxs.is_ok());
-        assert_eq!(exp_sxs.to_string(), act_sxs.unwrap().to_string());
+        assert_eq!(sx_list_from_vec!(exp_sxs).to_string(),
+                   sx_list_from_vec!(act_sxs.unwrap()).to_string());
     }
 
     fn test_errors(source: &str, exp_errs: Vec<ReadError>) {
@@ -173,12 +231,12 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        test_sxs("", sx_list![]);
+        test_sxs("", vec![]);
     }
 
     #[test]
     fn test_nil() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_nil!()
         ];
 
@@ -187,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_boolean() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_boolean!(true),
             sx_boolean!(false)
         ];
@@ -197,7 +255,7 @@ mod tests {
 
     #[test]
     fn test_int() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_integer!(0),
             sx_integer!(1),
             sx_integer!(12345678)
@@ -208,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_negative_int() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_integer!(-0),
             sx_integer!(-1),
             sx_integer!(-12345678)
@@ -219,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_symbol() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_symbol!("foo")
         ];
 
@@ -228,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_string() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_string!("北京市")
         ];
 
@@ -237,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_list_empty() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![]
         ];
 
@@ -246,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_list_singleton() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![
                 sx_symbol!("foo")
             ]
@@ -257,7 +315,7 @@ mod tests {
 
     #[test]
     fn test_list_pair() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![
                 sx_symbol!("foo"),
                 sx_string!("Åbo")
@@ -269,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_list_nonempty() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![
                 sx_nil!(),
                 sx_symbol!("foo"),
@@ -282,7 +340,7 @@ mod tests {
 
     #[test]
     fn test_list_nested_front() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![
                 sx_list![
                     sx_list![
@@ -299,7 +357,7 @@ mod tests {
 
     #[test]
     fn test_list_nested_back() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![
                 sx_nil!(),
                 sx_list![
@@ -316,7 +374,7 @@ mod tests {
 
     #[test]
     fn test_list_nested_middle() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_list![
                 sx_nil!(),
                 sx_list![
@@ -331,7 +389,7 @@ mod tests {
 
     #[test]
     fn test_vector_empty() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_vector![]
         ];
 
@@ -340,7 +398,7 @@ mod tests {
 
     #[test]
     fn test_vector_singleton() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_vector![sx_integer!(3)]
         ];
 
@@ -349,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_vector_nonempty() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_vector![
                 sx_nil!(),
                 sx_symbol!("foo"),
@@ -363,7 +421,7 @@ mod tests {
 
     #[test]
     fn test_vector_nested() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_vector![
                 sx_vector![sx_nil!()],
                 sx_vector![
@@ -379,7 +437,7 @@ mod tests {
 
     #[test]
     fn test_multi_flat() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_nil!(),
             sx_symbol!("foo"),
             sx_string!("北京市"),
@@ -391,7 +449,7 @@ mod tests {
 
     #[test]
     fn test_multi_nested() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_nil!(),
             sx_list![],
             sx_list![
@@ -407,7 +465,7 @@ mod tests {
 
     #[test]
     fn test_quoted_sym_1() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_quote!(sx_symbol!("foo"))
         ];
 
@@ -416,7 +474,7 @@ mod tests {
 
     #[test]
     fn test_quoted_sym_2() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_quote!(sx_quote!(sx_symbol!("foo")))
         ];
 
@@ -425,7 +483,7 @@ mod tests {
 
     #[test]
     fn test_quoted_list_1() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_quote!(
                 sx_list![
                     sx_integer!(1),
@@ -440,7 +498,7 @@ mod tests {
 
     #[test]
     fn test_quoted_list_3() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_quote!(sx_quote!(sx_quote!(
                 sx_list![
                     sx_integer!(1),
@@ -455,7 +513,7 @@ mod tests {
 
     #[test]
     fn test_quoted_list_nested() {
-        let exp_sxs = sx_list![
+        let exp_sxs = vec![
             sx_quote!(
                 sx_list![
                     sx_integer!(1),
