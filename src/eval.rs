@@ -34,7 +34,8 @@ pub enum EvalError {
     ModuleIoOpenError(SxSymbol, String),
     ModuleIoReadError(SxSymbol, String),
     ModuleReadErrors(SxSymbol, Vec<ReadError>),
-    ModuleEvalErrors(SxSymbol, Vec<EvalError>)
+    ModuleEvalErrors(SxSymbol, Vec<EvalError>),
+    ModuleNotLoaded(SxSymbol)
 }
 
 pub type EvalResult = Result<Sx, EvalError>;
@@ -67,6 +68,10 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
                 [_] => (),
 
                 _ => return Err(EvalError::SymbolBadModuleFormat(symbol.clone()))
+            }
+
+            if !env.loaded_modules.contains(&effective_module) {
+                return Err(EvalError::ModuleNotLoaded(effective_module.clone()));
             }
 
             match env.lookup(&effective_module, &effective_symbol) {
@@ -185,6 +190,7 @@ pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> EvalResult 
     }
 
     let mut sub_env = env.clone();
+    sub_env.current_module = f.module.clone();
     for (binding, sx) in f.bindings.iter().zip(args.iter()) {
         match eval(env, sx) {
             Ok(ref result) => sub_env.define_current(binding, result),
@@ -301,6 +307,10 @@ impl ToString for EvalError {
                 s.pop();
 
                 return s;
+            }
+
+            EvalError::ModuleNotLoaded(module_name) => {
+                return format!("module {} is not loaded", module_name);
             }
         }
     }
@@ -458,12 +468,14 @@ mod tests {
     #[test]
     fn test_special_fn_too_few_args() {
         let f1 = Arc::new(SxFunctionInfo {
+            module:     sx_symbol_unwrapped!("test-eval"),
             arity:      1,
             bindings:   vec![sx_symbol_unwrapped!("x")],
             body:       Arc::new(vec![sx_symbol!("x")])
         });
 
         let f2 = Arc::new(SxFunctionInfo {
+            module:     sx_symbol_unwrapped!("test-eval"),
             arity:      2,
             bindings:   vec![sx_symbol_unwrapped!("x"), sx_symbol_unwrapped!("y")],
             body:       Arc::new(vec![sx_symbol!("x")])
@@ -481,12 +493,14 @@ mod tests {
     #[test]
     fn test_special_fn_too_many_args() {
         let f1 = Arc::new(SxFunctionInfo {
+            module:     sx_symbol_unwrapped!("test-eval"),
             arity:      0,
             bindings:   vec![],
             body:       Arc::new(vec![sx_nil!()])
         });
 
         let f2 = Arc::new(SxFunctionInfo {
+            module:     sx_symbol_unwrapped!("test-eval"),
             arity:      1,
             bindings:   vec![sx_symbol_unwrapped!("x")],
             body:       Arc::new(vec![sx_symbol!("x")])

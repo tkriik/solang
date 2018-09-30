@@ -48,6 +48,7 @@ pub type SxBuiltinFn = fn(&mut Env, &[Sx]) -> EvalResult;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct SxFunctionInfo {
+    pub module:     SxSymbol,
     pub arity:      usize,
     pub bindings:   Vec<SxSymbol>,
     pub body:       SxList

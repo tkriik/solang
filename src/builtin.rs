@@ -16,6 +16,7 @@ pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
     &SPECIAL_DEF,
     &SPECIAL_FN,
     &SPECIAL_IF,
+    &SPECIAL_MODULE,
     &SPECIAL_QUOTE,
     &SPECIAL_USE,
 
@@ -58,6 +59,13 @@ static SPECIAL_IF: SxBuiltinInfo = SxBuiltinInfo {
     min_arity:  3,
     max_arity:  Some(3),
     callback:   SxBuiltinCallback::Special(special_if)
+};
+
+static SPECIAL_MODULE: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "module",
+    min_arity:  1,
+    max_arity:  Some(1),
+    callback:   SxBuiltinCallback::Special(special_module)
 };
 
 static SPECIAL_QUOTE: SxBuiltinInfo = SxBuiltinInfo {
@@ -188,7 +196,7 @@ fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
 }
 
 // TODO: vector binding
-fn special_fn(_env: &mut Env, args: &[Sx]) -> EvalResult {
+fn special_fn(env: &mut Env, args: &[Sx]) -> EvalResult {
     let binding_list = &args[0];
     match binding_list {
         Sx::List(bindings) => {
@@ -215,6 +223,7 @@ fn special_fn(_env: &mut Env, args: &[Sx]) -> EvalResult {
             }
 
             let f = SxFunctionInfo {
+                module:     env.current_module.clone(),
                 arity:      bindings.len(),
                 bindings:   bindings_vec,
                 body:       Arc::new(body)
@@ -249,6 +258,19 @@ fn special_if(env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
+fn special_module(env: &mut Env, args: &[Sx]) -> EvalResult {
+    let module_name_arg = &args[0];
+    let module_name = match module_name_arg {
+        Sx::Symbol(module_name) => module_name,
+        _ => return Err(EvalError::BuiltinBadArg(SPECIAL_MODULE.name, module_name_arg.clone()))
+    };
+
+    env.loaded_modules.insert(module_name.clone());
+    env.current_module = module_name.clone();
+
+    return Ok(Sx::Symbol(module_name.clone()));
+}
+
 fn special_quote(_env: &mut Env, args: &[Sx]) -> EvalResult {
     return Ok(args[0].clone());
 }
@@ -266,8 +288,7 @@ fn special_use(env: &mut Env, args: &[Sx]) -> EvalResult {
     }
 }
 
-// TODO: call apply in eval.rs
-// TODO: apply over vector
+// TODO: generic iterators
 fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
     let head = &args[0];
     let value = &args[1];
