@@ -1,0 +1,14 @@
+name: Solang (Solid Language)
+version: "0.1.0"
+author: "Tanel Kriik <tanel.kriik@gmail.com>"
+about: LISP attempt
+args:
+    - interactive:
+        short: i
+        long: interactive
+        help: Load module in REPL
+
+    - INPUT:
+          help: Module path
+          required: false
+          index: 1
