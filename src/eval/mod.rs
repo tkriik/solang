@@ -4,10 +4,12 @@ pub mod module;
 
 mod builtin;
 
+use std::result;
+
 use ::read;
 use ::sx::{Sx, SxSymbol, SxFunction};
 
-pub type EvalResult = Result<Sx, Error>;
+pub type Result = result::Result<Sx, Error>;
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum Error {

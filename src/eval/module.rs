@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use ::eval::env::Env;
 use ::eval::eval::eval;
-use ::eval::{EvalResult, Error};
+use ::eval::{Result, Error};
 use ::read::read;
 use ::sx::{Sx, SxSymbol};
 
@@ -26,7 +26,7 @@ pub fn entry_from_symbol(symbol: &SxSymbol) -> Vec<SxSymbol> {
         .collect::<Vec<_>>();
 }
 
-pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> EvalResult {
+pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> Result {
     if module_name.as_ref() == env.current_module.as_ref() {
         return Err(Error::ModuleSelfRefer(module_name.clone()));
     }

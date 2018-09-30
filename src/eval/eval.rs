@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use ::eval::{module, EvalResult, Error};
+use ::eval::{module, Result, Error};
 use ::eval::env::Env;
 use ::sx::{*};
 
-pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
+pub fn eval(env: &mut Env, sx: &Sx) -> Result {
     match sx {
         Sx::Nil         |
         Sx::Boolean(_)  |
@@ -91,7 +91,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> EvalResult {
     }
 }
 
-pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> EvalResult {
+pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> Result {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
             return apply_special(builtin, special_fn, env, arglist);
@@ -103,7 +103,7 @@ pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> 
     }
 }
 
-fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> EvalResult {
+fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> Result {
     if args.len() < builtin.min_arity {
         return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
@@ -119,7 +119,7 @@ fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env
     return special_fn(env, args);
 }
 
-fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> EvalResult {
+fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> Result {
     if args.len() < builtin.min_arity {
         return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
@@ -143,7 +143,7 @@ fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut
     return primitive_fn(env, &result_args);
 }
 
-pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> EvalResult {
+pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> Result {
     let arity = args.len();
     if arity < f.arity {
         return Err(Error::FnTooFewArgs(f.clone(), f.arity, arity));
@@ -207,7 +207,7 @@ mod tests {
         assert_eq!(sx_list_from_vec!(results).to_string(), sx_list_from_vec!(output).to_string());
     }
 
-    fn test_eval_results(input_source: &str, exp_results: Vec<EvalResult>) {
+    fn test_eval_results(input_source: &str, exp_results: Vec<Result>) {
         let mut env = mk_test_env();
 
         let input = read(input_source).expect("invalid input source");
