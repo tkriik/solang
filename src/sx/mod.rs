@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use im;
 
-use ::env::Env;
-use ::eval::EvalResult;
+use ::eval;
+use ::eval::env::Env;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Sx {
@@ -44,7 +44,7 @@ pub enum SxBuiltinCallback {
     Primitive(SxBuiltinFn)
 }
 
-pub type SxBuiltinFn = fn(&mut Env, &[Sx]) -> EvalResult;
+pub type SxBuiltinFn = fn(&mut Env, &[Sx]) -> eval::Result;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct SxFunctionInfo {

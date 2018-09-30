@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use im;
 
-use builtin::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
-use sx::{Sx, SxSymbol};
+use ::eval::builtin::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
+use ::sx::{Sx, SxSymbol};
 
 #[derive(Clone)]
 pub struct Env {

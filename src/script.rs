@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use ::env::Env;
-use ::module;
+use ::eval::env::Env;
+use ::eval::module;
 use ::repl;
 
 pub fn run(path: &str, interactive: bool) {
