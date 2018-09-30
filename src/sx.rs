@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use im;
 
-use ::env::Env;
+use ::eval::env::Env;
 use ::eval::EvalResult;
 
 #[derive(Clone, Eq, PartialEq, Debug)]

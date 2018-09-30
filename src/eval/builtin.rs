@@ -3,9 +3,9 @@ use std::sync::Arc;
 use im;
 use time;
 
-use ::env::Env;
-use ::eval::{eval, apply_builtin, apply_function, EvalResult, EvalError};
-use ::module;
+use ::eval::env::Env;
+use ::eval::{module, EvalResult, Error};
+use ::eval::eval::{eval, apply_builtin, apply_function};
 use ::sx::{*};
 use ::util::pretty::pretty;
 
@@ -164,7 +164,7 @@ fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
     match binding {
         Sx::Symbol(ref symbol) => {
             match env.lookup_core(symbol) {
-                Some(_) => return Err(EvalError::RedefineCore(symbol.clone())),
+                Some(_) => return Err(Error::RedefineCore(symbol.clone())),
                 None    => ()
             }
 
@@ -184,13 +184,13 @@ fn special_def(env: &mut Env, args: &[Sx]) -> EvalResult {
                 },
 
                 Some(_) => {
-                    return Err(EvalError::Redefine(symbol.clone()));
+                    return Err(Error::Redefine(symbol.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(EvalError::DefineBadSymbol(binding.clone()));
+            return Err(Error::DefineBadSymbol(binding.clone()));
         }
     }
 }
@@ -205,14 +205,14 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> EvalResult {
                 match binding {
                     Sx::Symbol(name) => {
                         if bindings_vec.contains(name) {
-                            return Err(EvalError::DuplicateBinding(name.clone()));
+                            return Err(Error::DuplicateBinding(name.clone()));
                         }
 
                         bindings_vec.push(name.clone());
                     },
 
                     invalid => {
-                        return Err(EvalError::InvalidBinding(invalid.clone()));
+                        return Err(Error::InvalidBinding(invalid.clone()));
                     }
                 }
             }
@@ -233,7 +233,7 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> EvalResult {
         },
 
         _ => {
-            return Err(EvalError::BuiltinBadArg(SPECIAL_FN.name, binding_list.clone()));
+            return Err(Error::BuiltinBadArg(SPECIAL_FN.name, binding_list.clone()));
         }
     }
 }
@@ -262,7 +262,7 @@ fn special_module(env: &mut Env, args: &[Sx]) -> EvalResult {
     let module_name_arg = &args[0];
     let module_name = match module_name_arg {
         Sx::Symbol(module_name) => module_name,
-        _ => return Err(EvalError::BuiltinBadArg(SPECIAL_MODULE.name, module_name_arg.clone()))
+        _ => return Err(Error::BuiltinBadArg(SPECIAL_MODULE.name, module_name_arg.clone()))
     };
 
     env.loaded_modules.insert(module_name.clone());
@@ -283,7 +283,7 @@ fn special_use(env: &mut Env, args: &[Sx]) -> EvalResult {
         },
 
         _ => {
-            return Err(EvalError::BuiltinBadArg(SPECIAL_USE.name, module_arg.clone()));
+            return Err(Error::BuiltinBadArg(SPECIAL_USE.name, module_arg.clone()));
         }
     }
 }
@@ -302,11 +302,11 @@ fn primitive_apply(env: &mut Env, args: &[Sx]) -> EvalResult {
         }
 
         (Ok(Sx::Builtin(_)), value) => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_APPLY.name, value.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_APPLY.name, value.clone()));
         },
 
         (Ok(v), _) => {
-            return Err(EvalError::NotAFunction(v.clone()));
+            return Err(Error::NotAFunction(v.clone()));
         },
 
         (error @ Err(_), _) => {
@@ -348,7 +348,7 @@ fn primitive_trace(_env: &mut Env, args: &[Sx]) -> EvalResult {
     let label_arg = &args[0];
     let label = match label_arg {
         Sx::String(s) => s,
-        _ => return Err(EvalError::BuiltinBadArg(PRIMITIVE_TRACE.name, label_arg.clone()))
+        _ => return Err(Error::BuiltinBadArg(PRIMITIVE_TRACE.name, label_arg.clone()))
     };
 
     let value = &args[1];
@@ -378,7 +378,7 @@ fn primitive_cons(_env: &mut Env, args: &[Sx]) -> EvalResult {
         },
 
         _ => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_CONS.name, list_arg.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_CONS.name, list_arg.clone()));
         }
     }
 }
@@ -394,13 +394,13 @@ fn primitive_head(_env: &mut Env, args: &[Sx]) -> EvalResult {
                 },
 
                 None => {
-                    return Err(EvalError::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
+                    return Err(Error::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
         }
     }
 }
@@ -417,13 +417,13 @@ fn primitive_tail(_env: &mut Env, args: &[Sx]) -> EvalResult {
                 },
 
                 None => {
-                    return Err(EvalError::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
+                    return Err(Error::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
         }
     }
 }
@@ -460,7 +460,7 @@ fn primitive_plus(_env: &mut Env, args: &[Sx]) -> EvalResult {
             },
 
             _ => {
-                return Err(EvalError::BuiltinBadArg(PRIMITIVE_PLUS.name, arg.clone()));
+                return Err(Error::BuiltinBadArg(PRIMITIVE_PLUS.name, arg.clone()));
             }
         }
     }
@@ -491,7 +491,7 @@ fn primitive_minus(_env: &mut Env, args: &[Sx]) -> EvalResult {
                     },
 
                     _ => {
-                        return Err(EvalError::BuiltinBadArg(PRIMITIVE_MINUS.name, arg.clone()));
+                        return Err(Error::BuiltinBadArg(PRIMITIVE_MINUS.name, arg.clone()));
                     }
                 }
             }
@@ -501,7 +501,7 @@ fn primitive_minus(_env: &mut Env, args: &[Sx]) -> EvalResult {
         },
 
         _ => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_MINUS.name, diff_arg.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_MINUS.name, diff_arg.clone()));
         }
     }
 }
@@ -515,7 +515,7 @@ fn primitive_product(_env: &mut Env, args: &[Sx]) -> EvalResult {
             },
 
             _ => {
-                return Err(EvalError::BuiltinBadArg(PRIMITIVE_PRODUCT.name, arg.clone()));
+                return Err(Error::BuiltinBadArg(PRIMITIVE_PRODUCT.name, arg.clone()));
             }
         }
     }
@@ -542,11 +542,11 @@ fn primitive_range(_env: &mut Env, args: &[Sx]) -> EvalResult {
         },
 
         [ref arg, Sx::Integer(_)] => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
         },
 
         [_, ref arg] => {
-            return Err(EvalError::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
+            return Err(Error::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
         },
 
         _ => {

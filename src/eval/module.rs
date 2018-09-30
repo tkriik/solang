@@ -4,8 +4,9 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use ::env::Env;
-use ::eval::{eval, EvalResult, EvalError};
+use ::eval::env::Env;
+use ::eval::eval::eval;
+use ::eval::{EvalResult, Error};
 use ::read::read;
 use ::sx::{Sx, SxSymbol};
 
@@ -27,7 +28,7 @@ pub fn entry_from_symbol(symbol: &SxSymbol) -> Vec<SxSymbol> {
 
 pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> EvalResult {
     if module_name.as_ref() == env.current_module.as_ref() {
-        return Err(EvalError::ModuleSelfRefer(module_name.clone()));
+        return Err(Error::ModuleSelfRefer(module_name.clone()));
     }
 
     if env.loaded_modules.contains(module_name) {
@@ -53,32 +54,32 @@ pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> EvalResult {
             },
 
             None => {
-                return Err(EvalError::ModulePathError(module_path.clone(), module_name.as_ref().clone()));
+                return Err(Error::ModulePathError(module_path.clone(), module_name.as_ref().clone()));
             }
         }
     }
 
     let filename = match filename_matches[..] {
         [ref f] => f,
-        []      => return Err(EvalError::ModuleNotFound(module_name.clone(), env.module_paths.clone())),
-        _       => return Err(EvalError::ModuleMultipleOptions(module_name.clone(), filename_matches.clone()))
+        []      => return Err(Error::ModuleNotFound(module_name.clone(), env.module_paths.clone())),
+        _       => return Err(Error::ModuleMultipleOptions(module_name.clone(), filename_matches.clone()))
     };
 
     let mut file = match File::open(filename) {
         Ok(mut f)   => f,
-        Err(e)      => return Err(EvalError::ModuleIoOpenError(module_name.clone(), e.to_string()))
+        Err(e)      => return Err(Error::ModuleIoOpenError(module_name.clone(), e.to_string()))
     };
 
     let mut source = String::new();
     match file.read_to_string(&mut source) {
         Ok(_)   => (),
-        Err(e)  => return Err(EvalError::ModuleIoReadError(module_name.clone(), e.to_string()))
+        Err(e)  => return Err(Error::ModuleIoReadError(module_name.clone(), e.to_string()))
     }
 
     let sxs = match read(source.as_ref()) {
         Ok(xs) => xs,
         Err(read_errors) => {
-            return Err(EvalError::ModuleReadErrors(module_name.clone(), read_errors))
+            return Err(Error::ModuleReadErrors(module_name.clone(), read_errors))
         }
     };
 
@@ -95,7 +96,7 @@ pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> EvalResult {
     }
 
     if !eval_errors.is_empty() {
-        return Err(EvalError::ModuleEvalErrors(module_name.clone(), eval_errors));
+        return Err(Error::ModuleEvalErrors(module_name.clone(), eval_errors));
     }
 
     new_env.current_module = env.current_module.clone();

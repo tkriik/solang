@@ -8,10 +8,7 @@ extern crate unicode_segmentation;
 #[macro_use] extern crate pretty_assertions;
 
 #[macro_use] mod sx;
-mod builtin;
-mod env;
 mod eval;
-mod module;
 mod read;
 mod repl;
 mod script;
@@ -20,7 +17,7 @@ mod util;
 use std::sync::Arc;
 use clap::App;
 
-use ::env::Env;
+use ::eval::env::Env;
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
