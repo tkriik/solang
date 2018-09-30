@@ -4,19 +4,11 @@ use std::sync::Arc;
 use im;
 
 use ::sx::Sx;
-use ::token::{tokenize, Kind};
+use ::read;
+use ::read::Error;
+use ::read::token::{tokenize, Kind};
 
-#[derive(Eq, PartialEq, Debug)]
-pub enum ReadError {
-    InvalidToken(String),
-    IntegerLimit(String),
-    PartialString(String),
-    InvalidCloseDelimiter(Kind, String),
-    TrailingDelimiter(String),
-    UnmatchedDelimiter(Kind)
-}
-
-pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
+pub fn parse(source: &str) -> read::Result {
     let mut opt_sx = None;
     let mut sxs = Vec::new();
 
@@ -55,7 +47,7 @@ pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
                     },
 
                     Err(_) => {
-                        read_errors.push(ReadError::IntegerLimit(token.data.to_string()));
+                        read_errors.push(Error::IntegerLimit(token.data.to_string()));
                     }
                 }
             },
@@ -83,7 +75,7 @@ pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
                             (Kind::ListStart, Kind::ListEnd) => (),
                             (Kind::VectorStart, Kind::VectorEnd) => (),
                             _ => {
-                                read_errors.push(ReadError::InvalidCloseDelimiter(top_delim, token.data.to_string()));
+                                read_errors.push(Error::InvalidCloseDelimiter(top_delim, token.data.to_string()));
                                 continue;
                             }
                         }
@@ -108,7 +100,7 @@ pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
                     },
 
                     None => {
-                        read_errors.push(ReadError::TrailingDelimiter(token.data.to_string()));
+                        read_errors.push(Error::TrailingDelimiter(token.data.to_string()));
                     }
                 }
             },
@@ -118,11 +110,11 @@ pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
             },
 
             Kind::StringPartial => {
-                read_errors.push(ReadError::PartialString(token.data.to_string()));
+                read_errors.push(Error::PartialString(token.data.to_string()));
             },
 
             Kind::Invalid => {
-                read_errors.push(ReadError::InvalidToken(token.data.to_string()));
+                read_errors.push(Error::InvalidToken(token.data.to_string()));
             },
 
             _ => {
@@ -147,7 +139,7 @@ pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
     }
 
     for (_, top_delim, _) in read_stack.iter() {
-        read_errors.push(ReadError::UnmatchedDelimiter(*top_delim));
+        read_errors.push(Error::UnmatchedDelimiter(*top_delim));
     }
 
     if !read_errors.is_empty() {
@@ -157,75 +149,19 @@ pub fn read(source: &str) -> Result<Vec<Sx>, Vec<ReadError>> {
     return Ok(sxs);
 }
 
-impl ToString for ReadError {
-    fn to_string(&self) -> String {
-        match self {
-            ReadError::InvalidToken(s) => {
-                return format!("invalid token: {}", s)
-            },
-
-            ReadError::IntegerLimit(s) => {
-                return format!("integer limit: {}", s)
-            },
-
-            ReadError::PartialString(s) => {
-                return format!("non-terminated string: \"{}", s)
-            }
-
-            ReadError::InvalidCloseDelimiter(kind, s) => {
-                match kind {
-                    Kind::ListStart => {
-                        return format!("invalid list close delimiter: '{}'", s)
-                    },
-
-                    Kind::VectorStart => {
-                        return format!("invalid vector close delimiter: '{}'", s)
-                    },
-
-                    _ => {
-                        assert!(false);
-                        return "".to_string();
-                    }
-                }
-            },
-
-            ReadError::TrailingDelimiter(s) => {
-                return format!("trailing delimiter: '{}'", s)
-            },
-
-            ReadError::UnmatchedDelimiter(kind) => {
-                match kind {
-                    Kind::ListStart => {
-                        return format!("non-terminated list")
-                    },
-
-                    Kind::VectorStart => {
-                        return format!("non-terminated vector")
-                    },
-
-                    _ => {
-                        assert!(false);
-                        return "".to_string();
-                    }
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn test_sxs(source: &str, exp_sxs: Vec<Sx>) {
-        let act_sxs = read(source);
+        let act_sxs = parse(source);
         assert!(act_sxs.is_ok());
         assert_eq!(sx_list_from_vec!(exp_sxs).to_string(),
                    sx_list_from_vec!(act_sxs.unwrap()).to_string());
     }
 
-    fn test_errors(source: &str, exp_errs: Vec<ReadError>) {
-        let act_errs = read(source);
+    fn test_errors(source: &str, exp_errs: Vec<Error>) {
+        let act_errs = parse(source);
         assert_eq!(Err(exp_errs), act_errs);
     }
 
@@ -534,7 +470,7 @@ mod tests {
     #[test]
     fn test_invalid_tokens() {
         let exp_errs = vec![
-            ReadError::InvalidToken("bar,,,".to_string())
+            Error::InvalidToken("bar,,,".to_string())
         ];
 
         test_errors("foo bar,,, baz", exp_errs);
@@ -543,8 +479,8 @@ mod tests {
     #[test]
     fn test_int_overflow() {
         let exp_errs = vec![
-                ReadError::IntegerLimit("100200300400500600700800".to_string()),
-                ReadError::IntegerLimit("-100200300400500600700800".to_string())
+                Error::IntegerLimit("100200300400500600700800".to_string()),
+                Error::IntegerLimit("-100200300400500600700800".to_string())
         ];
 
         test_errors("100200300400500600700800 -100200300400500600700800", exp_errs);
@@ -553,7 +489,7 @@ mod tests {
     #[test]
     fn test_partial_string() {
         let exp_errs = vec![
-                ReadError::PartialString("  ".to_string())
+                Error::PartialString("  ".to_string())
         ];
 
         test_errors("\"  ", exp_errs);
@@ -562,8 +498,8 @@ mod tests {
     #[test]
     fn test_invalid_close_delimiter() {
         let exp_errs = vec![
-            ReadError::InvalidCloseDelimiter(Kind::ListStart, "]".to_string()),
-            ReadError::InvalidCloseDelimiter(Kind::VectorStart, ")".to_string())
+            Error::InvalidCloseDelimiter(Kind::ListStart, "]".to_string()),
+            Error::InvalidCloseDelimiter(Kind::VectorStart, ")".to_string())
         ];
 
         test_errors("(foo bar baz] [foo bar baz)", exp_errs);
@@ -572,8 +508,8 @@ mod tests {
     #[test]
     fn test_unmatched_delimiter() {
         let exp_errs = vec![
-                ReadError::UnmatchedDelimiter(Kind::ListStart),
-                ReadError::UnmatchedDelimiter(Kind::VectorStart)
+                Error::UnmatchedDelimiter(Kind::ListStart),
+                Error::UnmatchedDelimiter(Kind::VectorStart)
         ];
 
         test_errors("(foo bar baz [foo bar baz", exp_errs);
@@ -582,7 +518,7 @@ mod tests {
     #[test]
     fn test_trailing_delimiter_list() {
         let exp_errs = vec![
-            ReadError::TrailingDelimiter(")".to_string())
+            Error::TrailingDelimiter(")".to_string())
         ];
 
         test_errors("(foo bar baz))", exp_errs);

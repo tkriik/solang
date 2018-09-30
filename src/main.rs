@@ -15,7 +15,6 @@ mod module;
 mod read;
 mod repl;
 mod script;
-mod token;
 mod util;
 
 use std::sync::Arc;

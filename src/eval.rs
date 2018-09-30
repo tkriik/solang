@@ -2,7 +2,7 @@ use std::string::ToString;
 use std::sync::Arc;
 
 use ::env::Env;
-use ::read::ReadError;
+use ::read;
 use ::module;
 use ::sx::{*};
 
@@ -33,7 +33,7 @@ pub enum EvalError {
     ModuleMultipleOptions(SxSymbol, Vec<String>),
     ModuleIoOpenError(SxSymbol, String),
     ModuleIoReadError(SxSymbol, String),
-    ModuleReadErrors(SxSymbol, Vec<ReadError>),
+    ModuleReadErrors(SxSymbol, Vec<read::Error>),
     ModuleEvalErrors(SxSymbol, Vec<EvalError>),
     ModuleNotLoaded(SxSymbol)
 }
