@@ -6,12 +6,12 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use time;
 
-use ::eval::env::Env;
+use ::eval::ctx::Ctx;
 use ::eval::eval::eval;
 use ::read::read;
 use ::util::pretty::pretty;
 
-pub fn enter(mut env: &mut Env) {
+pub fn enter(mut ctx: &mut Ctx) {
     let history_path = ".solang_history";
 
     let mut rl = Editor::<()>::new();
@@ -21,7 +21,7 @@ pub fn enter(mut env: &mut Env) {
     println!("solang (Solid Language) {}", version);
 
     loop {
-        let prompt = format!("{}=> ", env.current_module);
+        let prompt = format!("{}=> ", ctx.current_module);
         let readline  = rl.readline(prompt.as_ref());
         match readline {
             Ok(line) => {
@@ -29,7 +29,7 @@ pub fn enter(mut env: &mut Env) {
                     Ok(sxs) => {
                         for sx in sxs.iter() {
                             let t0 = time::precise_time_s();
-                            match eval(&mut env, sx) {
+                            match eval(&mut ctx, sx) {
                                 Ok(ref result) => {
                                     let t1 = time::precise_time_s();
                                     println!("{}", pretty(result));

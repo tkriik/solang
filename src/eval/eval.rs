@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use ::eval::{module, Result, Error};
-use ::eval::env::Env;
+use ::eval::ctx::Ctx;
 use ::sx::{*};
 
-pub fn eval(env: &mut Env, sx: &Sx) -> Result {
+pub fn eval(ctx: &mut Ctx, sx: &Sx) -> Result {
     match sx {
         Sx::Nil         |
         Sx::Boolean(_)  |
@@ -20,7 +20,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result {
         },
 
         Sx::Symbol(ref symbol) => {
-            let mut effective_module = env.core_module.clone();
+            let mut effective_module = ctx.core_module.clone();
             let mut effective_symbol = symbol.clone();
 
             match module::entry_from_symbol(symbol)[..] {
@@ -34,16 +34,16 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result {
                 _ => return Err(Error::SymbolBadModuleFormat(symbol.clone()))
             }
 
-            if !env.loaded_modules.contains(&effective_module) {
+            if !ctx.loaded_modules.contains(&effective_module) {
                 return Err(Error::ModuleNotLoaded(effective_module.clone()));
             }
 
-            match env.lookup(&effective_module, &effective_symbol) {
+            match ctx.lookup(&effective_module, &effective_symbol) {
                 Some(value) => return Ok(value.clone()),
                 None        => ()
             }
 
-            match env.lookup_current(symbol) {
+            match ctx.lookup_current(symbol) {
                 Some(value) => return Ok(value.clone()),
                 None        => return Err(Error::Undefined(symbol.clone()))
             }
@@ -56,13 +56,13 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result {
                 },
 
                 Some((head, args)) => {
-                    match eval(env, head) {
+                    match eval(ctx, head) {
                         Ok(Sx::Builtin(builtin)) => {
-                            return apply_builtin(builtin, env, args);
+                            return apply_builtin(builtin, ctx, args);
                         },
 
                         Ok(Sx::Function(ref f)) => {
-                            return apply_function(f, env, args);
+                            return apply_function(f, ctx, args);
                         },
 
                         Ok(v) => {
@@ -80,7 +80,7 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result {
         Sx::Vector(v) => {
             let mut w = v.as_ref().clone();
             for sx in w.iter_mut() {
-                match eval(env, sx) {
+                match eval(ctx, sx) {
                     Ok(result) => *sx = result,
                     error @ Err(_) => return error
                 }
@@ -91,19 +91,19 @@ pub fn eval(env: &mut Env, sx: &Sx) -> Result {
     }
 }
 
-pub fn apply_builtin(builtin: &SxBuiltinInfo, env: &mut Env, arglist: &[Sx]) -> Result {
+pub fn apply_builtin(builtin: &SxBuiltinInfo, ctx: &mut Ctx, arglist: &[Sx]) -> Result {
     match builtin.callback {
         SxBuiltinCallback::Special(special_fn) => {
-            return apply_special(builtin, special_fn, env, arglist);
+            return apply_special(builtin, special_fn, ctx, arglist);
         },
 
         SxBuiltinCallback::Primitive(primitive_fn) => {
-            return apply_primitive(builtin, primitive_fn, env, arglist);
+            return apply_primitive(builtin, primitive_fn, ctx, arglist);
         }
     }
 }
 
-fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> Result {
+fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, ctx: &mut Ctx, args: &[Sx]) -> Result {
     if args.len() < builtin.min_arity {
         return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
@@ -116,10 +116,10 @@ fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, env: &mut Env
         Some(_) | None => ()
     }
 
-    return special_fn(env, args);
+    return special_fn(ctx, args);
 }
 
-fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut Env, args: &[Sx]) -> Result {
+fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, ctx: &mut Ctx, args: &[Sx]) -> Result {
     if args.len() < builtin.min_arity {
         return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
     }
@@ -134,16 +134,16 @@ fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, env: &mut
 
     let mut result_args = args.to_vec();
     for arg in result_args.iter_mut() {
-        match eval(env, arg) {
+        match eval(ctx, arg) {
             Ok(result) => *arg = result,
             error @ Err(_) => return error
         }
     }
 
-    return primitive_fn(env, &result_args);
+    return primitive_fn(ctx, &result_args);
 }
 
-pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> Result {
+pub fn apply_function(f: &SxFunction, ctx: &mut Ctx, args: &[Sx]) -> Result {
     let arity = args.len();
     if arity < f.arity {
         return Err(Error::FnTooFewArgs(f.clone(), f.arity, arity));
@@ -153,11 +153,11 @@ pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> Result {
         return Err(Error::FnTooManyArgs(f.clone(), f.arity, arity));
     }
 
-    let mut sub_env = env.clone();
-    sub_env.current_module = f.module.clone();
+    let mut sub_ctx = ctx.clone();
+    sub_ctx.current_module = f.module.clone();
     for (binding, sx) in f.bindings.iter().zip(args.iter()) {
-        match eval(env, sx) {
-            Ok(ref result) => sub_env.define_current(binding, result),
+        match eval(ctx, sx) {
+            Ok(ref result) => sub_ctx.define_current(binding, result),
             error @ Err(_) => return error
         }
     }
@@ -165,7 +165,7 @@ pub fn apply_function(f: &SxFunction, env: &mut Env, args: &[Sx]) -> Result {
     let exprs = f.body.clone();
     let mut result = sx_nil!();
     for expr in exprs.iter() {
-        match eval(&mut sub_env, expr) {
+        match eval(&mut sub_ctx, expr) {
             Ok(sub_result) => result = sub_result,
             error @ Err(_) => return error
         }
@@ -183,38 +183,38 @@ mod tests {
 
     use ::read::read;
 
-    fn mk_test_env() -> Env {
+    fn mk_test_ctx() -> Ctx {
         let module_paths = vec![
             "./resources/test/eval".to_string()
         ];
 
         let current_module = sx_symbol_unwrapped!("test-eval");
 
-        return Env::new(&module_paths, &current_module);
+        return Ctx::new(&module_paths, &current_module);
     }
 
     fn test_eval(input_source: &str, output_source: &str) {
-        let mut env = mk_test_env();
+        let mut ctx = mk_test_ctx();
 
         let input = read(input_source).expect("invalid input source");
         let output = read(output_source).expect("invalid output source");
 
         let mut results = Vec::new();
         for sx in input.iter() {
-            results.push(eval(&mut env, &sx).expect("eval error"));
+            results.push(eval(&mut ctx, &sx).expect("eval error"));
         }
 
         assert_eq!(sx_list_from_vec!(results).to_string(), sx_list_from_vec!(output).to_string());
     }
 
     fn test_eval_results(input_source: &str, exp_results: Vec<Result>) {
-        let mut env = mk_test_env();
+        let mut ctx = mk_test_ctx();
 
         let input = read(input_source).expect("invalid input source");
 
         let mut results = Vec::new();
         for sx in input.iter() {
-            results.push(eval(&mut env, &sx));
+            results.push(eval(&mut ctx, &sx));
         }
 
         assert_eq!(results, exp_results);

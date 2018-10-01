@@ -6,7 +6,7 @@ use ::eval::builtin::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
 use ::sx::{Sx, SxSymbol};
 
 #[derive(Clone)]
-pub struct Env {
+pub struct Ctx {
     pub module_paths:   Vec<String>,
     pub current_module: SxSymbol,
     pub loaded_modules: im::HashSet<SxSymbol>,
@@ -15,11 +15,11 @@ pub struct Env {
     pub core_module:    SxSymbol
 }
 
-impl Env {
-    pub fn new(module_paths: &Vec<String>, current_module: &SxSymbol) -> Env {
+impl Ctx {
+    pub fn new(module_paths: &Vec<String>, current_module: &SxSymbol) -> Ctx {
         let core_module = sx_symbol_unwrapped!(BUILTIN_MODULE_NAME);
 
-        let mut env = Env {
+        let mut ctx = Ctx {
             module_paths:   module_paths.clone(),
             current_module: current_module.clone(),
             loaded_modules: hashset!(core_module.clone(), current_module.clone()),
@@ -31,10 +31,10 @@ impl Env {
         for builtin in BUILTIN_TABLE.iter() {
             let symbol = sx_symbol_unwrapped!(builtin.name);
             let value = Sx::Builtin(*builtin);
-            env.define(&core_module, &symbol, &value);
+            ctx.define(&core_module, &symbol, &value);
         }
 
-        return env;
+        return ctx;
     }
 
     pub fn define(&mut self, module: &SxSymbol, symbol: &SxSymbol, value: &Sx) {

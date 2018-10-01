@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use ::eval::env::Env;
+use ::eval::ctx::Ctx;
 use ::eval::module;
 use ::repl;
 
@@ -14,15 +14,15 @@ pub fn run(path: &str, interactive: bool) {
     ];
 
     let current_module= sx_symbol_unwrapped!("core");
-    let mut env = Env::new(&module_paths, &current_module);
+    let mut ctx = Ctx::new(&module_paths, &current_module);
 
-    match module::load_use(&mut env, &module_name) {
+    match module::load_use(&mut ctx, &module_name) {
         Ok(_) => (),
         Err(eval_error) => println!("failed to run file {}: {}", path, eval_error.to_string())
     }
 
     if interactive {
-        env.current_module = module_name;
-        repl::enter(&mut env);
+        ctx.current_module = module_name;
+        repl::enter(&mut ctx);
     }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use im;
 use time;
 
-use ::eval::env::Env;
+use ::eval::ctx::Ctx;
 use ::eval::{module, Result, Error};
 use ::eval::eval::{eval, apply_builtin, apply_function};
 use ::sx::{*};
@@ -22,7 +22,7 @@ pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
 
     // General
     &PRIMITIVE_APPLY,
-    &PRIMITIVE_ENV,
+    &PRIMITIVE_CTX,
     &PRIMITIVE_TRACE,
 
     // Collections
@@ -89,11 +89,11 @@ static PRIMITIVE_APPLY: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Primitive(primitive_apply)
 };
 
-static PRIMITIVE_ENV: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "env",
+static PRIMITIVE_CTX: SxBuiltinInfo = SxBuiltinInfo {
+    name:       "ctx",
     min_arity:  0,
     max_arity:  Some(0),
-    callback:   SxBuiltinCallback::Primitive(primitive_env)
+    callback:   SxBuiltinCallback::Primitive(primitive_ctx)
 };
 
 static PRIMITIVE_TRACE: SxBuiltinInfo = SxBuiltinInfo {
@@ -159,21 +159,21 @@ static PRIMITIVE_RANGE: SxBuiltinInfo = SxBuiltinInfo {
     callback:   SxBuiltinCallback::Primitive(primitive_range)
 };
 
-fn special_def(env: &mut Env, args: &[Sx]) -> Result {
+fn special_def(ctx: &mut Ctx, args: &[Sx]) -> Result {
     let binding = &args[0];
     match binding {
         Sx::Symbol(ref symbol) => {
-            match env.lookup_core(symbol) {
+            match ctx.lookup_core(symbol) {
                 Some(_) => return Err(Error::RedefineCore(symbol.clone())),
                 None    => ()
             }
 
-            match env.lookup_current(symbol) {
+            match ctx.lookup_current(symbol) {
                 None => {
                     let value = &args[1];
-                    match eval(env, value) {
+                    match eval(ctx, value) {
                         Ok(result) => {
-                            env.define_current(symbol, &result);
+                            ctx.define_current(symbol, &result);
                             return Ok(binding.clone());
                         },
 
@@ -196,7 +196,7 @@ fn special_def(env: &mut Env, args: &[Sx]) -> Result {
 }
 
 // TODO: vector binding
-fn special_fn(env: &mut Env, args: &[Sx]) -> Result {
+fn special_fn(ctx: &mut Ctx, args: &[Sx]) -> Result {
     let binding_list = &args[0];
     match binding_list {
         Sx::List(bindings) => {
@@ -223,7 +223,7 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> Result {
             }
 
             let f = SxFunctionInfo {
-                module:     env.current_module.clone(),
+                module:     ctx.current_module.clone(),
                 arity:      bindings.len(),
                 bindings:   bindings_vec,
                 body:       Arc::new(body)
@@ -238,18 +238,18 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> Result {
     }
 }
 
-fn special_if(env: &mut Env, args: &[Sx]) -> Result {
+fn special_if(ctx: &mut Ctx, args: &[Sx]) -> Result {
     let cond = &args[0];
     let true_path = &args[1];
     let false_path = &args[2];
 
-    match eval(env, cond) {
+    match eval(ctx, cond) {
         Ok(Sx::Nil) | Ok(Sx::Boolean(false)) => {
-            return eval(env, false_path);
+            return eval(ctx, false_path);
         },
 
         Ok(_) => {
-            return eval(env, true_path);
+            return eval(ctx, true_path);
         },
 
         error @ Err(_) => {
@@ -258,28 +258,28 @@ fn special_if(env: &mut Env, args: &[Sx]) -> Result {
     }
 }
 
-fn special_module(env: &mut Env, args: &[Sx]) -> Result {
+fn special_module(ctx: &mut Ctx, args: &[Sx]) -> Result {
     let module_name_arg = &args[0];
     let module_name = match module_name_arg {
         Sx::Symbol(module_name) => module_name,
         _ => return Err(Error::BuiltinBadArg(SPECIAL_MODULE.name, module_name_arg.clone()))
     };
 
-    env.loaded_modules.insert(module_name.clone());
-    env.current_module = module_name.clone();
+    ctx.loaded_modules.insert(module_name.clone());
+    ctx.current_module = module_name.clone();
 
     return Ok(Sx::Symbol(module_name.clone()));
 }
 
-fn special_quote(_env: &mut Env, args: &[Sx]) -> Result {
+fn special_quote(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     return Ok(args[0].clone());
 }
 
-fn special_use(env: &mut Env, args: &[Sx]) -> Result {
+fn special_use(ctx: &mut Ctx, args: &[Sx]) -> Result {
     let module_arg = &args[0];
     match module_arg {
         Sx::Symbol(ref module_name) => {
-            return module::load_use(env, module_name);
+            return module::load_use(ctx, module_name);
         },
 
         _ => {
@@ -289,16 +289,16 @@ fn special_use(env: &mut Env, args: &[Sx]) -> Result {
 }
 
 // TODO: generic iterators
-fn primitive_apply(env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_apply(ctx: &mut Ctx, args: &[Sx]) -> Result {
     let head = &args[0];
     let value = &args[1];
-    match (eval(env, head), value) {
+    match (eval(ctx, head), value) {
         (Ok(Sx::Builtin(builtin)), Sx::List(sub_args)) => {
-            return apply_builtin(builtin, env, sub_args);
+            return apply_builtin(builtin, ctx, sub_args);
         },
 
         (Ok(Sx::Function(ref f)), Sx::List(sub_args)) => {
-            return apply_function(f, env, sub_args);
+            return apply_function(f, ctx, sub_args);
         }
 
         (Ok(Sx::Builtin(_)), value) => {
@@ -316,33 +316,33 @@ fn primitive_apply(env: &mut Env, args: &[Sx]) -> Result {
 }
 
 // TODO: iterator magic
-fn primitive_env(env: &mut Env, _args: &[Sx]) -> Result {
+fn primitive_ctx(ctx: &mut Ctx, _args: &[Sx]) -> Result {
     let mut module_paths = Vec::new();
-    for module_path in env.module_paths.iter() {
+    for module_path in ctx.module_paths.iter() {
         module_paths.push(sx_string!(module_path));
     }
 
-    let current_module = env.current_module.clone();
+    let current_module = ctx.current_module.clone();
 
     let mut loaded_modules = Vec::new();
-    for module in env.loaded_modules.iter() {
+    for module in ctx.loaded_modules.iter() {
         loaded_modules.push(Sx::Symbol(module.clone()));
     }
 
-    let mut env_list = Vec::new();
-    for ((module, symbol), value) in env.definitions.iter() {
-        env_list.push(sx_vector![Sx::Symbol(module.clone()), Sx::Symbol(symbol.clone()), value.clone()]);
+    let mut defs = Vec::new();
+    for ((module, symbol), value) in ctx.definitions.iter() {
+        defs.push(sx_vector![Sx::Symbol(module.clone()), Sx::Symbol(symbol.clone()), value.clone()]);
     }
 
     return Ok(sx_vector![
         sx_vector![sx_symbol!("module-paths"), sx_vector_from_vec!(module_paths)],
         sx_vector![sx_symbol!("current-module"), Sx::Symbol(current_module)],
         sx_vector![sx_symbol!("loaded-modules"), sx_vector_from_vec!(loaded_modules)],
-        sx_vector![sx_symbol!("definitions"), sx_vector_from_vec!(env_list)]
+        sx_vector![sx_symbol!("definitions"), sx_vector_from_vec!(defs)]
     ]);
 }
 
-fn primitive_trace(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_trace(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let ts = time::now();
 
     let label_arg = &args[0];
@@ -366,7 +366,7 @@ Timestamp: {}
 }
 
 // TODO: vector
-fn primitive_cons(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_cons(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let value = &args[0];
     let list_arg = &args[1];
 
@@ -384,7 +384,7 @@ fn primitive_cons(_env: &mut Env, args: &[Sx]) -> Result {
 }
 
 // TODO: vector
-fn primitive_head(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_head(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let list_arg = &args[0];
     match list_arg {
         Sx::List(list) => {
@@ -406,7 +406,7 @@ fn primitive_head(_env: &mut Env, args: &[Sx]) -> Result {
 }
 
 // TODO: vector
-fn primitive_tail(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_tail(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let list_arg = &args[0];
     match list_arg {
         Sx::List(list) => {
@@ -428,7 +428,7 @@ fn primitive_tail(_env: &mut Env, args: &[Sx]) -> Result {
     }
 }
 
-fn primitive_eq(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_eq(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     if args.len() == 1 {
         return Ok(Sx::Boolean(true));
     }
@@ -451,7 +451,7 @@ fn primitive_eq(_env: &mut Env, args: &[Sx]) -> Result {
     return Ok(Sx::Boolean(eq));
 }
 
-fn primitive_plus(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_plus(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let mut sum = 0i64;
     for arg in args.iter() {
         match arg {
@@ -469,7 +469,7 @@ fn primitive_plus(_env: &mut Env, args: &[Sx]) -> Result {
     return Ok(sx_integer!(sum));
 }
 
-fn primitive_minus(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_minus(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let diff_arg = &args[0];
     match diff_arg {
         Sx::Integer(x) => {
@@ -506,7 +506,7 @@ fn primitive_minus(_env: &mut Env, args: &[Sx]) -> Result {
     }
 }
 
-fn primitive_product(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_product(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let mut product = 1;
     for arg in args {
         match arg {
@@ -525,7 +525,7 @@ fn primitive_product(_env: &mut Env, args: &[Sx]) -> Result {
 }
 
 // TODO: vectors
-fn primitive_range(_env: &mut Env, args: &[Sx]) -> Result {
+fn primitive_range(_ctx: &mut Ctx, args: &[Sx]) -> Result {
     let mut numbers = im::Vector::new();
 
     match args[..] {
