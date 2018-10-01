@@ -191,7 +191,7 @@ impl <'a> TokenReader<'a> {
                         },
 
                         // Symbol -> Integer
-                        _ if token.size == 1 && token.data.starts_with("-") => {
+                        _ if c.is_numeric() && token.size == 1 && token.data.starts_with("-") => {
                             token.kind = Kind::Integer;
                             token.update(c);
                         }
