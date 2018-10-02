@@ -8,27 +8,33 @@ extern crate unicode_segmentation;
 #[macro_use] extern crate pretty_assertions;
 
 #[macro_use] mod sx;
+mod context;
 mod eval;
+mod module;
+mod process;
 mod read;
 mod repl;
+mod runtime;
 mod script;
 mod util;
 
 use std::sync::Arc;
 use clap::App;
 
-use ::eval::ctx::Ctx;
+use runtime::Context;
 
 fn main() {
+    let mut ctx = Context::new();
+
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
     let interactive = matches.is_present("interactive");
 
-
     match matches.value_of("INPUT") {
         Some(input) => {
-            script::run(input, interactive);
+            //script::run(input, interactive);
+            ctx.run_file(input);
         },
 
         None => {
@@ -37,8 +43,8 @@ fn main() {
             ];
 
             let current_module = sx_symbol_unwrapped!("repl");
-            let mut ctx = Ctx::new(&module_paths, &current_module);
-            repl::enter(&mut ctx);
+            let mut eval_ctx = eval::ctx::Ctx::new(&module_paths, &current_module);
+            repl::enter(&mut eval_ctx);
         }
     }
 }

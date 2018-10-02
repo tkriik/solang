@@ -4,6 +4,7 @@ use std::sync::Arc;
 use ::eval::ctx::Ctx;
 use ::eval::module;
 use ::repl;
+use ::runtime::{Context, LoadResult};
 
 pub fn run(path: &str, interactive: bool) {
     let module_name = module::from_filename(path);

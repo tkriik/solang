@@ -11,9 +11,13 @@ pub fn read(source: &str) -> Result {
     return parse(source);
 }
 
+pub fn from_str(source: &str) -> Result {
+    return parse(source);
+}
+
 pub type Result = result::Result<Vec<Sx>, Vec<Error>>;
 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Error {
     InvalidToken(String),
     IntegerLimit(String),
@@ -35,7 +39,7 @@ impl ToString for Error {
             },
 
             Error::PartialString(s) => {
-                return format!("non-terminated string: \"{}", s)
+                return format!("non-terminated string: {:?}", s)
             }
 
             Error::InvalidCloseDelimiter(kind, s) => {
