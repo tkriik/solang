@@ -14,14 +14,14 @@ mod module;
 mod process;
 mod read;
 mod repl;
-mod runtime;
+mod init;
 mod script;
 mod util;
 
 use std::sync::Arc;
 use clap::App;
 
-use runtime::Context;
+use init::Context;
 
 fn main() {
     let mut ctx = Context::new();

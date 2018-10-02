@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -12,7 +12,8 @@ use ::sx::{Sx, SxSymbol};
 #[derive(Debug)]
 pub struct Context {
     pub module_paths:   Vec<String>,
-    pub loaded_modules: HashMap<SxSymbol, LoadResult>,
+    pub loaded_modules: HashMap<SxSymbol, Vec<Sx>>,
+    pub failed_modules: BTreeMap<SxSymbol, LoadError>,
     pub modules:        HashMap<SxSymbol, Module>,
 }
 
@@ -21,43 +22,41 @@ impl Context {
         return Context {
             module_paths:   Vec::new(),
             loaded_modules: HashMap::new(),
+            failed_modules: BTreeMap::new(),
             modules:        HashMap::new()
         };
     }
 
     pub fn run_file(&mut self, filename: &str) {
-        let load_result = self.load_file(filename);
         let module_path = Path::new(filename)
             .parent()
             .expect("failed to read module path parent")
             .to_str()
             .expect("failed to convert module path to string");
 
-        self.add_module_path(module_path);
+        self.module_paths.push(module_path.to_string());
 
         let module_name = filename_to_module_name(filename);
-        self.add_pending_module(&module_name, load_result.clone());
+        let load_result = self.load_file(filename);
 
-        //println!("load result: {:#?}", load_result);
-        //println!("context: {:#?}", self);
         let sxs = match load_result {
-            Ok(sxs) => sxs,
-            Err(e) => {
+            Ok(ref sxs) => sxs,
+            Err(load_error) => {
+                eprintln!("-----Solang startup failed!-----\n");
+                self.failed_modules.insert(module_name, load_error);
                 self.print_load_errors();
                 return;
             }
         };
-    }
 
-    fn add_module_path(&mut self, path: &str) {
-        let p = path.to_string();
-        assert!(!self.module_paths.contains(&p));
-        self.module_paths.push(p);
-    }
+        self.loaded_modules.insert(module_name.clone(), sxs.clone());
 
-    fn add_pending_module(&mut self, name: &SxSymbol, load_result: LoadResult) {
-        assert!(!self.loaded_modules.contains_key(name));
-        self.loaded_modules.insert(name.clone(), load_result);
+        self.load_imports(sxs);
+
+        if !self.failed_modules.is_empty() {
+            eprintln!("-----Solang startup failed!-----\n");
+            self.print_load_errors();
+        }
     }
 
     fn load_module(&self, name: &SxSymbol) -> LoadResult {
@@ -107,17 +106,54 @@ impl Context {
         return Ok(sxs);
     }
 
-    fn eval_module_top(&mut self, name: &SxSymbol) -> LoadResult {
-        return Ok(Vec::new());
-    }
-
-    fn print_load_errors(&self) {
-        for (module_name, load_result) in self.loaded_modules.iter() {
-            let load_error = match load_result {
-                Ok(_) => continue,
-                Err(load_error) => load_error
+    fn load_imports(&mut self, sxs: &Vec<Sx>) {
+        let mut imports = Vec::new();
+        let mut invalid_imports = Vec::new();
+        for sx in sxs.iter() {
+            let sub_sxs = match sx {
+                Sx::List(ref sub_sxs) if sub_sxs.len() >= 2 => sub_sxs,
+                _ => continue
             };
 
+            match &sub_sxs[0] {
+                Sx::Symbol(s) if s.as_ref() == "import" => (),
+                _ => continue
+            }
+
+            for i in 1 .. sub_sxs.len() {
+                let import_name = match &sub_sxs[i] {
+                    Sx::Symbol(s) => s,
+                    invalid_name @ _ => {
+                        invalid_imports.push(invalid_name.clone());
+                        continue;
+                    }
+                };
+
+                eprintln!("import: {}", import_name.to_string());
+                imports.push(import_name.clone());
+            }
+        }
+
+        for import in imports.iter() {
+            if self.loaded_modules.contains_key(import) || self.failed_modules.contains_key(import) {
+                continue;
+            }
+
+            match self.load_module(import) {
+                Ok(ref sxs) => {
+                    self.loaded_modules.insert(import.clone(), sxs.clone());
+                    self.load_imports(sxs);
+                }
+
+                Err(load_error) => {
+                    self.failed_modules.insert(import.clone(), load_error);
+                }
+            }
+        }
+  }
+
+    fn print_load_errors(&self) {
+        for (module_name, load_error) in self.failed_modules.iter() {
             eprintln!("Failed to load module {}:", module_name.as_ref());
             match load_error {
                 LoadError::ModuleIoOpenError(filename, err_msg) => {
@@ -157,5 +193,6 @@ pub enum LoadError {
     ModuleMultiplePathOptions(Vec<String>),
     ModuleIoOpenError(String, String),
     ModuleIoReadError(String, String),
-    ModuleReadErrors(String, Vec<read::Error>)
+    ModuleReadErrors(String, Vec<read::Error>),
+    ModuleInvalidImports(Vec<Sx>)
 }

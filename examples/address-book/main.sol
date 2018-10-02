@@ -1,6 +1,6 @@
-(use person)
-(use address)
-(use name)
+(import person)
+(import address)
+(import name)
 
 (def persons
   [(person/->person (name/->name "John" "Doe")
