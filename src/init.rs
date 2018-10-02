@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::BTreeMap;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
@@ -12,18 +12,18 @@ use ::sx::{Sx, SxSymbol};
 #[derive(Debug)]
 pub struct Context {
     pub module_paths:   Vec<String>,
-    pub loaded_modules: HashMap<SxSymbol, Vec<Sx>>,
+    pub loaded_modules: BTreeMap<SxSymbol, Vec<Sx>>,
     pub failed_modules: BTreeMap<SxSymbol, LoadError>,
-    pub modules:        HashMap<SxSymbol, Module>,
+    pub modules:        BTreeMap<SxSymbol, Module>,
 }
 
 impl Context {
     pub fn new() -> Context {
         return Context {
             module_paths:   Vec::new(),
-            loaded_modules: HashMap::new(),
+            loaded_modules: BTreeMap::new(),
             failed_modules: BTreeMap::new(),
-            modules:        HashMap::new()
+            modules:        BTreeMap::new()
         };
     }
 
@@ -37,21 +37,7 @@ impl Context {
         self.module_paths.push(module_path.to_string());
 
         let module_name = filename_to_module_name(filename);
-        let load_result = self.load_file(filename);
-
-        let sxs = match load_result {
-            Ok(ref sxs) => sxs,
-            Err(load_error) => {
-                eprintln!("-----Solang startup failed!-----\n");
-                self.failed_modules.insert(module_name, load_error);
-                self.print_load_errors();
-                return;
-            }
-        };
-
-        self.loaded_modules.insert(module_name.clone(), sxs.clone());
-
-        self.load_imports(sxs);
+        self.load_module_from_file(&module_name, filename);
 
         if !self.failed_modules.is_empty() {
             eprintln!("-----Solang startup failed!-----\n");
@@ -59,16 +45,21 @@ impl Context {
         }
     }
 
-    fn load_module(&self, name: &SxSymbol) -> LoadResult {
+    fn load_module(&mut self, module_name: &SxSymbol) {
         let mut filename_matches = Vec::new();
         for module_path in self.module_paths.iter() {
             let full_path = Path::new(module_path)
-                .join(name.as_ref())
+                .join(module_name.as_ref())
                 .with_extension("sol");
 
             let filename = match full_path.to_str() {
                 Some(filename) => filename,
-                None => return Err(LoadError::ModulePathError(module_path.clone()))
+
+                None => {
+                    let err = LoadError::ModulePathError(module_path.clone());
+                    self.failed_modules.insert(module_name.clone(), err);
+                    return;
+                }
             };
 
             match fs::metadata(filename) {
@@ -79,34 +70,61 @@ impl Context {
 
         let filename = match filename_matches[..] {
             [ref filename] => filename,
-            [] => return Err(LoadError::ModuleNotFound),
-            _ => return Err(LoadError::ModuleMultiplePathOptions(filename_matches.clone()))
+
+            [] => {
+                let err = LoadError::ModuleNotFound;
+                self.failed_modules.insert(module_name.clone(), err);
+                return;
+            },
+
+            _ => {
+                let err = LoadError::ModuleMultiplePathOptions(filename_matches.clone());
+                self.failed_modules.insert(module_name.clone(), err);
+                return;
+            }
         };
 
-        return self.load_file(filename.as_ref());
+        self.load_module_from_file(module_name, filename.as_ref());
     }
 
-    fn load_file(&self, filename: &str) -> LoadResult {
+    fn load_module_from_file(&mut self, module_name: &SxSymbol, filename: &str) {
         let mut file = match File::open(filename) {
             Ok(mut f) => f,
-            Err(e) => return Err(LoadError::ModuleIoOpenError(filename.to_string(), e.to_string()))
+            Err(e) => {
+                let err = LoadError::ModuleIoOpenError(filename.to_string(), e.to_string());
+                self.failed_modules.insert(module_name.clone(), err);
+                return;
+            }
         };
 
         let mut source = String::new();
         match file.read_to_string(&mut source) {
             Ok(_) => (),
-            Err(e) => return Err(LoadError::ModuleIoReadError(filename.to_string(), e.to_string()))
+            Err(e) => {
+                let err = LoadError::ModuleIoReadError(filename.to_string(), e.to_string());
+                self.failed_modules.insert(module_name.clone(), err);
+                return;
+            }
         };
 
-        let sxs = match read::from_str(source.as_ref()) {
-            Ok(sxs) => sxs,
-            Err(read_errors) => return Err(LoadError::ModuleReadErrors(filename.to_string(), read_errors))
-        };
+        match read::from_str(source.as_ref()) {
+            Ok(ref sxs) => {
+                self.load_imports(module_name, filename, sxs);
+            }
 
-        return Ok(sxs);
+            Err(read_errors) => {
+                let err = LoadError::ModuleReadErrors(filename.to_string(), read_errors);
+                self.failed_modules.insert(module_name.clone(), err);
+                return;
+            }
+        }
+
+        //self.loaded_modules.insert(module_name.clone(), sxs);
+        //self.load_imports(module_name, &sxs);
     }
 
-    fn load_imports(&mut self, sxs: &Vec<Sx>) {
+    // TODO: top eval
+    fn load_imports(&mut self, module_name: &SxSymbol, filename: &str, sxs: &Vec<Sx>) {
         let mut imports = Vec::new();
         let mut invalid_imports = Vec::new();
         for sx in sxs.iter() {
@@ -134,23 +152,21 @@ impl Context {
             }
         }
 
+        if invalid_imports.is_empty() {
+            self.loaded_modules.insert(module_name.clone(), sxs.clone());
+        } else {
+            let err = LoadError::ModuleInvalidImports(filename.to_string(), invalid_imports);
+            self.failed_modules.insert(module_name.clone(), err);
+        }
+
         for import in imports.iter() {
             if self.loaded_modules.contains_key(import) || self.failed_modules.contains_key(import) {
                 continue;
             }
 
-            match self.load_module(import) {
-                Ok(ref sxs) => {
-                    self.loaded_modules.insert(import.clone(), sxs.clone());
-                    self.load_imports(sxs);
-                }
-
-                Err(load_error) => {
-                    self.failed_modules.insert(import.clone(), load_error);
-                }
-            }
+            self.load_module(import);
         }
-  }
+    }
 
     fn print_load_errors(&self) {
         for (module_name, load_error) in self.failed_modules.iter() {
@@ -169,7 +185,14 @@ impl Context {
                 LoadError::ModuleReadErrors(filename, read_errors) => {
                     eprintln!("  - syntax errors in '{}':", filename);
                     for e in read_errors.iter() {
-                        eprintln!("    * {}", e.to_string())
+                        eprintln!("    * {}", e.to_string());
+                    }
+                }
+
+                LoadError::ModuleInvalidImports(filename, imports) => {
+                    eprintln!("  - invalid import symbols in '{}':", filename);
+                    for import in imports.iter() {
+                        eprintln!("    * {}", import.to_string());
                     }
                 }
 
@@ -194,5 +217,5 @@ pub enum LoadError {
     ModuleIoOpenError(String, String),
     ModuleIoReadError(String, String),
     ModuleReadErrors(String, Vec<read::Error>),
-    ModuleInvalidImports(Vec<Sx>)
+    ModuleInvalidImports(String, Vec<Sx>)
 }
