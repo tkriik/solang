@@ -4,9 +4,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use ::eval::env::Env;
-use ::eval::eval::eval;
-use ::eval::{Result, Error};
+use ::eval::{Env, Result, Error, eval};
 use ::read::read;
 use ::sx::{Sx, SxSymbol};
 

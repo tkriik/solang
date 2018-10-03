@@ -6,7 +6,7 @@ use std::sync::Arc;
 use im;
 
 use ::eval;
-use ::eval::env::Env;
+use ::eval::Env;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Sx {

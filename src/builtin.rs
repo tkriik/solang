@@ -3,9 +3,8 @@ use std::sync::Arc;
 use im;
 use time;
 
-use ::eval::env::Env;
-use ::eval::{module, Result, Error};
-use ::eval::eval::{eval, apply_builtin, apply_function};
+use ::eval::{Env, Result, Error, eval, apply_builtin, apply_function};
+use ::module;
 use ::sx::{*};
 use ::util::pretty::pretty;
 

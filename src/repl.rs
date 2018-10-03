@@ -6,8 +6,7 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use time;
 
-use ::eval::env::Env;
-use ::eval::eval::eval;
+use ::eval::{Env, eval};
 use ::read::read;
 use ::util::pretty::pretty;
 
