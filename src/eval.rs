@@ -1,7 +1,7 @@
 use std::result;
 use std::sync::Arc;
 
-use im::{HashMap, HashSet};
+use im::{HashMap, HashSet, Vector};
 
 use ::builtin::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
 use ::module;
@@ -10,7 +10,7 @@ use ::sx::{*};
 
 #[derive(Clone)]
 pub struct Env {
-    pub module_paths:   Vec<String>,
+    pub module_paths:   Vector<String>,
     pub current_module: SxSymbol,
     pub loaded_modules: HashSet<SxSymbol>,
     pub definitions:    HashMap<(SxSymbol, SxSymbol), Sx>,
@@ -23,7 +23,7 @@ impl Env {
         let core_module = sx_symbol_unwrapped!(BUILTIN_MODULE_NAME);
 
         let mut env = Env {
-            module_paths:   module_paths.clone(),
+            module_paths:   Vector::from(module_paths),
             current_module: current_module.clone(),
             loaded_modules: hashset!(core_module.clone(), current_module.clone()),
             definitions:    hashmap!(),
@@ -88,7 +88,7 @@ pub enum Error {
 
     ModuleSelfRefer(SxSymbol),
     ModulePathError(String, String),
-    ModuleNotFound(SxSymbol, Vec<String>),
+    ModuleNotFound(SxSymbol, Vector<String>),
     ModuleMultipleOptions(SxSymbol, Vec<String>),
     ModuleIoOpenError(SxSymbol, String),
     ModuleIoReadError(SxSymbol, String),
@@ -330,9 +330,9 @@ impl ToString for Error {
                 return format!("failed to compose filename from module path {} and name {}", module_path, module_name);
             }
 
-            Error::ModuleNotFound(module_name, module_paths) => {
-                let module_paths_str = module_paths.join(", ");
-                return format!("could not find module named {} under following module paths: {}", module_name, module_paths_str);
+            Error::ModuleNotFound(module_name, _module_paths) => {
+                // TODO
+                return format!("could not find module named {} under module paths", module_name);
             }
 
             Error::ModuleMultipleOptions(module_name, filename_matches) => {
