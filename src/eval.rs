@@ -152,13 +152,29 @@ impl Context {
     pub fn apply_builtin(&mut self, builtin: &SxBuiltinInfo, arglist: &[Sx]) -> Result {
         match builtin.callback {
             SxBuiltinCallback::Special(special_fn) => {
-                return apply_special(builtin, special_fn, self, arglist);
+                return self.apply_special(builtin, special_fn, arglist);
             },
 
             SxBuiltinCallback::Primitive(primitive_fn) => {
                 return apply_primitive(builtin, primitive_fn, self, arglist);
             }
         }
+    }
+
+    fn apply_special(&mut self, builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, args: &[Sx]) -> Result {
+        if args.len() < builtin.min_arity {
+            return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
+        }
+
+        match builtin.max_arity {
+            Some(arity) if arity < args.len() => {
+                return Err(Error::BuiltinTooManyArgs(builtin.name, arity, args.len()));
+            },
+
+            Some(_) | None => ()
+        }
+
+        return special_fn(self, args);
     }
 
 }
@@ -195,22 +211,6 @@ pub enum Error {
     ModuleReadErrors(SxSymbol, Vec<read::Error>),
     ModuleEvalErrors(SxSymbol, Vec<Error>),
     ModuleNotLoaded(SxSymbol)
-}
-
-fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, ctx: &mut Context, args: &[Sx]) -> Result {
-    if args.len() < builtin.min_arity {
-        return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
-    }
-
-    match builtin.max_arity {
-        Some(arity) if arity < args.len() => {
-            return Err(Error::BuiltinTooManyArgs(builtin.name, arity, args.len()));
-        },
-
-        Some(_) | None => ()
-    }
-
-    return special_fn(ctx, args);
 }
 
 fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, ctx: &mut Context, args: &[Sx]) -> Result {
