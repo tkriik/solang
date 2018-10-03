@@ -2,8 +2,7 @@ use std::fmt;
 use std::clone::Clone;
 use std::string::ToString;
 use std::sync::Arc;
-
-use im;
+use im::Vector;
 
 use ::eval;
 use ::eval::Env;
@@ -27,7 +26,7 @@ pub type SxInteger      = i64;
 pub type SxString       = Arc<String>;
 pub type SxSymbol       = Arc<String>;
 pub type SxList         = Arc<Vec<Sx>>;
-pub type SxVector       = Arc<im::Vector<Sx>>;
+pub type SxVector       = Arc<Vector<Sx>>;
 pub type SxQuote        = Arc<Sx>;
 pub type SxBuiltin      = &'static SxBuiltinInfo;
 pub type SxFunction     = Arc<SxFunctionInfo>;
@@ -50,7 +49,7 @@ pub type SxBuiltinFn = fn(&mut Env, &[Sx]) -> eval::Result;
 pub struct SxFunctionInfo {
     pub module:     SxSymbol,
     pub arity:      usize,
-    pub bindings:   Vec<SxSymbol>,
+    pub bindings:   Vector<SxSymbol>,
     pub body:       SxList
 }
 
@@ -101,7 +100,7 @@ macro_rules! sx_vector {
 
 #[macro_export]
 macro_rules! sx_vector_from_vec {
-    ($e:expr) => (Sx::Vector(Arc::new(im::Vector::from($e))));
+    ($e:expr) => (Sx::Vector(Arc::new(Vector::from($e))));
 }
 
 #[macro_export]

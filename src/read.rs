@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::result;
 use std::string::ToString;
-use im;
+use im::Vector;
 use unicode_segmentation::UnicodeSegmentation;
 
 use ::sx::Sx;

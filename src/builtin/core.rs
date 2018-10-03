@@ -1,6 +1,5 @@
 use std::sync::Arc;
-
-use im;
+use im::Vector;
 use time;
 
 use ::eval::{Env, Result, Error, eval, apply_builtin, apply_function};
@@ -80,7 +79,7 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> Result {
     let binding_list = &args[0];
     match binding_list {
         Sx::List(bindings) => {
-            let mut bindings_vec = Vec::new();
+            let mut bindings_vec = Vector::new();
             for binding in bindings.iter() {
                 match binding {
                     Sx::Symbol(name) => {
@@ -88,7 +87,7 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> Result {
                             return Err(Error::DuplicateBinding(name.clone()));
                         }
 
-                        bindings_vec.push(name.clone());
+                        bindings_vec.push_back(name.clone());
                     },
 
                     invalid => {
@@ -310,7 +309,7 @@ fn primitive_tail(_env: &mut Env, args: &[Sx]) -> Result {
 
 // TODO: vectors
 fn primitive_range(_env: &mut Env, args: &[Sx]) -> Result {
-    let mut numbers = im::Vector::new();
+    let mut numbers = Vector::new();
 
     match args[..] {
         [Sx::Integer(end)] => {
@@ -512,14 +511,14 @@ mod tests {
         let f1 = Arc::new(SxFunctionInfo {
             module:     sx_symbol_unwrapped!("test-eval"),
             arity:      1,
-            bindings:   vec![sx_symbol_unwrapped!("x")],
+            bindings:   vector![sx_symbol_unwrapped!("x")],
             body:       Arc::new(vec![sx_symbol!("x")])
         });
 
         let f2 = Arc::new(SxFunctionInfo {
             module:     sx_symbol_unwrapped!("test-eval"),
             arity:      2,
-            bindings:   vec![sx_symbol_unwrapped!("x"), sx_symbol_unwrapped!("y")],
+            bindings:   vector![sx_symbol_unwrapped!("x"), sx_symbol_unwrapped!("y")],
             body:       Arc::new(vec![sx_symbol!("x")])
         });
 
@@ -537,14 +536,14 @@ mod tests {
         let f1 = Arc::new(SxFunctionInfo {
             module:     sx_symbol_unwrapped!("test-eval"),
             arity:      0,
-            bindings:   vec![],
+            bindings:   vector![],
             body:       Arc::new(vec![sx_nil!()])
         });
 
         let f2 = Arc::new(SxFunctionInfo {
             module:     sx_symbol_unwrapped!("test-eval"),
             arity:      1,
-            bindings:   vec![sx_symbol_unwrapped!("x")],
+            bindings:   vector![sx_symbol_unwrapped!("x")],
             body:       Arc::new(vec![sx_symbol!("x")])
         });
 
