@@ -62,6 +62,8 @@ impl Context {
         return self.lookup(&self.current_module, symbol);
     }
 
+    // TODO: persist sub-context modules and definitions
+    // TODO: reduce clone() calls as much as possible
     pub fn eval(self: &mut Context, sx: &Sx) -> Result {
         match sx {
             Sx::Nil         |
@@ -120,7 +122,7 @@ impl Context {
                             },
 
                             Ok(Sx::Function(ref f)) => {
-                                return apply_function(f, self, args);
+                                return self.apply_function(f, args);
                             },
 
                             Ok(v) => {
@@ -201,6 +203,37 @@ impl Context {
         return primitive_fn(self, &result_args);
     }
 
+    pub fn apply_function(&mut self, f: &SxFunction, args: &[Sx]) -> Result {
+        let arity = args.len();
+        if arity < f.arity {
+            return Err(Error::FnTooFewArgs(f.clone(), f.arity, arity));
+        }
+
+        if f.arity < arity {
+            return Err(Error::FnTooManyArgs(f.clone(), f.arity, arity));
+        }
+
+        let mut sub_ctx = self.clone();
+        sub_ctx.current_module = f.module.clone();
+        for (binding, sx) in f.bindings.iter().zip(args.iter()) {
+            match self.eval(sx) {
+                Ok(ref result) => sub_ctx.define_current(binding, result),
+                error @ Err(_) => return error
+            }
+        }
+
+        let exprs = f.body.clone();
+        let mut result = sx_nil!();
+        for expr in exprs.iter() {
+            match sub_ctx.eval(expr) {
+                Ok(sub_result) => result = sub_result,
+                error @ Err(_) => return error
+            }
+        }
+
+        return Ok(result);
+    }
+
 }
 
 pub type Result = result::Result<Sx, Error>;
@@ -235,37 +268,6 @@ pub enum Error {
     ModuleReadErrors(SxSymbol, Vec<read::Error>),
     ModuleEvalErrors(SxSymbol, Vec<Error>),
     ModuleNotLoaded(SxSymbol)
-}
-
-pub fn apply_function(f: &SxFunction, ctx: &mut Context, args: &[Sx]) -> Result {
-    let arity = args.len();
-    if arity < f.arity {
-        return Err(Error::FnTooFewArgs(f.clone(), f.arity, arity));
-    }
-
-    if f.arity < arity {
-        return Err(Error::FnTooManyArgs(f.clone(), f.arity, arity));
-    }
-
-    let mut sub_ctx = ctx.clone();
-    sub_ctx.current_module = f.module.clone();
-    for (binding, sx) in f.bindings.iter().zip(args.iter()) {
-        match ctx.eval(sx) {
-            Ok(ref result) => sub_ctx.define_current(binding, result),
-            error @ Err(_) => return error
-        }
-    }
-
-    let exprs = f.body.clone();
-    let mut result = sx_nil!();
-    for expr in exprs.iter() {
-        match sub_ctx.eval(expr) {
-            Ok(sub_result) => result = sub_result,
-            error @ Err(_) => return error
-        }
-    }
-
-    return Ok(result);
 }
 
 impl ToString for Error {
