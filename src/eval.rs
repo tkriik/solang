@@ -156,7 +156,7 @@ impl Context {
             },
 
             SxBuiltinCallback::Primitive(primitive_fn) => {
-                return apply_primitive(builtin, primitive_fn, self, arglist);
+                return self.apply_primitive(builtin, primitive_fn, arglist);
             }
         }
     }
@@ -175,6 +175,30 @@ impl Context {
         }
 
         return special_fn(self, args);
+    }
+
+    fn apply_primitive(&mut self, builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, args: &[Sx]) -> Result {
+        if args.len() < builtin.min_arity {
+            return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
+        }
+
+        match builtin.max_arity {
+            Some(arity) if arity < args.len() => {
+                return Err(Error::BuiltinTooManyArgs(builtin.name, arity, args.len()));
+            },
+
+            Some(_) | None => ()
+        }
+
+        let mut result_args = args.to_vec();
+        for arg in result_args.iter_mut() {
+            match self.eval(arg) {
+                Ok(result) => *arg = result,
+                error @ Err(_) => return error
+            }
+        }
+
+        return primitive_fn(self, &result_args);
     }
 
 }
@@ -211,30 +235,6 @@ pub enum Error {
     ModuleReadErrors(SxSymbol, Vec<read::Error>),
     ModuleEvalErrors(SxSymbol, Vec<Error>),
     ModuleNotLoaded(SxSymbol)
-}
-
-fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, ctx: &mut Context, args: &[Sx]) -> Result {
-    if args.len() < builtin.min_arity {
-        return Err(Error::BuiltinTooFewArgs(builtin.name, builtin.min_arity, args.len()));
-    }
-
-    match builtin.max_arity {
-        Some(arity) if arity < args.len() => {
-            return Err(Error::BuiltinTooManyArgs(builtin.name, arity, args.len()));
-        },
-
-        Some(_) | None => ()
-    }
-
-    let mut result_args = args.to_vec();
-    for arg in result_args.iter_mut() {
-        match ctx.eval(arg) {
-            Ok(result) => *arg = result,
-            error @ Err(_) => return error
-        }
-    }
-
-    return primitive_fn(ctx, &result_args);
 }
 
 pub fn apply_function(f: &SxFunction, ctx: &mut Context, args: &[Sx]) -> Result {
