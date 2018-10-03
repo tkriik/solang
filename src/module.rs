@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use ::eval::{Env, Result, Error, eval};
+use ::eval::{Context, Result, Error, eval};
 use ::read::read;
 use ::sx::{Sx, SxSymbol};
 
@@ -24,18 +24,18 @@ pub fn entry_from_symbol(symbol: &SxSymbol) -> Vec<SxSymbol> {
         .collect::<Vec<_>>();
 }
 
-pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> Result {
-    if module_name.as_ref() == env.current_module.as_ref() {
+pub fn load_use(ctx: &mut Context, module_name: &SxSymbol) -> Result {
+    if module_name.as_ref() == ctx.current_module.as_ref() {
         return Err(Error::ModuleSelfRefer(module_name.clone()));
     }
 
-    if env.loaded_modules.contains(module_name) {
+    if ctx.loaded_modules.contains(module_name) {
         return Ok(Sx::Symbol(module_name.clone()));
     }
 
     let mut filename_matches = Vec::new();
 
-    for module_path in env.module_paths.iter() {
+    for module_path in ctx.module_paths.iter() {
         let filename_path = Path::new(module_path)
             .join(Path::new(module_name.as_ref()))
             .with_extension("sol");
@@ -59,7 +59,7 @@ pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> Result {
 
     let filename = match filename_matches[..] {
         [ref f] => f,
-        []      => return Err(Error::ModuleNotFound(module_name.clone(), env.module_paths.clone())),
+        []      => return Err(Error::ModuleNotFound(module_name.clone(), ctx.module_paths.clone())),
         _       => return Err(Error::ModuleMultipleOptions(module_name.clone(), filename_matches.clone()))
     };
 
@@ -81,13 +81,13 @@ pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> Result {
         }
     };
 
-    let mut new_env = env.clone();
-    new_env.current_module = module_name.clone();
-    new_env.loaded_modules.insert(module_name.clone());
+    let mut new_ctx = ctx.clone();
+    new_ctx.current_module = module_name.clone();
+    new_ctx.loaded_modules.insert(module_name.clone());
 
     let mut eval_errors = Vec::new();
     for sx in sxs.iter() {
-        match eval(&mut new_env, sx) {
+        match eval(&mut new_ctx, sx) {
             Ok(_)           => (),
             Err(eval_error) => eval_errors.push(eval_error)
         }
@@ -97,8 +97,8 @@ pub fn load_use(env: &mut Env, module_name: &SxSymbol) -> Result {
         return Err(Error::ModuleEvalErrors(module_name.clone(), eval_errors));
     }
 
-    new_env.current_module = env.current_module.clone();
-    *env = new_env;
+    new_ctx.current_module = ctx.current_module.clone();
+    *ctx = new_ctx;
 
     return Ok(Sx::Symbol(module_name.clone()));
 }

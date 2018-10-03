@@ -19,7 +19,7 @@ mod util;
 use std::sync::Arc;
 use clap::App;
 
-use ::eval::Env;
+use ::eval::Context;
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
@@ -39,8 +39,8 @@ fn main() {
             ];
 
             let current_module = sx_symbol_unwrapped!("repl");
-            let mut env = Env::new(&module_paths, &current_module);
-            repl::enter(&mut env);
+            let mut ctx = Context::new(&module_paths, &current_module);
+            repl::enter(&mut ctx);
         }
     }
 }
