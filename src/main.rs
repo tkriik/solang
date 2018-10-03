@@ -10,10 +10,10 @@ extern crate unicode_segmentation;
 #[macro_use] mod sx;
 mod builtin;
 mod eval;
+mod init;
 mod module;
 mod read;
 mod repl;
-mod script;
 mod util;
 
 use std::sync::Arc;
@@ -30,7 +30,7 @@ fn main() {
 
     match matches.value_of("INPUT") {
         Some(input) => {
-            script::run(input, interactive);
+            init::run(input, interactive);
         },
 
         None => {
