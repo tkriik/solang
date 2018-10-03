@@ -6,11 +6,11 @@ use rustyline::Editor;
 use rustyline::error::ReadlineError;
 use time;
 
-use ::eval::{Context, eval};
+use ::eval::{Context};
 use ::read::read;
 use ::util::pretty::pretty;
 
-pub fn enter(mut ctx: &mut Context) {
+pub fn enter(ctx: &mut Context) {
     let history_path = ".solang_history";
 
     let mut rl = Editor::<()>::new();
@@ -28,7 +28,7 @@ pub fn enter(mut ctx: &mut Context) {
                     Ok(sxs) => {
                         for sx in sxs.iter() {
                             let t0 = time::precise_time_s();
-                            match eval(&mut ctx, sx) {
+                            match ctx.eval(sx) {
                                 Ok(ref result) => {
                                     let t1 = time::precise_time_s();
                                     println!("{}", pretty(result));

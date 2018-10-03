@@ -2,7 +2,7 @@ use std::sync::Arc;
 use im::Vector;
 use time;
 
-use ::eval::{Context, Result, Error, eval, apply_builtin, apply_function};
+use ::eval::{Context, Result, Error, apply_builtin, apply_function};
 use ::module;
 use ::sx::{*};
 use ::util::pretty::pretty;
@@ -50,7 +50,7 @@ fn special_def(ctx: &mut Context, args: &[Sx]) -> Result {
             match ctx.lookup_current(symbol) {
                 None => {
                     let value = &args[1];
-                    match eval(ctx, value) {
+                    match ctx.eval(value) {
                         Ok(result) => {
                             ctx.define_current(symbol, &result);
                             return Ok(binding.clone());
@@ -122,13 +122,13 @@ fn special_if(ctx: &mut Context, args: &[Sx]) -> Result {
     let true_path = &args[1];
     let false_path = &args[2];
 
-    match eval(ctx, cond) {
+    match ctx.eval(cond) {
         Ok(Sx::Nil) | Ok(Sx::Boolean(false)) => {
-            return eval(ctx, false_path);
+            return ctx.eval(false_path);
         },
 
         Ok(_) => {
-            return eval(ctx, true_path);
+            return ctx.eval(true_path);
         },
 
         error @ Err(_) => {
@@ -171,7 +171,7 @@ fn special_use(ctx: &mut Context, args: &[Sx]) -> Result {
 fn primitive_apply(ctx: &mut Context, args: &[Sx]) -> Result {
     let head = &args[0];
     let value = &args[1];
-    match (eval(ctx, head), value) {
+    match (ctx.eval(head), value) {
         (Ok(Sx::Builtin(builtin)), Sx::List(sub_args)) => {
             return apply_builtin(builtin, ctx, sub_args);
         },

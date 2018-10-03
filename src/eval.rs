@@ -61,6 +61,94 @@ impl Context {
     pub fn lookup_current(&self, symbol: &SxSymbol) -> Option<&Sx> {
         return self.lookup(&self.current_module, symbol);
     }
+
+    pub fn eval(self: &mut Context, sx: &Sx) -> Result {
+        match sx {
+            Sx::Nil         |
+            Sx::Boolean(_)  |
+            Sx::Integer(_)  |
+            Sx::String(_)   |
+            Sx::Builtin(_)  |
+            Sx::Function(_) => {
+                return Ok(sx.clone());
+            },
+
+            Sx::Quote(value) => {
+                return Ok(value.as_ref().clone());
+            },
+
+            Sx::Symbol(ref symbol) => {
+                let mut effective_module = self.core_module.clone();
+                let mut effective_symbol = symbol.clone();
+
+                match module::entry_from_symbol(symbol)[..] {
+                    [ref other_module, ref sub_symbol] => {
+                        effective_module = other_module.clone();
+                        effective_symbol = sub_symbol.clone();
+                    },
+
+                    [_] => (),
+
+                    _ => return Err(Error::SymbolBadModuleFormat(symbol.clone()))
+                }
+
+                if !self.loaded_modules.contains(&effective_module) {
+                    return Err(Error::ModuleNotLoaded(effective_module.clone()));
+                }
+
+                match self.lookup(&effective_module, &effective_symbol) {
+                    Some(value) => return Ok(value.clone()),
+                    None        => ()
+                }
+
+                match self.lookup_current(symbol) {
+                    Some(value) => return Ok(value.clone()),
+                    None        => return Err(Error::Undefined(symbol.clone()))
+                }
+            },
+
+            Sx::List(l) => {
+                match l.split_first() {
+                    None => {
+                        return Ok(sx.clone());
+                    },
+
+                    Some((head, args)) => {
+                        match self.eval(head) {
+                            Ok(Sx::Builtin(builtin)) => {
+                                return apply_builtin(builtin, self, args);
+                            },
+
+                            Ok(Sx::Function(ref f)) => {
+                                return apply_function(f, self, args);
+                            },
+
+                            Ok(v) => {
+                                return Err(Error::NotAFunction(v.clone()));
+                            },
+
+                            error @ Err(_) => {
+                                return error;
+                            }
+                        }
+                    }
+                }
+            },
+
+            Sx::Vector(v) => {
+                let mut w = v.as_ref().clone();
+                for sx in w.iter_mut() {
+                    match self.eval(sx) {
+                        Ok(result) => *sx = result,
+                        error @ Err(_) => return error
+                    }
+                }
+
+                return Ok(Sx::Vector(Arc::new(w)));
+            }
+        }
+    }
+
 }
 
 pub type Result = result::Result<Sx, Error>;
@@ -95,93 +183,6 @@ pub enum Error {
     ModuleReadErrors(SxSymbol, Vec<read::Error>),
     ModuleEvalErrors(SxSymbol, Vec<Error>),
     ModuleNotLoaded(SxSymbol)
-}
-
-pub fn eval(ctx: &mut Context, sx: &Sx) -> Result {
-    match sx {
-        Sx::Nil         |
-        Sx::Boolean(_)  |
-        Sx::Integer(_)  |
-        Sx::String(_)   |
-        Sx::Builtin(_)  |
-        Sx::Function(_) => {
-            return Ok(sx.clone());
-        },
-
-        Sx::Quote(value) => {
-            return Ok(value.as_ref().clone());
-        },
-
-        Sx::Symbol(ref symbol) => {
-            let mut effective_module = ctx.core_module.clone();
-            let mut effective_symbol = symbol.clone();
-
-            match module::entry_from_symbol(symbol)[..] {
-                [ref other_module, ref sub_symbol] => {
-                    effective_module = other_module.clone();
-                    effective_symbol = sub_symbol.clone();
-                },
-
-                [_] => (),
-
-                _ => return Err(Error::SymbolBadModuleFormat(symbol.clone()))
-            }
-
-            if !ctx.loaded_modules.contains(&effective_module) {
-                return Err(Error::ModuleNotLoaded(effective_module.clone()));
-            }
-
-            match ctx.lookup(&effective_module, &effective_symbol) {
-                Some(value) => return Ok(value.clone()),
-                None        => ()
-            }
-
-            match ctx.lookup_current(symbol) {
-                Some(value) => return Ok(value.clone()),
-                None        => return Err(Error::Undefined(symbol.clone()))
-            }
-        },
-
-        Sx::List(l) => {
-            match l.split_first() {
-                None => {
-                    return Ok(sx.clone());
-                },
-
-                Some((head, args)) => {
-                    match eval(ctx, head) {
-                        Ok(Sx::Builtin(builtin)) => {
-                            return apply_builtin(builtin, ctx, args);
-                        },
-
-                        Ok(Sx::Function(ref f)) => {
-                            return apply_function(f, ctx, args);
-                        },
-
-                        Ok(v) => {
-                            return Err(Error::NotAFunction(v.clone()));
-                        },
-
-                        error @ Err(_) => {
-                            return error;
-                        }
-                    }
-                }
-            }
-        },
-
-        Sx::Vector(v) => {
-            let mut w = v.as_ref().clone();
-            for sx in w.iter_mut() {
-                match eval(ctx, sx) {
-                    Ok(result) => *sx = result,
-                    error @ Err(_) => return error
-                }
-            }
-
-            return Ok(Sx::Vector(Arc::new(w)));
-        }
-    }
 }
 
 pub fn apply_builtin(builtin: &SxBuiltinInfo, ctx: &mut Context, arglist: &[Sx]) -> Result {
@@ -227,7 +228,7 @@ fn apply_primitive(builtin: &SxBuiltinInfo, primitive_fn: SxBuiltinFn, ctx: &mut
 
     let mut result_args = args.to_vec();
     for arg in result_args.iter_mut() {
-        match eval(ctx, arg) {
+        match ctx.eval(arg) {
             Ok(result) => *arg = result,
             error @ Err(_) => return error
         }
@@ -249,7 +250,7 @@ pub fn apply_function(f: &SxFunction, ctx: &mut Context, args: &[Sx]) -> Result 
     let mut sub_ctx = ctx.clone();
     sub_ctx.current_module = f.module.clone();
     for (binding, sx) in f.bindings.iter().zip(args.iter()) {
-        match eval(ctx, sx) {
+        match ctx.eval(sx) {
             Ok(ref result) => sub_ctx.define_current(binding, result),
             error @ Err(_) => return error
         }
@@ -258,7 +259,7 @@ pub fn apply_function(f: &SxFunction, ctx: &mut Context, args: &[Sx]) -> Result 
     let exprs = f.body.clone();
     let mut result = sx_nil!();
     for expr in exprs.iter() {
-        match eval(&mut sub_ctx, expr) {
+        match sub_ctx.eval(expr) {
             Ok(sub_result) => result = sub_result,
             error @ Err(_) => return error
         }
@@ -390,7 +391,7 @@ pub mod tests {
 
         let mut results = Vec::new();
         for sx in input.iter() {
-            results.push(eval(&mut ctx, &sx).expect("eval error"));
+            results.push(ctx.eval(&sx).expect("eval error"));
         }
 
         assert_eq!(sx_list_from_vec!(results).to_string(), sx_list_from_vec!(output).to_string());
@@ -403,7 +404,7 @@ pub mod tests {
 
         let mut results = Vec::new();
         for sx in input.iter() {
-            results.push(eval(&mut ctx, &sx));
+            results.push(ctx.eval(&sx));
         }
 
         assert_eq!(results, exp_results);

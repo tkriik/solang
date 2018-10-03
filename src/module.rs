@@ -4,7 +4,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
-use ::eval::{Context, Result, Error, eval};
+use ::eval::{Context, Result, Error};
 use ::read::read;
 use ::sx::{Sx, SxSymbol};
 
@@ -87,7 +87,7 @@ pub fn load_use(ctx: &mut Context, module_name: &SxSymbol) -> Result {
 
     let mut eval_errors = Vec::new();
     for sx in sxs.iter() {
-        match eval(&mut new_ctx, sx) {
+        match ctx.eval(sx) {
             Ok(_)           => (),
             Err(eval_error) => eval_errors.push(eval_error)
         }
