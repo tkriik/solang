@@ -10,153 +10,34 @@ use ::util::pretty::pretty;
 
 pub static BUILTIN_MODULE_NAME: &'static str = "core";
 
-pub static BUILTIN_TABLE: &'static [&SxBuiltinInfo] = &[
+pub static BUILTIN_TABLE: &'static [SxBuiltinInfo] = &[
     // Specials
-    &SPECIAL_DEF,
-    &SPECIAL_FN,
-    &SPECIAL_IF,
-    &SPECIAL_MODULE,
-    &SPECIAL_QUOTE,
-    &SPECIAL_USE,
+    special!("def", 2, special_def),
+    special_no_arg_limit!("fn", 2, special_fn),
+    special!("if", 3, special_if),
+    special!("module", 1, special_module),
+    special!("quote", 1, special_quote),
+    special!("use", 1, special_use),
 
     // General
-    &PRIMITIVE_APPLY,
-    &PRIMITIVE_ENV,
-    &PRIMITIVE_TRACE,
+    primitive!("apply", 2, primitive_apply),
+    primitive!("env", 0, primitive_env),
+    primitive!("trace", 2, primitive_trace),
 
     // Collections
-    &PRIMITIVE_CONS,
-    &PRIMITIVE_HEAD,
-    &PRIMITIVE_TAIL,
+    primitive!("cons", 2, primitive_cons),
+    primitive!("head", 1, primitive_head),
+    primitive!("tail", 1, primitive_tail),
+    primitive_var_arity!("range", 0, 2, primitive_range),
 
     // Logic
-    &PRIMITIVE_EQ,
+    primitive_no_arg_limit!("eq", 1, primitive_eq),
 
     // Numbers
-    &PRIMITIVE_PLUS,
-    &PRIMITIVE_MINUS,
-    &PRIMITIVE_PRODUCT,
-    &PRIMITIVE_RANGE
+    primitive_no_arg_limit!("+", 0, primitive_plus),
+    primitive_no_arg_limit!("-", 1, primitive_minus),
+    primitive_no_arg_limit!("*", 0, primitive_product)
 ];
-
-static SPECIAL_DEF: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "def",
-    min_arity:  2,
-    max_arity:  Some(2),
-    callback:   SxBuiltinCallback::Special(special_def)
-};
-
-static SPECIAL_FN: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "fn",
-    min_arity:  2,
-    max_arity:  None,
-    callback:   SxBuiltinCallback::Special(special_fn)
-};
-
-static SPECIAL_IF: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "if",
-    min_arity:  3,
-    max_arity:  Some(3),
-    callback:   SxBuiltinCallback::Special(special_if)
-};
-
-static SPECIAL_MODULE: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "module",
-    min_arity:  1,
-    max_arity:  Some(1),
-    callback:   SxBuiltinCallback::Special(special_module)
-};
-
-static SPECIAL_QUOTE: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "quote",
-    min_arity:  1,
-    max_arity:  Some(1),
-    callback:   SxBuiltinCallback::Special(special_quote)
-};
-
-static SPECIAL_USE: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "use",
-    min_arity:  1,
-    max_arity:  Some(1),
-    callback:   SxBuiltinCallback::Special(special_use)
-};
-
-static PRIMITIVE_APPLY: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "apply",
-    min_arity:  2,
-    max_arity:  Some(2),
-    callback:   SxBuiltinCallback::Primitive(primitive_apply)
-};
-
-static PRIMITIVE_ENV: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "env",
-    min_arity:  0,
-    max_arity:  Some(0),
-    callback:   SxBuiltinCallback::Primitive(primitive_env)
-};
-
-static PRIMITIVE_TRACE: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "trace",
-    min_arity:  2,
-    max_arity:  Some(2),
-    callback:   SxBuiltinCallback::Primitive(primitive_trace)
-};
-
-static PRIMITIVE_CONS: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "cons",
-    min_arity:  2,
-    max_arity:  Some(2),
-    callback:   SxBuiltinCallback::Primitive(primitive_cons)
-};
-
-static PRIMITIVE_HEAD: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "head",
-    min_arity:  1,
-    max_arity:  Some(1),
-    callback:   SxBuiltinCallback::Primitive(primitive_head)
-};
-
-static PRIMITIVE_TAIL: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "tail",
-    min_arity:  1,
-    max_arity:  Some(1),
-    callback:   SxBuiltinCallback::Primitive(primitive_tail)
-};
-
-static PRIMITIVE_EQ: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "=",
-    min_arity:  1,
-    max_arity:  None,
-    callback:   SxBuiltinCallback::Primitive(primitive_eq)
-};
-
-static PRIMITIVE_PLUS: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "+",
-    min_arity:  0,
-    max_arity:  None,
-    callback:   SxBuiltinCallback::Primitive(primitive_plus)
-};
-
-static PRIMITIVE_MINUS: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "-",
-    min_arity:  1,
-    max_arity:  None,
-    callback:   SxBuiltinCallback::Primitive(primitive_minus)
-};
-
-static PRIMITIVE_PRODUCT: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "*",
-    min_arity:  0,
-    max_arity:  None,
-    callback:   SxBuiltinCallback::Primitive(primitive_product)
-};
-
-static PRIMITIVE_RANGE: SxBuiltinInfo = SxBuiltinInfo {
-    name:       "range",
-    min_arity:  0,
-    max_arity:  Some(2),
-    callback:   SxBuiltinCallback::Primitive(primitive_range)
-};
 
 fn special_def(env: &mut Env, args: &[Sx]) -> Result {
     let binding = &args[0];
@@ -232,7 +113,7 @@ fn special_fn(env: &mut Env, args: &[Sx]) -> Result {
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg(SPECIAL_FN.name, binding_list.clone()));
+            return Err(Error::BuiltinBadArg("fn", binding_list.clone()));
         }
     }
 }
@@ -261,7 +142,7 @@ fn special_module(env: &mut Env, args: &[Sx]) -> Result {
     let module_name_arg = &args[0];
     let module_name = match module_name_arg {
         Sx::Symbol(module_name) => module_name,
-        _ => return Err(Error::BuiltinBadArg(SPECIAL_MODULE.name, module_name_arg.clone()))
+        _ => return Err(Error::BuiltinBadArg("module", module_name_arg.clone()))
     };
 
     env.loaded_modules.insert(module_name.clone());
@@ -282,7 +163,7 @@ fn special_use(env: &mut Env, args: &[Sx]) -> Result {
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg(SPECIAL_USE.name, module_arg.clone()));
+            return Err(Error::BuiltinBadArg("use", module_arg.clone()));
         }
     }
 }
@@ -301,7 +182,7 @@ fn primitive_apply(env: &mut Env, args: &[Sx]) -> Result {
         }
 
         (Ok(Sx::Builtin(_)), value) => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_APPLY.name, value.clone()));
+            return Err(Error::BuiltinBadArg("apply", value.clone()));
         },
 
         (Ok(v), _) => {
@@ -347,7 +228,7 @@ fn primitive_trace(_env: &mut Env, args: &[Sx]) -> Result {
     let label_arg = &args[0];
     let label = match label_arg {
         Sx::String(s) => s,
-        _ => return Err(Error::BuiltinBadArg(PRIMITIVE_TRACE.name, label_arg.clone()))
+        _ => return Err(Error::BuiltinBadArg("trace", label_arg.clone()))
     };
 
     let value = &args[1];
@@ -377,7 +258,7 @@ fn primitive_cons(_env: &mut Env, args: &[Sx]) -> Result {
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_CONS.name, list_arg.clone()));
+            return Err(Error::BuiltinBadArg("cons", list_arg.clone()));
         }
     }
 }
@@ -393,13 +274,13 @@ fn primitive_head(_env: &mut Env, args: &[Sx]) -> Result {
                 },
 
                 None => {
-                    return Err(Error::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
+                    return Err(Error::BuiltinBadArg("head", list_arg.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_HEAD.name, list_arg.clone()));
+            return Err(Error::BuiltinBadArg("head", list_arg.clone()));
         }
     }
 }
@@ -416,15 +297,48 @@ fn primitive_tail(_env: &mut Env, args: &[Sx]) -> Result {
                 },
 
                 None => {
-                    return Err(Error::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
+                    return Err(Error::BuiltinBadArg("tail", list_arg.clone()));
                 }
             }
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_TAIL.name, list_arg.clone()));
+            return Err(Error::BuiltinBadArg("tail", list_arg.clone()));
         }
     }
+}
+
+// TODO: vectors
+fn primitive_range(_env: &mut Env, args: &[Sx]) -> Result {
+    let mut numbers = im::Vector::new();
+
+    match args[..] {
+        [Sx::Integer(end)] => {
+            for i in 0i64 .. end {
+                numbers.push_back(sx_integer!(i));
+            }
+        },
+
+        [Sx::Integer(start), Sx::Integer(end)] => {
+            for i in start .. end {
+                numbers.push_back(sx_integer!(i));
+            }
+        },
+
+        [ref arg, Sx::Integer(_)] => {
+            return Err(Error::BuiltinBadArg("range", arg.clone()));
+        },
+
+        [_, ref arg] => {
+            return Err(Error::BuiltinBadArg("range", arg.clone()));
+        },
+
+        _ => {
+            assert!(false);
+        }
+    }
+
+    return Ok(Sx::Vector(Arc::new(numbers)));
 }
 
 fn primitive_eq(_env: &mut Env, args: &[Sx]) -> Result {
@@ -459,7 +373,7 @@ fn primitive_plus(_env: &mut Env, args: &[Sx]) -> Result {
             },
 
             _ => {
-                return Err(Error::BuiltinBadArg(PRIMITIVE_PLUS.name, arg.clone()));
+                return Err(Error::BuiltinBadArg("+", arg.clone()));
             }
         }
     }
@@ -490,7 +404,7 @@ fn primitive_minus(_env: &mut Env, args: &[Sx]) -> Result {
                     },
 
                     _ => {
-                        return Err(Error::BuiltinBadArg(PRIMITIVE_MINUS.name, arg.clone()));
+                        return Err(Error::BuiltinBadArg("-", arg.clone()));
                     }
                 }
             }
@@ -500,7 +414,7 @@ fn primitive_minus(_env: &mut Env, args: &[Sx]) -> Result {
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_MINUS.name, diff_arg.clone()));
+            return Err(Error::BuiltinBadArg("-", diff_arg.clone()));
         }
     }
 }
@@ -514,44 +428,11 @@ fn primitive_product(_env: &mut Env, args: &[Sx]) -> Result {
             },
 
             _ => {
-                return Err(Error::BuiltinBadArg(PRIMITIVE_PRODUCT.name, arg.clone()));
+                return Err(Error::BuiltinBadArg("*", arg.clone()));
             }
         }
     }
 
     // TODO: overflow
     return Ok(sx_integer!(product));
-}
-
-// TODO: vectors
-fn primitive_range(_env: &mut Env, args: &[Sx]) -> Result {
-    let mut numbers = im::Vector::new();
-
-    match args[..] {
-        [Sx::Integer(end)] => {
-            for i in 0i64 .. end {
-                numbers.push_back(sx_integer!(i));
-            }
-        },
-
-        [Sx::Integer(start), Sx::Integer(end)] => {
-            for i in start .. end {
-                numbers.push_back(sx_integer!(i));
-            }
-        },
-
-        [ref arg, Sx::Integer(_)] => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
-        },
-
-        [_, ref arg] => {
-            return Err(Error::BuiltinBadArg(PRIMITIVE_RANGE.name, arg.clone()));
-        },
-
-        _ => {
-            assert!(false);
-        }
-    }
-
-    return Ok(Sx::Vector(Arc::new(numbers)));
 }

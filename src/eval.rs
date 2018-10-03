@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use im::{HashMap, HashSet, Vector};
 
-use ::builtin::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
+use ::builtin::core::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
 use ::module;
 use ::read;
 use ::sx::{*};
@@ -33,7 +33,7 @@ impl Env {
 
         for builtin in BUILTIN_TABLE.iter() {
             let symbol = sx_symbol_unwrapped!(builtin.name);
-            let value = Sx::Builtin(*builtin);
+            let value = Sx::Builtin(builtin);
             env.define(&core_module, &symbol, &value);
         }
 

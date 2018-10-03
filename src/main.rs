@@ -8,7 +8,7 @@ extern crate unicode_segmentation;
 #[macro_use] extern crate pretty_assertions;
 
 #[macro_use] mod sx;
-mod builtin;
+#[macro_use] mod builtin;
 mod eval;
 mod init;
 mod module;
