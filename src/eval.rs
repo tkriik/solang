@@ -116,7 +116,7 @@ impl Context {
                     Some((head, args)) => {
                         match self.eval(head) {
                             Ok(Sx::Builtin(builtin)) => {
-                                return apply_builtin(builtin, self, args);
+                                return self.apply_builtin(builtin, args);
                             },
 
                             Ok(Sx::Function(ref f)) => {
@@ -145,6 +145,18 @@ impl Context {
                 }
 
                 return Ok(Sx::Vector(Arc::new(w)));
+            }
+        }
+    }
+
+    pub fn apply_builtin(&mut self, builtin: &SxBuiltinInfo, arglist: &[Sx]) -> Result {
+        match builtin.callback {
+            SxBuiltinCallback::Special(special_fn) => {
+                return apply_special(builtin, special_fn, self, arglist);
+            },
+
+            SxBuiltinCallback::Primitive(primitive_fn) => {
+                return apply_primitive(builtin, primitive_fn, self, arglist);
             }
         }
     }
@@ -183,18 +195,6 @@ pub enum Error {
     ModuleReadErrors(SxSymbol, Vec<read::Error>),
     ModuleEvalErrors(SxSymbol, Vec<Error>),
     ModuleNotLoaded(SxSymbol)
-}
-
-pub fn apply_builtin(builtin: &SxBuiltinInfo, ctx: &mut Context, arglist: &[Sx]) -> Result {
-    match builtin.callback {
-        SxBuiltinCallback::Special(special_fn) => {
-            return apply_special(builtin, special_fn, ctx, arglist);
-        },
-
-        SxBuiltinCallback::Primitive(primitive_fn) => {
-            return apply_primitive(builtin, primitive_fn, ctx, arglist);
-        }
-    }
 }
 
 fn apply_special(builtin: &SxBuiltinInfo, special_fn: SxBuiltinFn, ctx: &mut Context, args: &[Sx]) -> Result {

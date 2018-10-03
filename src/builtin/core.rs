@@ -2,7 +2,7 @@ use std::sync::Arc;
 use im::Vector;
 use time;
 
-use ::eval::{Context, Result, Error, apply_builtin, apply_function};
+use ::eval::{Context, Result, Error, apply_function};
 use ::module;
 use ::sx::{*};
 use ::util::pretty::pretty;
@@ -173,7 +173,7 @@ fn primitive_apply(ctx: &mut Context, args: &[Sx]) -> Result {
     let value = &args[1];
     match (ctx.eval(head), value) {
         (Ok(Sx::Builtin(builtin)), Sx::List(sub_args)) => {
-            return apply_builtin(builtin, ctx, sub_args);
+            return ctx.apply_builtin(builtin, sub_args);
         },
 
         (Ok(Sx::Function(ref f)), Sx::List(sub_args)) => {
