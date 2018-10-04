@@ -8,7 +8,7 @@ use ::module;
 use ::read;
 use ::sx::{*};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Context {
     pub module_paths:   Vector<String>,
     pub current_module: SxSymbol,
@@ -54,15 +54,13 @@ impl Context {
     }
 
     pub fn lookup_core(&self, symbol: &SxSymbol) -> Option<&Sx> {
-        let module = self.core_module.clone();
-        return self.lookup(&module, symbol);
+        return self.lookup(&self.core_module, symbol);
     }
 
     pub fn lookup_current(&self, symbol: &SxSymbol) -> Option<&Sx> {
         return self.lookup(&self.current_module, symbol);
     }
 
-    // TODO: persist sub-context modules and definitions
     // TODO: reduce clone() calls as much as possible
     pub fn eval(self: &mut Context, sx: &Sx) -> Result {
         match sx {

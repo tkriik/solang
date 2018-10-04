@@ -87,7 +87,7 @@ pub fn load_import(ctx: &mut Context, module_name: &SxSymbol) -> Result {
 
     let mut eval_errors = Vec::new();
     for sx in sxs.iter() {
-        match ctx.eval(sx) {
+        match new_ctx.eval(sx) {
             Ok(_)           => (),
             Err(eval_error) => eval_errors.push(eval_error)
         }
