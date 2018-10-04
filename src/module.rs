@@ -24,7 +24,7 @@ pub fn entry_from_symbol(symbol: &SxSymbol) -> Vec<SxSymbol> {
         .collect::<Vec<_>>();
 }
 
-pub fn load_use(ctx: &mut Context, module_name: &SxSymbol) -> Result {
+pub fn load_import(ctx: &mut Context, module_name: &SxSymbol) -> Result {
     if module_name.as_ref() == ctx.current_module.as_ref() {
         return Err(Error::ModuleSelfRefer(module_name.clone()));
     }

@@ -16,7 +16,7 @@ pub fn run(path: &str, interactive: bool) {
     let current_module= sx_symbol_unwrapped!("core");
     let mut ctx = Context::new(&module_paths, &current_module);
 
-    match module::load_use(&mut ctx, &module_name) {
+    match module::load_import(&mut ctx, &module_name) {
         Ok(_) => (),
         Err(eval_error) => println!("failed to run file {}: {}", path, eval_error.to_string())
     }

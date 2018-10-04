@@ -16,7 +16,7 @@ pub static BUILTIN_TABLE: &'static [SxBuiltinInfo] = &[
     special!("if", 3, special_if),
     special!("module", 1, special_module),
     special!("quote", 1, special_quote),
-    special!("use", 1, special_use),
+    special!("import", 1, special_import),
 
     // General
     primitive!("apply", 2, primitive_apply),
@@ -154,15 +154,15 @@ fn special_quote(_ctx: &mut Context, args: &[Sx]) -> Result {
     return Ok(args[0].clone());
 }
 
-fn special_use(ctx: &mut Context, args: &[Sx]) -> Result {
+fn special_import(ctx: &mut Context, args: &[Sx]) -> Result {
     let module_arg = &args[0];
     match module_arg {
         Sx::Symbol(ref module_name) => {
-            return module::load_use(ctx, module_name);
+            return module::load_import(ctx, module_name);
         },
 
         _ => {
-            return Err(Error::BuiltinBadArg("use", module_arg.clone()));
+            return Err(Error::BuiltinBadArg("import", module_arg.clone()));
         }
     }
 }
