@@ -16,7 +16,10 @@ pub static TABLE: &'static [SxBuiltinInfo] = &[
     special!("if", 3, special_if),
     special!("module", 1, special_module),
     special!("quote", 1, special_quote),
+
+    // Modules
     special!("import", 1, special_import),
+    //special!("export", 1, special_export),
 
     // General
     primitive!("apply", 2, primitive_apply),
@@ -141,7 +144,7 @@ fn special_module(ctx: &mut Context, args: &[Sx]) -> Result {
 
     ctx.loaded_modules.insert(module_name.clone());
     ctx.current_module = module_name.clone();
-    ctx.import_core();
+    ctx.load_core();
 
     return Ok(Sx::Symbol(module_name.clone()));
 }

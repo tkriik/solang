@@ -33,12 +33,12 @@ fn main() {
         },
 
         None => {
-            let module_paths = vec![
-                "./".to_string()
-            ];
+            let module_path = "./".to_string();
 
             let current_module = sx_symbol_unwrapped!("repl");
-            let mut ctx = Context::new(&module_paths, &current_module);
+            let mut ctx = Context::new(&current_module);
+            ctx.add_module_path(&module_path);
+            ctx.load_core();
             ctx.import_core();
 
             repl::enter(&mut ctx);

@@ -44,7 +44,7 @@ pub fn load_import(ctx: &mut Context, module_name: &SxSymbol) -> Result {
             },
 
             None => {
-                return Err(Error::ModulePathError(module_path.clone(), module_name.as_ref().clone()));
+                return Err(Error::ModulePathError(module_path.to_string(), module_name.as_ref().clone()));
             }
         }
     }

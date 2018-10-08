@@ -15,9 +15,10 @@ pub struct Context {
     pub current_module: SxModule,
     pub loaded_modules: HashSet<SxModule>,
     pub definitions:    HashMap<(SxModule, SxSymbol), (Sx, Visibility)>,
+    pub core_module:    SxModule
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Visibility {
     Private,
     Public,
@@ -26,27 +27,57 @@ pub enum Visibility {
 }
 
 impl Context {
-    pub fn new(module_paths: &Vec<String>, current_module: &SxSymbol) -> Context {
+    pub fn new(current_module: &SxSymbol) -> Context {
         let core_module = sx_symbol_unwrapped!(core::MODULE_NAME);
 
         let ctx = Context {
-            module_paths:   Vector::from(module_paths),
+            module_paths:   Vector::new(),
             current_module: current_module.clone(),
             loaded_modules: hashset!(core_module.clone(), current_module.clone()),
-            definitions:    hashmap!()
+            definitions:    hashmap!(),
+            core_module:    core_module.clone()
         };
 
         return ctx;
     }
 
-    pub fn import_core(&mut self) {
+    pub fn add_module_path(&mut self, module_path: &String) {
+        if self.module_paths.contains(module_path) {
+            return;
+        }
+
+        self.module_paths.push_back(module_path.clone());
+    }
+
+    pub fn load_core(&mut self) {
         for builtin in core::TABLE.iter() {
-            let module = self.current_module.clone();
+            let module = self.core_module.clone();
             let symbol = sx_symbol_unwrapped!(builtin.name);
             let value = Sx::Builtin(builtin);
-            self.define(&module, &symbol, &value, Visibility::Imported);
+            self.define(&module, &symbol, &value, Visibility::Public);
         }
     }
+
+    pub fn import_core(&mut self) {
+        let mut sub_ctx = self.clone();
+        let current_module = sub_ctx.current_module.clone();
+        for ((module, symbol), (value, visibility)) in self.definitions.iter() {
+            if module == &self.core_module && *visibility == Visibility::Public {
+                sub_ctx.define(&current_module, symbol, value, Visibility::Imported);
+            }
+        }
+
+        *self = sub_ctx;
+    }
+
+    //pub fn switch_module(&mut self, module: &SxModule) {
+    //    if self.loaded_modules.contains(module) {
+    //        return;
+    //    }
+    //
+    //    self.loaded_modules.insert(module.clone());
+    //    self.import_core();
+    //}
 
     pub fn define(&mut self, module: &SxSymbol, symbol: &SxSymbol, value: &Sx, visibility: Visibility) {
         self.definitions.insert((module.clone(), symbol.clone()), (value.clone(), visibility));
@@ -383,13 +414,13 @@ pub mod tests {
     }
 
     fn mk_test_ctx() -> Context {
-        let module_paths = vec![
-            "./resources/test/eval".to_string()
-        ];
+        let module_path = "./resources/test/eval".to_string();
 
         let current_module = sx_symbol_unwrapped!("test-eval");
 
-        let mut ctx = Context::new(&module_paths, &current_module);
+        let mut ctx = Context::new(&current_module);
+        ctx.add_module_path(&module_path);
+        ctx.load_core();
         ctx.import_core();
 
         return ctx;
