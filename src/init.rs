@@ -6,7 +6,7 @@ use ::module;
 use ::repl;
 
 pub fn run(path: &str, interactive: bool) {
-    let module_name = module::from_filename(path);
+    let module_name = module::filename_to_name(path);
 
     let module_path = Path::new(path).parent().expect("failed to read module path parent");
     let module_paths = vec![
@@ -15,6 +15,7 @@ pub fn run(path: &str, interactive: bool) {
 
     let current_module= sx_symbol_unwrapped!("core");
     let mut ctx = Context::new(&module_paths, &current_module);
+    ctx.import_core();
 
     match module::load_import(&mut ctx, &module_name) {
         Ok(_) => (),

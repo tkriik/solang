@@ -2,14 +2,14 @@ use std::sync::Arc;
 use im::Vector;
 use time;
 
-use ::eval::{Context, Result, Error};
+use ::eval::{Context, Visibility, Result, Error};
 use ::module;
 use ::sx::{*};
 use ::util::pretty::pretty;
 
-pub static BUILTIN_MODULE_NAME: &'static str = "core";
+pub static MODULE_NAME: &'static str = "core";
 
-pub static BUILTIN_TABLE: &'static [SxBuiltinInfo] = &[
+pub static TABLE: &'static [SxBuiltinInfo] = &[
     // Specials
     special!("def", 2, special_def),
     special_no_arg_limit!("fn", 2, special_fn),
@@ -42,17 +42,12 @@ fn special_def(ctx: &mut Context, args: &[Sx]) -> Result {
     let binding = &args[0];
     match binding {
         Sx::Symbol(ref symbol) => {
-            match ctx.lookup_core(symbol) {
-                Some(_) => return Err(Error::RedefineCore(symbol.clone())),
-                None    => ()
-            }
-
             match ctx.lookup_current(symbol) {
                 None => {
                     let value = &args[1];
                     match ctx.eval(value) {
                         Ok(result) => {
-                            ctx.define_current(symbol, &result);
+                            ctx.define_current(symbol, &result, Visibility::Private);
                             return Ok(binding.clone());
                         },
 
@@ -146,6 +141,7 @@ fn special_module(ctx: &mut Context, args: &[Sx]) -> Result {
 
     ctx.loaded_modules.insert(module_name.clone());
     ctx.current_module = module_name.clone();
+    ctx.import_core();
 
     return Ok(Sx::Symbol(module_name.clone()));
 }
@@ -209,8 +205,13 @@ fn primitive_context(ctx: &mut Context, _args: &[Sx]) -> Result {
     }
 
     let mut ctx_list = Vec::new();
-    for ((module, symbol), value) in ctx.definitions.iter() {
-        ctx_list.push(sx_vector![Sx::Symbol(module.clone()), Sx::Symbol(symbol.clone()), value.clone()]);
+    for ((module, symbol), (value, visibility)) in ctx.definitions.iter() {
+        ctx_list.push(sx_vector![
+            Sx::Symbol(module.clone()),
+            Sx::Symbol(symbol.clone()),
+            value.clone(),
+            sx_string!(visibility.to_string())
+        ]);
     }
 
     return Ok(sx_vector![

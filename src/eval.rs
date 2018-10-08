@@ -1,75 +1,74 @@
 use std::result;
+use std::fmt;
+use std::fmt::Display;
 use std::sync::Arc;
 
 use im::{HashMap, HashSet, Vector};
 
-use ::builtin::core::{BUILTIN_MODULE_NAME, BUILTIN_TABLE};
-use ::module;
+use ::builtin::core;
 use ::read;
 use ::sx::{*};
 
 #[derive(Clone, Debug)]
 pub struct Context {
     pub module_paths:   Vector<String>,
-    pub current_module: SxSymbol,
-    pub loaded_modules: HashSet<SxSymbol>,
-    pub definitions:    HashMap<(SxSymbol, SxSymbol), Sx>,
+    pub current_module: SxModule,
+    pub loaded_modules: HashSet<SxModule>,
+    pub definitions:    HashMap<(SxModule, SxSymbol), (Sx, Visibility)>,
+}
 
-    pub core_module:    SxSymbol
+#[derive(Clone, Debug)]
+pub enum Visibility {
+    Private,
+    Public,
+    Imported,
+    Local
 }
 
 impl Context {
     pub fn new(module_paths: &Vec<String>, current_module: &SxSymbol) -> Context {
-        let core_module = sx_symbol_unwrapped!(BUILTIN_MODULE_NAME);
+        let core_module = sx_symbol_unwrapped!(core::MODULE_NAME);
 
-        let mut ctx = Context {
+        let ctx = Context {
             module_paths:   Vector::from(module_paths),
             current_module: current_module.clone(),
             loaded_modules: hashset!(core_module.clone(), current_module.clone()),
-            definitions:    hashmap!(),
-
-            core_module:    core_module.clone()
+            definitions:    hashmap!()
         };
-
-        for builtin in BUILTIN_TABLE.iter() {
-            let symbol = sx_symbol_unwrapped!(builtin.name);
-            let value = Sx::Builtin(builtin);
-            ctx.define(&core_module, &symbol, &value);
-        }
 
         return ctx;
     }
 
-    pub fn define(&mut self, module: &SxSymbol, symbol: &SxSymbol, value: &Sx) {
-        self.definitions.insert((module.clone(), symbol.clone()), value.clone());
+    pub fn import_core(&mut self) {
+        for builtin in core::TABLE.iter() {
+            let module = self.current_module.clone();
+            let symbol = sx_symbol_unwrapped!(builtin.name);
+            let value = Sx::Builtin(builtin);
+            self.define(&module, &symbol, &value, Visibility::Imported);
+        }
     }
 
-    pub fn define_current(&mut self, symbol: &SxSymbol, value: &Sx) {
+    pub fn define(&mut self, module: &SxSymbol, symbol: &SxSymbol, value: &Sx, visibility: Visibility) {
+        self.definitions.insert((module.clone(), symbol.clone()), (value.clone(), visibility));
+    }
+
+    pub fn define_current(&mut self, symbol: &SxSymbol, value: &Sx, visibility: Visibility) {
         let module = self.current_module.clone();
-        self.define(&module, symbol, value);
+        self.define(&module, symbol, value, visibility);
     }
 
-    pub fn lookup(&self, module: &SxSymbol, symbol: &SxSymbol) -> Option<&Sx> {
+    pub fn lookup(&self, module: &SxSymbol, symbol: &SxSymbol) -> Option<&(Sx, Visibility)> {
         return self.definitions.get(&(module.clone(), symbol.clone()));
     }
 
-    pub fn lookup_core(&self, symbol: &SxSymbol) -> Option<&Sx> {
-        return self.lookup(&self.core_module, symbol);
-    }
-
-    pub fn lookup_current(&self, symbol: &SxSymbol) -> Option<&Sx> {
+    pub fn lookup_current(&self, symbol: &SxSymbol) -> Option<&(Sx, Visibility)> {
         return self.lookup(&self.current_module, symbol);
     }
 
     // TODO: reduce clone() calls as much as possible
     pub fn eval(self: &mut Context, sx: &Sx) -> Result {
         match sx {
-            Sx::Nil         |
-            Sx::Boolean(_)  |
-            Sx::Integer(_)  |
-            Sx::String(_)   |
-            Sx::Builtin(_)  |
-            Sx::Function(_) => {
+            Sx::Nil | Sx::Boolean(_) | Sx::Integer(_) | Sx::String(_) | Sx::Builtin(_) | Sx::Function(_) => {
                 return Ok(sx.clone());
             },
 
@@ -78,32 +77,9 @@ impl Context {
             },
 
             Sx::Symbol(ref symbol) => {
-                let mut effective_module = self.core_module.clone();
-                let mut effective_symbol = symbol.clone();
-
-                match module::entry_from_symbol(symbol)[..] {
-                    [ref other_module, ref sub_symbol] => {
-                        effective_module = other_module.clone();
-                        effective_symbol = sub_symbol.clone();
-                    },
-
-                    [_] => (),
-
-                    _ => return Err(Error::SymbolBadModuleFormat(symbol.clone()))
-                }
-
-                if !self.loaded_modules.contains(&effective_module) {
-                    return Err(Error::ModuleNotLoaded(effective_module.clone()));
-                }
-
-                match self.lookup(&effective_module, &effective_symbol) {
-                    Some(value) => return Ok(value.clone()),
-                    None        => ()
-                }
-
-                match self.lookup_current(symbol) {
-                    Some(value) => return Ok(value.clone()),
-                    None        => return Err(Error::Undefined(symbol.clone()))
+                match self.lookup(&self.current_module, symbol) {
+                    Some((value, _)) => return Ok(value.clone()),
+                    None => return Err(Error::Undefined(symbol.clone()))
                 }
             },
 
@@ -215,7 +191,7 @@ impl Context {
         sub_ctx.current_module = f.module.clone();
         for (binding, sx) in f.bindings.iter().zip(args.iter()) {
             match self.eval(sx) {
-                Ok(ref result) => sub_ctx.define_current(binding, result),
+                Ok(ref result) => sub_ctx.define_current(binding, result, Visibility::Local),
                 error @ Err(_) => return error
             }
         }
@@ -234,15 +210,24 @@ impl Context {
 
 }
 
+impl Display for Visibility {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Visibility::Public => f.write_str("public"),
+            Visibility::Private => f.write_str("private"),
+            Visibility::Imported => f.write_str("imported"),
+            Visibility::Local => f.write_str("local")
+        }
+    }
+}
+
 pub type Result = result::Result<Sx, Error>;
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum Error {
     Undefined(SxSymbol),
     Redefine(SxSymbol),
-    RedefineCore(SxSymbol),
     DefineBadSymbol(Sx),
-    SymbolBadModuleFormat(SxSymbol),
 
     NotAFunction(Sx),
     InvalidBinding(Sx),
@@ -264,8 +249,7 @@ pub enum Error {
     ModuleIoOpenError(SxSymbol, String),
     ModuleIoReadError(SxSymbol, String),
     ModuleReadErrors(SxSymbol, Vec<read::Error>),
-    ModuleEvalErrors(SxSymbol, Vec<Error>),
-    ModuleNotLoaded(SxSymbol)
+    ModuleEvalErrors(SxSymbol, Vec<Error>)
 }
 
 impl ToString for Error {
@@ -279,16 +263,8 @@ impl ToString for Error {
                 return format!("cannot redefine symbol {}", symbol.to_string());
             }
 
-            Error::RedefineCore(symbol) => {
-                return format!("cannot redefine core symbol {}", symbol.to_string());
-            }
-
             Error::DefineBadSymbol(sx) => {
                 return format!("first argument to def must be a symbol, got {}", sx.to_string());
-            }
-
-            Error::SymbolBadModuleFormat(symbol) => {
-                return format!("badly formatted symbol {}, expected something like my-module/my-val", symbol.clone());
             }
 
             Error::NotAFunction(sx) => {
@@ -366,10 +342,6 @@ impl ToString for Error {
 
                 return s;
             }
-
-            Error::ModuleNotLoaded(module_name) => {
-                return format!("module {} is not loaded", module_name);
-            }
         }
     }
 }
@@ -417,7 +389,10 @@ pub mod tests {
 
         let current_module = sx_symbol_unwrapped!("test-eval");
 
-        return Context::new(&module_paths, &current_module);
+        let mut ctx = Context::new(&module_paths, &current_module);
+        ctx.import_core();
+
+        return ctx;
     }
 
     #[test]

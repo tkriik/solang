@@ -8,20 +8,12 @@ use ::eval::{Context, Result, Error};
 use ::read::read;
 use ::sx::{Sx, SxSymbol};
 
-pub fn from_filename(filename: &str) -> SxSymbol {
+pub fn filename_to_name(filename: &str) -> SxSymbol {
     let stem = Path::new(filename)
         .file_stem().expect("invalid filename")
         .to_str().expect("invalid path");
 
     return sx_symbol_unwrapped!(stem.to_string());
-}
-
-pub fn entry_from_symbol(symbol: &SxSymbol) -> Vec<SxSymbol> {
-    return symbol
-        .as_ref()
-        .split('/')
-        .map(|x| sx_symbol_unwrapped!(x))
-        .collect::<Vec<_>>();
 }
 
 pub fn load_import(ctx: &mut Context, module_name: &SxSymbol) -> Result {
@@ -108,16 +100,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_from_filename_flat() {
+    fn test_filename_to_name_flat() {
         let exp = sx_symbol_unwrapped!("foo-module");
-        let act = from_filename("foo-module.sol");
-        assert_eq!(exp, act);
-    }
-
-    #[test]
-    fn test_entry_from_symbol_flat() {
-        let exp = vec![sx_symbol_unwrapped!("foo"), sx_symbol_unwrapped!("fooval")];
-        let act = entry_from_symbol(&sx_symbol_unwrapped!("foo/fooval"));
+        let act = filename_to_name("foo-module.sol");
         assert_eq!(exp, act);
     }
 }

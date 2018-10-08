@@ -25,6 +25,7 @@ pub type SxBoolean      = bool;
 pub type SxInteger      = i64;
 pub type SxString       = Arc<String>;
 pub type SxSymbol       = Arc<String>;
+pub type SxModule       = SxSymbol;
 pub type SxList         = Arc<Vec<Sx>>;
 pub type SxVector       = Arc<Vector<Sx>>;
 pub type SxQuote        = Arc<Sx>;

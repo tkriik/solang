@@ -27,7 +27,6 @@ fn main() {
 
     let interactive = matches.is_present("interactive");
 
-
     match matches.value_of("INPUT") {
         Some(input) => {
             init::run(input, interactive);
@@ -40,6 +39,8 @@ fn main() {
 
             let current_module = sx_symbol_unwrapped!("repl");
             let mut ctx = Context::new(&module_paths, &current_module);
+            ctx.import_core();
+
             repl::enter(&mut ctx);
         }
     }
